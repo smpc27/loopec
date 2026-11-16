@@ -1,19 +1,19 @@
 "use client";
 
-import { useState, useRef } from "react";
-import Link from "next/link";
+import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import {
-  ArrowRight,
   GraduationCap,
-  Building2,
+  ShieldCheck,
+  Sparkles,
+  ChevronDown,
   Mail,
   Lock,
   Eye,
   EyeOff,
-  CheckCircle2,
-  AlertCircle,
   Loader2,
+  ArrowRight,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { labelClassName } from "@/components/auth/auth-shell";
@@ -27,13 +27,13 @@ type CollegeSignInFormProps = {
   showDevHelpers?: boolean;
 };
 
-function SubmitButton({ label = "Sign in to LOOPEC" }: { label?: string }) {
+function PasswordSubmitButton() {
   const { pending } = useFormStatus();
 
   return (
     <Button
       className="w-full font-semibold transition-all duration-200"
-      size="lg"
+      size="md"
       type="submit"
       disabled={pending}
     >
@@ -44,7 +44,7 @@ function SubmitButton({ label = "Sign in to LOOPEC" }: { label?: string }) {
         </>
       ) : (
         <>
-          <span>{label}</span>
+          <span>Sign in with password</span>
           <ArrowRight className="h-4 w-4" />
         </>
       )}
@@ -58,233 +58,140 @@ export function CollegeSignInForm({
   collegeDomain = "nitc.ac.in",
   showDevHelpers = process.env.NODE_ENV === "development",
 }: CollegeSignInFormProps) {
-  const [role, setRole] = useState<"student" | "faculty">("student");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [showDevPanel, setShowDevPanel] = useState(false);
-  const passwordInputRef = useRef<HTMLInputElement>(null);
+  const [showStaffLogin, setShowStaffLogin] = useState(false);
 
   const cleanDomain = collegeDomain.trim().toLowerCase();
-  const trimmedEmail = email.trim().toLowerCase();
-  const hasAt = trimmedEmail.includes("@");
-  const emailDomain = hasAt ? trimmedEmail.split("@").at(-1) : "";
-  const isDomainValid = hasAt && emailDomain === cleanDomain;
-  const isExternalDomain = hasAt && emailDomain !== cleanDomain && emailDomain !== "";
-
-  // Roll number prompt: student typed roll without domain e.g. "b210045cs"
-  const canSuggestDomain = trimmedEmail.length > 2 && !hasAt;
-
-  const handleAppendDomain = () => {
-    setEmail(`${trimmedEmail}@${cleanDomain}`);
-    passwordInputRef.current?.focus();
-  };
-
-  const fillDemoAccount = (demoEmail: string, demoPass: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
-    setShowDevPanel(false);
-  };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between text-xs text-[#736c7c]">
-        <span>Campus Portal</span>
-        <span className="font-semibold text-violet-950">{collegeName}</span>
+      {/* Campus Institution Tag */}
+      <div className="flex items-center justify-between rounded-xl bg-violet-50/80 px-3.5 py-2.5 text-xs text-violet-950 border border-violet-100">
+        <span className="flex items-center gap-1.5 font-medium">
+          <GraduationCap className="h-4 w-4 text-violet-700" />
+          <span>{collegeName}</span>
+        </span>
+        <span className="font-bold text-violet-800">@{cleanDomain}</span>
       </div>
 
-      {/* Role Switcher */}
-      <div className="flex rounded-xl bg-violet-50/70 p-1 border border-violet-100">
-        <button
-          type="button"
-          onClick={() => setRole("student")}
-          className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-semibold transition ${
-            role === "student"
-              ? "bg-white text-violet-950 shadow-sm"
-              : "text-violet-700/70 hover:text-violet-950"
-          }`}
-        >
-          <GraduationCap className="h-4 w-4" />
-          <span>Student Portal</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setRole("faculty")}
-          className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-semibold transition ${
-            role === "faculty"
-              ? "bg-white text-violet-950 shadow-sm"
-              : "text-violet-700/70 hover:text-violet-950"
-          }`}
-        >
-          <Building2 className="h-4 w-4" />
-          <span>Faculty & Staff</span>
-        </button>
-      </div>
-
-      {/* 1-Click NITC Google Sign-In */}
-      <div className="space-y-3 pt-1">
-        <GoogleSignInButton nextPath={nextPath} label="Sign in with NITC Google Account" />
-        <div className="relative flex items-center justify-center">
-          <div className="w-full border-t border-gray-200" />
-          <span className="bg-[#fcfbf9] px-3 text-xs uppercase tracking-wider text-gray-400">
-            Or sign in with email & password
-          </span>
-        </div>
-      </div>
-
-      <form action={signIn} className="space-y-4">
-        <input type="hidden" name="next" value={nextPath} />
-
-        {/* Email Field */}
-        <div>
-          <label className={labelClassName} htmlFor="college-email-input">
-            College email address
-          </label>
-          <div className="relative mt-2">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400">
-              <Mail className="h-4 w-4" />
-            </div>
-            <input
-              id="college-email-input"
-              className="min-h-12 w-full rounded-xl border border-[#e4e0e8] bg-white pl-10 pr-3.5 text-sm text-[#28232f] outline-none transition placeholder:text-[#aaa4af] focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
-              name="email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={
-                role === "student"
-                  ? `rollnumber@${cleanDomain}`
-                  : `faculty@${cleanDomain}`
-              }
-              required
-            />
-          </div>
-
-          {/* Quick Domain Suggestion Chip */}
-          {canSuggestDomain && (
-            <div className="mt-2 flex items-center gap-2">
-              <span className="text-xs text-gray-500">Quick add:</span>
-              <button
-                type="button"
-                onClick={handleAppendDomain}
-                className="inline-flex items-center gap-1 rounded-full border border-violet-300 bg-violet-50 px-2.5 py-0.5 text-xs font-medium text-violet-800 transition hover:bg-violet-100"
-              >
-                <span>+{`@${cleanDomain}`}</span>
-              </button>
-            </div>
-          )}
-
-          {/* Real-time Domain Feedback */}
-          {isDomainValid && (
-            <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-600">
-              <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-              <span>Valid NIT Calicut institutional domain</span>
-            </div>
-          )}
-
-          {isExternalDomain && (
-            <div className="mt-2 flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 rounded-lg p-2 border border-amber-200">
-              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-              <span>
-                Campus login is reserved for <strong>@{cleanDomain}</strong> email addresses.
-              </span>
-            </div>
-          )}
-
-          <p className="mt-1.5 text-xs text-gray-500">
-            {role === "student"
-              ? "Use your official NITC roll email (e.g., b210045cs@nitc.ac.in)"
-              : "Use your official department faculty webmail"}
+      {/* Main 1-Click Google Sign-In Section */}
+      <div className="rounded-2xl border border-violet-100 bg-white p-5 shadow-sm space-y-4">
+        <div className="text-center space-y-1">
+          <h2 className="text-base font-bold text-gray-900">Sign in with your College ID</h2>
+          <p className="text-xs text-gray-500">
+            Click below to log in instantly with your official NITC college email address.
           </p>
         </div>
 
-        {/* Password Field */}
-        <div>
-          <div className="flex items-center justify-between">
-            <label className={labelClassName} htmlFor="college-password-input">
-              Password
-            </label>
-            <Link
-              className="text-xs font-semibold text-violet-800 hover:text-violet-950"
-              href="/auth/forgot-password"
-            >
-              Forgot password?
-            </Link>
-          </div>
-          <div className="relative mt-2">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400">
-              <Lock className="h-4 w-4" />
-            </div>
-            <input
-              id="college-password-input"
-              ref={passwordInputRef}
-              className="min-h-12 w-full rounded-xl border border-[#e4e0e8] bg-white pl-10 pr-10 text-sm text-[#28232f] outline-none transition placeholder:text-[#aaa4af] focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
-              name="password"
-              type={showPassword ? "text" : "password"}
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••••••"
-              required
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-400 hover:text-gray-600"
-              aria-label={showPassword ? "Hide password" : "Show password"}
-            >
-              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
-          </div>
-        </div>
+        {/* Big Prominent Google Button */}
+        <GoogleSignInButton
+          nextPath={nextPath || "/marketplace"}
+          label="Continue with Google"
+        />
 
-        {/* Submit Button */}
-        <div className="pt-2">
-          <SubmitButton label="Sign in to LOOPEC" />
-        </div>
-      </form>
-
-      {showDevHelpers && (
-        <div className="rounded-xl border border-dashed border-violet-200 bg-violet-50/50 p-3 text-xs">
-          <div className="flex items-center justify-between">
-            <span className="font-semibold text-violet-900">Developer Demo Accounts</span>
-            <button
-              type="button"
-              onClick={() => setShowDevPanel(!showDevPanel)}
-              className="text-[11px] font-semibold text-violet-700 underline"
-            >
-              {showDevPanel ? "Hide" : "Quick Fill"}
-            </button>
+        {/* Trust Badges */}
+        <div className="pt-2 border-t border-gray-100 space-y-2 text-xs text-gray-600">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+            <span>Instant access — <strong>no passwords</strong> or OTPs to enter</span>
           </div>
-          {showDevPanel && (
-            <div className="mt-2.5 flex flex-wrap gap-2 border-t border-violet-100 pt-2">
-              <button
-                type="button"
-                onClick={() => fillDemoAccount("student@nitc.ac.in", "Password1234!")}
-                className="rounded-lg border border-violet-200 bg-white px-2.5 py-1 text-[11px] font-medium text-violet-950 shadow-xs hover:bg-violet-50"
-              >
-                Student Demo
-              </button>
-              <button
-                type="button"
-                onClick={() => fillDemoAccount("faculty@nitc.ac.in", "Password1234!")}
-                className="rounded-lg border border-violet-200 bg-white px-2.5 py-1 text-[11px] font-medium text-violet-950 shadow-xs hover:bg-violet-50"
-              >
-                Faculty Demo
-              </button>
-              <button
-                type="button"
-                onClick={() => fillDemoAccount("admin@nitc.ac.in", "Password1234!")}
-                className="rounded-lg border border-violet-200 bg-white px-2.5 py-1 text-[11px] font-medium text-violet-950 shadow-xs hover:bg-violet-50"
-              >
-                Admin Demo
-              </button>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-violet-600 shrink-0" />
+            <span>Restricted exclusively to verified <strong>@{cleanDomain}</strong> peers</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-amber-500 shrink-0" />
+            <span>Buyer protection & campus hostel handover points active</span>
+          </div>
         </div>
-      )}
+      </div>
+
+      {/* Collapsible Staff / Developer Alternate Login */}
+      <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/50 p-3 text-xs">
+        <button
+          type="button"
+          onClick={() => setShowStaffLogin(!showStaffLogin)}
+          className="flex w-full items-center justify-between text-left text-gray-500 hover:text-gray-800 transition py-0.5"
+        >
+          <span className="font-medium">Staff & Developer Password Sign-In</span>
+          <ChevronDown
+            className={`h-4 w-4 transition-transform duration-200 ${
+              showStaffLogin ? "rotate-180" : ""
+            }`}
+          />
+        </button>
+
+        {showStaffLogin && (
+          <form action={signIn} className="mt-3 space-y-3 border-t border-gray-200 pt-3">
+            <input type="hidden" name="next" value={nextPath} />
+
+            <div>
+              <label className={labelClassName} htmlFor="staff-email">
+                Email
+              </label>
+              <div className="relative mt-1">
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <input
+                  id="staff-email"
+                  className="min-h-10 w-full rounded-lg border border-gray-200 bg-white pl-9 pr-3 text-xs outline-none focus:border-violet-500"
+                  name="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={`admin@${cleanDomain}`}
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className={labelClassName} htmlFor="staff-password">
+                Password
+              </label>
+              <div className="relative mt-1">
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <input
+                  id="staff-password"
+                  className="min-h-10 w-full rounded-lg border border-gray-200 bg-white pl-9 pr-9 text-xs outline-none focus:border-violet-500"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••••••"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2.5 top-2.5 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            <PasswordSubmitButton />
+
+            {showDevHelpers && (
+              <div className="flex gap-2 pt-1 text-[11px] text-gray-500">
+                <span>Demo fill:</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail(`b261175ee@${cleanDomain}`);
+                    setPassword("CampusPilot@2026!");
+                  }}
+                  className="font-semibold text-violet-700 underline"
+                >
+                  Student (B26)
+                </button>
+              </div>
+            )}
+          </form>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { connection } from "next/server";
 import { AuthShell, FormNotice } from "@/components/auth/auth-shell";
 import { CollegeTrustShowcase } from "@/components/auth/college-trust-showcase";
 import { CollegeSignUpForm } from "@/components/auth/college-sign-up-form";
@@ -10,6 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 export const instant = false;
 
 export default async function SignUpPage({ searchParams }: PageProps<"/auth/sign-up">) {
+  await connection();
   const { error } = await searchParams;
   const errorCode = Array.isArray(error) ? error[0] : error;
 
@@ -51,8 +53,8 @@ export default async function SignUpPage({ searchParams }: PageProps<"/auth/sign
     <AuthShell
       eyebrow="Join your campus"
       title="Create your account"
-      description="Use your college email to begin. We’ll confirm the email before you submit your campus ID for review."
-      campusBadge="NITC Registration Open"
+      description="Join the closed-loop NITC marketplace instantly with your official Google account."
+      campusBadge="NITC Google SSO Active"
       sidebar={
         <CollegeTrustShowcase
           collegeName={singleCollege?.name ?? "National Institute of Technology Calicut"}

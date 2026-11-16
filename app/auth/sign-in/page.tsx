@@ -40,8 +40,8 @@ export default async function SignInPage({ searchParams }: PageProps<"/auth/sign
     <AuthShell
       eyebrow="Campus Authentication"
       title="Sign in to LOOPEC"
-      description="Use the college email address connected to your account."
-      campusBadge="NITC Exclusive Portal"
+      description="1-Click campus authentication with your official NITC Google account."
+      campusBadge="NITC Google SSO Active"
       sidebar={
         <CollegeTrustShowcase
           collegeName={collegeName}

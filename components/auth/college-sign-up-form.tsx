@@ -1,18 +1,21 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import {
-  ArrowRight,
+  GraduationCap,
+  ShieldCheck,
+  Sparkles,
+  ChevronDown,
   Mail,
   Lock,
   User,
   Eye,
   EyeOff,
-  CheckCircle2,
-  AlertCircle,
   Building2,
   Loader2,
+  ArrowRight,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { labelClassName } from "@/components/auth/auth-shell";
@@ -29,24 +32,24 @@ type CollegeSignUpFormProps = {
   colleges: College[];
 };
 
-function SubmitButton() {
+function ManualSignUpSubmitButton() {
   const { pending } = useFormStatus();
 
   return (
     <Button
       className="w-full font-semibold transition-all duration-200"
-      size="lg"
+      size="md"
       type="submit"
       disabled={pending}
     >
       {pending ? (
         <>
           <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Creating your account...</span>
+          <span>Registering...</span>
         </>
       ) : (
         <>
-          <span>Create campus account</span>
+          <span>Create account with password</span>
           <ArrowRight className="h-4 w-4" />
         </>
       )}
@@ -59,219 +62,159 @@ export function CollegeSignUpForm({ colleges }: CollegeSignUpFormProps) {
   const [selectedCollegeId, setSelectedCollegeId] = useState<string>(
     defaultCollege?.id ?? ""
   );
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const passwordRef = useRef<HTMLInputElement>(null);
+  const [showManualForm, setShowManualForm] = useState(false);
 
   const selectedCollege =
     colleges.find((c) => c.id === selectedCollegeId) ?? defaultCollege;
   const primaryDomain = selectedCollege?.email_domains?.[0]?.trim().toLowerCase() ?? "nitc.ac.in";
 
-  const trimmedEmail = email.trim().toLowerCase();
-  const hasAt = trimmedEmail.includes("@");
-  const emailDomain = hasAt ? trimmedEmail.split("@").at(-1) : "";
-  const isDomainValid =
-    hasAt &&
-    (selectedCollege?.email_domains ?? []).some(
-      (d) => d.trim().toLowerCase() === emailDomain
-    );
-  const isExternalDomain = hasAt && !isDomainValid && emailDomain !== "";
-
-  // Roll number helper
-  const canSuggestDomain = trimmedEmail.length > 2 && !hasAt;
-
-  const handleAppendDomain = () => {
-    setEmail(`${trimmedEmail}@${primaryDomain}`);
-    passwordRef.current?.focus();
-  };
-
   return (
-    <div className="space-y-4">
-      {/* 1-Click NITC Google Sign-Up */}
-      <div className="space-y-3">
-        <GoogleSignInButton label="Sign up with NITC Google Account" />
-        <div className="relative flex items-center justify-center">
-          <div className="w-full border-t border-gray-200" />
-          <span className="bg-[#fcfbf9] px-3 text-xs uppercase tracking-wider text-gray-400">
-            Or register with password
-          </span>
-        </div>
-      </div>
-
-      <form action={signUp} className="space-y-4">
-      {/* Full Name */}
-      <div>
-        <label className={labelClassName} htmlFor="full-name-input">
-          Full name
-        </label>
-        <div className="relative mt-2">
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400">
-            <User className="h-4 w-4" />
-          </div>
-          <input
-            id="full-name-input"
-            className="min-h-12 w-full rounded-xl border border-[#e4e0e8] bg-white pl-10 pr-3.5 text-sm text-[#28232f] outline-none transition placeholder:text-[#aaa4af] focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
-            name="full_name"
-            autoComplete="name"
-            minLength={2}
-            maxLength={120}
-            placeholder="e.g., Rohit Sharma"
-            required
-          />
-        </div>
-      </div>
-
-      {/* College Selection */}
-      <div>
-        <label className={labelClassName} htmlFor="college-select">
-          Campus / Institution
-        </label>
-        <div className="relative mt-2">
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400">
-            <Building2 className="h-4 w-4" />
-          </div>
-          <select
-            id="college-select"
-            className="min-h-12 w-full rounded-xl border border-[#e4e0e8] bg-white pl-10 pr-3.5 text-sm text-[#28232f] outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100 appearance-none font-medium"
-            name="college_id"
-            value={selectedCollegeId}
-            onChange={(e) => setSelectedCollegeId(e.target.value)}
-            required
-          >
-            {colleges.map((college) => (
-              <option key={college.id} value={college.id}>
-                {college.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <p className="mt-1 text-xs text-violet-700 font-medium">
-          Locked to verified college domain: @{primaryDomain}
-        </p>
-      </div>
-
-      {/* College Email */}
-      <div>
-        <label className={labelClassName} htmlFor="signup-email-input">
-          College email address
-        </label>
-        <div className="relative mt-2">
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400">
-            <Mail className="h-4 w-4" />
-          </div>
-          <input
-            id="signup-email-input"
-            className="min-h-12 w-full rounded-xl border border-[#e4e0e8] bg-white pl-10 pr-3.5 text-sm text-[#28232f] outline-none transition placeholder:text-[#aaa4af] focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
-            name="email"
-            type="email"
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder={`rollnumber@${primaryDomain}`}
-            required
-          />
-        </div>
-
-        {/* Quick Domain Suggestion */}
-        {canSuggestDomain && (
-          <div className="mt-2 flex items-center gap-2">
-            <span className="text-xs text-gray-500">Quick add:</span>
-            <button
-              type="button"
-              onClick={handleAppendDomain}
-              className="inline-flex items-center gap-1 rounded-full border border-violet-300 bg-violet-50 px-2.5 py-0.5 text-xs font-medium text-violet-800 transition hover:bg-violet-100"
-            >
-              <span>+{`@${primaryDomain}`}</span>
-            </button>
-          </div>
-        )}
-
-        {/* Real-time Domain Feedback */}
-        {isDomainValid && (
-          <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-600">
-            <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-            <span>Valid {selectedCollege?.name} webmail address</span>
-          </div>
-        )}
-
-        {isExternalDomain && (
-          <div className="mt-2 flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 rounded-lg p-2 border border-amber-200">
-            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-            <span>
-              Registration is restricted to <strong>@{primaryDomain}</strong> email addresses.
-            </span>
-          </div>
-        )}
-
-        <span className="mt-1.5 block text-xs font-normal text-[#87818c]">
-          Use your official college email. We will send a secure confirmation link to verify enrollment.
+    <div className="space-y-6">
+      {/* Institution Header Tag */}
+      <div className="flex items-center justify-between rounded-xl bg-violet-50/80 px-3.5 py-2.5 text-xs text-violet-950 border border-violet-100">
+        <span className="flex items-center gap-1.5 font-medium">
+          <GraduationCap className="h-4 w-4 text-violet-700" />
+          <span>{selectedCollege?.name ?? "National Institute of Technology Calicut"}</span>
         </span>
+        <span className="font-bold text-violet-800">@{primaryDomain}</span>
       </div>
 
-      {/* Password */}
-      <div>
-        <label className={labelClassName} htmlFor="signup-password-input">
-          Password
-        </label>
-        <div className="relative mt-2">
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400">
-            <Lock className="h-4 w-4" />
+      {/* Primary 1-Click Google Sign-Up Card */}
+      <div className="rounded-2xl border border-violet-100 bg-white p-5 shadow-sm space-y-4">
+        <div className="text-center space-y-1">
+          <h2 className="text-base font-bold text-gray-900">Create Account with NITC Google ID</h2>
+          <p className="text-xs text-gray-500">
+            No registration forms or email OTPs required. Authenticate directly with your college Google account.
+          </p>
+        </div>
+
+        {/* Big Google Button */}
+        <GoogleSignInButton
+          nextPath="/marketplace"
+          label="Sign up with Google"
+        />
+
+        {/* Verified Features */}
+        <div className="pt-2 border-t border-gray-100 space-y-2 text-xs text-gray-600">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+            <span>Zero email confirmation delay — <strong>Instant Onboarding</strong></span>
           </div>
-          <input
-            id="signup-password-input"
-            ref={passwordRef}
-            className="min-h-12 w-full rounded-xl border border-[#e4e0e8] bg-white pl-10 pr-10 text-sm text-[#28232f] outline-none transition placeholder:text-[#aaa4af] focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
-            name="password"
-            type={showPassword ? "text" : "password"}
-            autoComplete="new-password"
-            minLength={12}
-            maxLength={128}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="At least 12 characters"
-            required
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-violet-600 shrink-0" />
+            <span>Profile name & college credentials synced automatically</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-amber-500 shrink-0" />
+            <span>Direct peer WhatsApp chat & zero-fee campus transactions enabled</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Collapsible Manual Registration Form (For offline / test environments) */}
+      <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/50 p-3 text-xs">
+        <button
+          type="button"
+          onClick={() => setShowManualForm(!showManualForm)}
+          className="flex w-full items-center justify-between text-left text-gray-500 hover:text-gray-800 transition py-0.5"
+        >
+          <span className="font-medium">Alternative: Register with password</span>
+          <ChevronDown
+            className={`h-4 w-4 transition-transform duration-200 ${
+              showManualForm ? "rotate-180" : ""
+            }`}
           />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-400 hover:text-gray-600"
-            aria-label={showPassword ? "Hide password" : "Show password"}
-          >
-            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
-        </div>
-        <div className="mt-1.5 flex items-center justify-between text-xs text-[#87818c]">
-          <span>Minimum 12 characters</span>
-          {password.length > 0 && (
-            <span
-              className={
-                password.length >= 12
-                  ? "text-emerald-600 font-semibold flex items-center gap-1"
-                  : "text-amber-600"
-              }
-            >
-              {password.length >= 12 ? (
-                <>
-                  <CheckCircle2 className="h-3 w-3" /> Strong password
-                </>
-              ) : (
-                `${12 - password.length} more chars needed`
-              )}
-            </span>
-          )}
-        </div>
-      </div>
+        </button>
 
-      {/* Submit Button */}
-      <div className="pt-2">
-        <SubmitButton />
-      </div>
+        {showManualForm && (
+          <form action={signUp} className="mt-3 space-y-3 border-t border-gray-200 pt-3">
+            <div>
+              <label className={labelClassName} htmlFor="manual-name">
+                Full name
+              </label>
+              <div className="relative mt-1">
+                <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <input
+                  id="manual-name"
+                  className="min-h-10 w-full rounded-lg border border-gray-200 bg-white pl-9 pr-3 text-xs outline-none focus:border-violet-500"
+                  name="full_name"
+                  placeholder="e.g. Rohit Sharma"
+                  required
+                />
+              </div>
+            </div>
 
-      <p className="text-center text-xs leading-5 text-[#8b8590]">
-        By joining, you agree to follow the campus community rules. Account access begins after your college email and ID are verified.
-      </p>
-    </form>
+            <div>
+              <label className={labelClassName} htmlFor="manual-college-select">
+                Institution
+              </label>
+              <div className="relative mt-1">
+                <Building2 className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <select
+                  id="manual-college-select"
+                  className="min-h-10 w-full rounded-lg border border-gray-200 bg-white pl-9 pr-3 text-xs outline-none focus:border-violet-500"
+                  name="college_id"
+                  value={selectedCollegeId}
+                  onChange={(e) => setSelectedCollegeId(e.target.value)}
+                  required
+                >
+                  {colleges.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className={labelClassName} htmlFor="manual-email">
+                College email address
+              </label>
+              <div className="relative mt-1">
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <input
+                  id="manual-email"
+                  className="min-h-10 w-full rounded-lg border border-gray-200 bg-white pl-9 pr-3 text-xs outline-none focus:border-violet-500"
+                  name="email"
+                  type="email"
+                  placeholder={`rollnumber@${primaryDomain}`}
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className={labelClassName} htmlFor="manual-password">
+                Password (min 12 chars)
+              </label>
+              <div className="relative mt-1">
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <input
+                  id="manual-password"
+                  className="min-h-10 w-full rounded-lg border border-gray-200 bg-white pl-9 pr-9 text-xs outline-none focus:border-violet-500"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  minLength={12}
+                  maxLength={128}
+                  placeholder="••••••••••••"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2.5 top-2.5 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            <ManualSignUpSubmitButton />
+          </form>
+        )}
+      </div>
     </div>
   );
 }
