@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, BadgeCheck, CircleUserRound } from "lucide-react";
+import { connection } from "next/server";
 import { AuthShell, FormNotice, inputClassName, labelClassName } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { getCurrentMember } from "@/lib/auth/member";
@@ -11,6 +12,7 @@ import { updateProfile } from "@/app/profile/actions";
 export const instant = false;
 
 export default async function ProfilePage({ searchParams }: PageProps<"/profile">) {
+  await connection();
   const { error, saved } = await searchParams;
   const errorCode = Array.isArray(error) ? error[0] : error;
   if (!isSupabaseConfigured()) {

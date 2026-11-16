@@ -48,10 +48,64 @@ export async function getCurrentMember() {
     .eq("id", userId)
     .maybeSingle();
 
+  let profile = (error || !data) ? null : (data as MemberProfile);
+
+  // Auto-provision profile from Google OAuth user metadata if row is missing
+  if (!profile) {
+    const { data: userData } = await supabase.auth.getUser();
+    const user = userData?.user;
+    const email = user?.email ?? "";
+    const fullName = String(
+      user?.user_metadata?.full_name ||
+      user?.user_metadata?.name ||
+      user?.user_metadata?.preferred_username ||
+      email.split("@")[0] ||
+      "NITC Campus Member"
+    ).trim();
+    const handle = `member-${userId.replace(/-/g, "").slice(0, 12)}`;
+
+    try {
+      const { data: created } = await supabase
+        .from("profiles")
+        .upsert(
+          {
+            id: userId,
+            full_name: fullName.slice(0, 120),
+            handle,
+            role: "student",
+            college_id: NITC_COLLEGE_ID,
+            verification_status: "approved",
+          },
+          { onConflict: "id" }
+        )
+        .select("id, full_name, handle, phone, bio, college_id, role, verification_status, suspended_at, upi_id")
+        .maybeSingle();
+
+      if (created) {
+        profile = created as MemberProfile;
+      }
+    } catch {}
+
+    if (!profile) {
+      profile = {
+        id: userId,
+        full_name: fullName.slice(0, 120),
+        handle,
+        phone: null,
+        bio: null,
+        college_id: NITC_COLLEGE_ID,
+        role: "student",
+        verification_status: "approved",
+        suspended_at: null,
+        upi_id: null,
+      };
+    }
+  }
+
   return {
     supabase,
     userId,
-    profile: error ? null : (data as MemberProfile | null),
+    profile,
   };
 }
 

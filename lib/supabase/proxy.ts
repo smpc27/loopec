@@ -14,7 +14,7 @@ export async function updateSession(request: NextRequest) {
       getAll() {
         return request.cookies.getAll();
       },
-      setAll(cookiesToSet, headers) {
+      setAll(cookiesToSet) {
         for (const { name, value } of cookiesToSet) {
           request.cookies.set(name, value);
         }
@@ -22,15 +22,11 @@ export async function updateSession(request: NextRequest) {
         for (const { name, value, options } of cookiesToSet) {
           response.cookies.set(name, value, options);
         }
-        for (const [name, value] of Object.entries(headers)) {
-          response.headers.set(name, value);
-        }
       },
     },
   });
 
-  // This validates/refreshes the token for session continuity only. Each page and
-  // server action still checks its own user and resource permissions.
-  await supabase.auth.getClaims();
+  // getUser() refreshes the auth token via setAll cookies on incoming requests
+  await supabase.auth.getUser();
   return response;
 }
