@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Menu as MenuIcon, Search, ShieldCheck, SlidersHorizontal } from "lucide-react";
+import { connection } from "next/server";
 import { ProductCard, type MarketplaceProduct } from "@/components/marketplace/product-card";
 import { requireApprovedMember } from "@/lib/auth/member";
 import { signOut } from "@/app/auth/actions";
@@ -87,6 +88,7 @@ function marketplaceDataHelp(code?: string) {
 }
 
 export default async function MarketplacePage({ searchParams }: PageProps<"/marketplace">) {
+  await connection();
   const params = await searchParams;
   const search = (first(params.q) ?? "").trim().slice(0, 100);
   const categoryId = first(params.category) ?? "";
