@@ -46,27 +46,27 @@ export function ProductCard({
   const isTrade = product.description?.includes("[TRADE") || product.name.toLowerCase().includes("trade");
 
   return (
-    <article className="group overflow-hidden rounded-[22px] border border-[#e8e5e2] bg-white transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_45px_-35px_rgba(43,29,68,.5)]">
-      <div className="relative aspect-[1.15/1] overflow-hidden bg-[#f0edf3]">
+    <article className="group overflow-hidden rounded-[26px] border border-white/80 bg-white/75 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_22px_45px_-15px_rgba(43,29,68,0.14)] hover:bg-white/90 hover:border-white shadow-[0_8px_25px_-12px_rgba(43,29,68,0.06),_inset_0_1px_1px_rgba(255,255,255,0.9)]">
+      <div className="relative aspect-[1.15/1] overflow-hidden bg-gradient-to-br from-[#f2eff7] to-[#ede7f5]">
         {product.imageUrl ? (
           <Image className="object-cover transition duration-500 group-hover:scale-[1.035]" src={product.imageUrl} alt={product.name} fill sizes="(max-width: 640px) 90vw, (max-width: 1024px) 44vw, 25vw" unoptimized />
         ) : (
           <div className="grid h-full place-items-center text-violet-300"><PackageOpen size={34} strokeWidth={1.3} /></div>
         )}
-        <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1.5 text-[10px] font-semibold text-[#504b57] shadow-sm">{conditionLabel[product.item_condition]}</span>
+        <span className="absolute left-3 top-3 rounded-full border border-white/80 bg-white/80 px-3 py-1.5 text-[10px] font-bold text-[#4c4556] shadow-sm backdrop-blur-md">{conditionLabel[product.item_condition]}</span>
         {isGiveaway ? (
-          <span className="absolute right-3 top-3 rounded-full bg-emerald-600 px-3 py-1.5 text-[10px] font-bold text-white shadow-sm">
+          <span className="absolute right-3 top-3 rounded-full border border-emerald-400/30 bg-emerald-600/95 px-3 py-1.5 text-[10px] font-bold text-white shadow-md backdrop-blur-md">
             🎁 FREE
           </span>
         ) : isTrade ? (
-          <span className="absolute right-3 top-3 rounded-full bg-indigo-600 px-3 py-1.5 text-[10px] font-bold text-white shadow-sm">
+          <span className="absolute right-3 top-3 rounded-full border border-indigo-400/30 bg-indigo-600/95 px-3 py-1.5 text-[10px] font-bold text-white shadow-md backdrop-blur-md">
             🔄 TRADE
           </span>
         ) : product.is_featured ? (
-          <span className="absolute right-3 top-3 rounded-full bg-violet-950 px-3 py-1.5 text-[10px] font-semibold text-white">Featured</span>
+          <span className="absolute right-3 top-3 rounded-full border border-white/20 bg-violet-950/90 px-3 py-1.5 text-[10px] font-semibold text-white shadow-md backdrop-blur-md">Featured</span>
         ) : null}
       </div>
-      <div className="p-4">
+      <div className="p-4.5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="truncate text-[10px] font-bold uppercase tracking-[.11em] text-violet-700">{product.categoryName}</p>
@@ -76,13 +76,13 @@ export function ProductCard({
             <form action={toggleWishlist}>
               <input type="hidden" name="product_id" value={product.id} />
               <input type="hidden" name="return_to" value={returnTo} />
-              <button className={`grid size-9 shrink-0 place-items-center rounded-full border transition ${saved ? "border-violet-200 bg-violet-50 text-violet-800" : "border-[#ebe7ed] text-[#89828e] hover:border-violet-200 hover:text-violet-800"}`} type="submit" aria-label={saved ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`} title={saved ? "Saved to wishlist" : "Save to wishlist"}>
+              <button className={`grid size-9 shrink-0 place-items-center rounded-full border transition-all ${saved ? "border-violet-300 bg-violet-100/80 text-violet-800 shadow-sm" : "border-white/80 bg-white/70 backdrop-blur-md text-[#7c7585] hover:bg-white hover:text-violet-800 shadow-sm"}`} type="submit" aria-label={saved ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`} title={saved ? "Saved to wishlist" : "Save to wishlist"}>
                 <Bookmark size={16} fill={saved ? "currentColor" : "none"} />
               </button>
             </form>
           ) : null}
         </div>
-        <div className="mt-4 flex items-end justify-between gap-3 border-t border-[#f0edf0] pt-3.5">
+        <div className="mt-4 flex items-end justify-between gap-3 border-t border-purple-100/60 pt-3.5">
           <div>
             {isGiveaway ? (
               <p className="text-lg font-bold tracking-tight text-emerald-700">FREE</p>

@@ -110,19 +110,19 @@ export default async function ProductDetailsPage({ params, searchParams }: PageP
   const waInquiryLink = waSellerPhone ? `https://wa.me/${waSellerPhone}?text=${encodeURIComponent(waText)}` : null;
 
   return (
-    <main className="min-h-screen bg-[#f7f6f4]">
-      <header className="border-b border-[#e8e5e2] bg-white/85"><div className="mx-auto flex min-h-[72px] max-w-7xl items-center justify-between px-5 sm:px-8"><Link href="/marketplace" className="text-sm font-extrabold tracking-[.14em] text-[#302546]">LOOPEC <span className="ml-2 font-normal tracking-normal text-[#8b8590]">Marketplace</span></Link><Link href="/cart" className="text-xs font-semibold text-violet-800 hover:text-violet-950">View cart</Link></div></header>
+    <main className="min-h-screen bg-transparent">
+      <header className="border-b border-white/60 bg-white/70 backdrop-blur-xl sticky top-0 z-40 shadow-[0_4px_30px_rgba(0,0,0,0.03)]"><div className="mx-auto flex min-h-[72px] max-w-7xl items-center justify-between px-5 sm:px-8"><Link href="/marketplace" className="text-sm font-extrabold tracking-[.14em] text-[#302546]">LOOPEC <span className="ml-2 font-normal tracking-normal text-[#8b8590]">Marketplace</span></Link><Link href="/cart" className="text-xs font-semibold text-violet-800 hover:text-violet-950">View cart</Link></div></header>
       <section className="mx-auto max-w-7xl px-5 py-7 sm:px-8 sm:py-10">
-        <Link className="inline-flex items-center gap-2 text-xs font-semibold text-[#77717e] hover:text-violet-900" href="/marketplace"><ArrowLeft size={14} /> Back to marketplace</Link>
-        {error ? <p role="alert" className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">{error === "stock" ? "There is not enough stock for another item." : error === "rate_limit" ? "You’ve made several reports in a short time. Please wait before submitting another." : "This listing is not available for that action."}</p> : null}
-        {search.reported ? <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Thank you. Your report was sent to a college administrator for review.</p> : null}
+        <Link className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/65 backdrop-blur-md px-3.5 py-1.5 text-xs font-semibold text-[#5c5466] hover:bg-white hover:text-violet-900 shadow-sm transition" href="/marketplace"><ArrowLeft size={14} /> Back to marketplace</Link>
+        {error ? <p role="alert" className="mt-4 rounded-xl border border-amber-200/80 bg-amber-50/80 backdrop-blur-md px-4 py-3 text-sm text-amber-950 shadow-sm">{error === "stock" ? "There is not enough stock for another item." : error === "rate_limit" ? "You’ve made several reports in a short time. Please wait before submitting another." : "This listing is not available for that action."}</p> : null}
+        {search.reported ? <p className="mt-4 rounded-xl border border-emerald-200/80 bg-emerald-50/80 backdrop-blur-md px-4 py-3 text-sm text-emerald-800 shadow-sm">Thank you. Your report was sent to a college administrator for review.</p> : null}
         <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(350px,.9fr)] lg:gap-12">
           <div className="grid grid-cols-2 gap-3 sm:gap-4">
             {imageUrls.length ? imageUrls.map((image, index) => (
-              <div className={`relative aspect-square overflow-hidden rounded-[24px] bg-[#eeeaf2] ${index === 0 && imageUrls.length > 1 ? "col-span-2 aspect-[1.45/1]" : ""}`} key={image.id}>
+              <div className={`relative aspect-square overflow-hidden rounded-[26px] border border-white/80 bg-gradient-to-br from-[#f2eff7] to-[#ede7f5] shadow-sm ${index === 0 && imageUrls.length > 1 ? "col-span-2 aspect-[1.45/1]" : ""}`} key={image.id}>
                 {image.url ? <Image src={image.url} alt={image.alt_text || product.name} fill sizes="(max-width: 1024px) 90vw, 55vw" unoptimized className="object-cover" /> : <span className="grid h-full place-items-center text-violet-300"><PackageOpen size={34} /></span>}
               </div>
-            )) : <div className="col-span-2 grid aspect-[1.15/1] place-items-center rounded-[24px] bg-[#eeeaf2] text-violet-300"><PackageOpen size={40} strokeWidth={1.2} /></div>}
+            )) : <div className="col-span-2 grid aspect-[1.15/1] place-items-center rounded-[26px] border border-white/80 bg-gradient-to-br from-[#f2eff7] to-[#ede7f5] text-violet-300 shadow-sm"><PackageOpen size={40} strokeWidth={1.2} /></div>}
           </div>
           <div className="lg:pt-3">
             <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[.14em]">
@@ -130,14 +130,14 @@ export default async function ProductDetailsPage({ params, searchParams }: PageP
               {isGiveaway ? (
                 <>
                   <span className="text-[#c9c1d2]">·</span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-emerald-800">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-600 px-2.5 py-0.5 text-white shadow-sm backdrop-blur-sm">
                     <Gift size={12} /> Free Giveaway
                   </span>
                 </>
               ) : isTrade ? (
                 <>
                   <span className="text-[#c9c1d2]">·</span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100 px-2.5 py-0.5 text-indigo-900">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-indigo-400/30 bg-indigo-600 px-2.5 py-0.5 text-white shadow-sm backdrop-blur-sm">
                     <RefreshCw size={12} /> Trade / Barter
                   </span>
                 </>
@@ -164,32 +164,32 @@ export default async function ProductDetailsPage({ params, searchParams }: PageP
             )}
 
             {isTrade && tradeWishlist ? (
-              <div className="mt-5 rounded-2xl border border-indigo-200 bg-indigo-50/70 p-4">
+              <div className="mt-5 rounded-2xl border border-indigo-200/80 bg-indigo-50/80 backdrop-blur-md p-4 shadow-sm">
                 <p className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
                   <RefreshCw size={14} className="text-indigo-600" />
                   Looking to exchange for:
                 </p>
-                <p className="mt-2 text-sm font-semibold text-indigo-950 bg-white/90 rounded-xl px-3.5 py-2.5 border border-indigo-100">
+                <p className="mt-2 text-sm font-semibold text-indigo-950 bg-white/90 rounded-xl px-3.5 py-2.5 border border-indigo-100 shadow-inner">
                   {tradeWishlist}
                 </p>
               </div>
             ) : null}
 
             <div className="mt-5 flex flex-wrap gap-2">
-              <span className="rounded-full bg-white px-3 py-1.5 text-xs font-medium text-[#5d5764]">{conditionLabels[product.item_condition]}</span>
-              <span className="rounded-full bg-white px-3 py-1.5 text-xs font-medium text-[#5d5764]">{product.quantity} available</span>
+              <span className="rounded-full border border-white/80 bg-white/70 backdrop-blur-sm px-3.5 py-1.5 text-xs font-medium text-[#5d5764] shadow-sm">{conditionLabels[product.item_condition]}</span>
+              <span className="rounded-full border border-white/80 bg-white/70 backdrop-blur-sm px-3.5 py-1.5 text-xs font-medium text-[#5d5764] shadow-sm">{product.quantity} available</span>
             </div>
 
-            <div className="mt-7 border-t border-[#e8e5e2] pt-6">
+            <div className="mt-7 border-t border-purple-100/60 pt-6">
               <h2 className="text-xs font-bold uppercase tracking-[.12em] text-[#595361]">About this item</h2>
               <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[#716b77]">{cleanDescription || product.description}</p>
             </div>
 
-            <div className="mt-7 rounded-[22px] border border-[#e8e5e2] bg-white p-4 sm:p-5">
+            <div className="mt-7 rounded-[26px] border border-white/80 bg-white/75 backdrop-blur-xl p-4 sm:p-5 shadow-[0_10px_30px_-10px_rgba(40,25,65,0.06),_inset_0_1px_1px_rgba(255,255,255,0.95)]">
               <p className="text-[10px] font-bold uppercase tracking-[.13em] text-[#908995]">Seller</p>
               <div className="mt-3 flex items-center justify-between gap-4">
                 <Link href={`/members/${seller?.handle ?? "member"}`} className="group flex min-w-0 items-center gap-3">
-                  <span className="grid size-11 shrink-0 place-items-center rounded-full bg-violet-50 font-serif text-lg text-violet-800">{(seller?.full_name ?? "M").slice(0, 1).toUpperCase()}</span>
+                  <span className="grid size-11 shrink-0 place-items-center rounded-full bg-violet-100/80 font-serif text-lg text-violet-800 shadow-sm">{(seller?.full_name ?? "M").slice(0, 1).toUpperCase()}</span>
                   <span className="min-w-0"><b className="flex items-center gap-1.5 truncate text-sm text-[#383240] group-hover:text-violet-800">{seller?.full_name ?? "Verified member"}{seller?.verification_status === "approved" ? <BadgeCheck size={15} className="shrink-0 text-violet-700" /> : null}</b><small className="mt-1 block text-xs text-[#88818d]">{sellerRole} · @{seller?.handle ?? "member"}</small></span>
                 </Link>
                 <div className="shrink-0 text-right"><p className="text-sm font-semibold text-[#393341]">{averageRating ? `${averageRating.toFixed(1)} / 5` : "New seller"}</p><small className="text-[10px] text-[#928b96]">{reviewRatings.length ? `${reviewRatings.length} reviews` : "No reviews yet"}</small></div>
@@ -205,7 +205,7 @@ export default async function ProductDetailsPage({ params, searchParams }: PageP
                         href={waInquiryLink}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-emerald-600 px-5 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 sm:col-span-2"
+                        className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-emerald-600 px-5 text-sm font-bold text-white shadow-md shadow-emerald-600/20 transition hover:bg-emerald-700 sm:col-span-2"
                       >
                         <Gift size={18} />
                         <span>Claim Free Giveaway on WhatsApp</span>
@@ -214,14 +214,14 @@ export default async function ProductDetailsPage({ params, searchParams }: PageP
                     <div className="flex gap-2 sm:col-span-2">
                       <form action={startConversation} className="flex-1">
                         <input type="hidden" name="product_id" value={product.id} />
-                        <button className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-emerald-300 bg-white px-4 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-50" type="submit">
+                        <button className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-white/80 bg-white/70 backdrop-blur-md px-4 text-sm font-semibold text-emerald-950 shadow-sm transition hover:bg-white" type="submit">
                           <MessageCircle size={16} /> Message to claim pickup
                         </button>
                       </form>
                       <form action={toggleWishlist}>
                         <input type="hidden" name="product_id" value={product.id} />
                         <input type="hidden" name="return_to" value={`/marketplace/${product.id}`} />
-                        <button className="grid size-12 shrink-0 place-items-center rounded-full border border-[#ddd7e4] bg-white text-violet-800 transition hover:border-violet-300" type="submit" title={savedData ? "Remove from wishlist" : "Save to wishlist"} aria-label={savedData ? "Remove from wishlist" : "Save to wishlist"}>
+                        <button className="grid size-12 shrink-0 place-items-center rounded-full border border-white/80 bg-white/70 backdrop-blur-md text-violet-800 shadow-sm transition hover:bg-white" type="submit" title={savedData ? "Remove from wishlist" : "Save to wishlist"} aria-label={savedData ? "Remove from wishlist" : "Save to wishlist"}>
                           <Bookmark size={17} fill={savedData ? "currentColor" : "none"} />
                         </button>
                       </form>
@@ -234,7 +234,7 @@ export default async function ProductDetailsPage({ params, searchParams }: PageP
                         href={waInquiryLink}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-indigo-600 px-5 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-700 sm:col-span-2"
+                        className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-indigo-600 px-5 text-sm font-bold text-white shadow-md shadow-indigo-600/20 transition hover:bg-indigo-700 sm:col-span-2"
                       >
                         <RefreshCw size={18} />
                         <span>Propose Trade on WhatsApp</span>
@@ -243,30 +243,28 @@ export default async function ProductDetailsPage({ params, searchParams }: PageP
                     <div className="flex gap-2 sm:col-span-2">
                       <form action={startConversation} className="flex-1">
                         <input type="hidden" name="product_id" value={product.id} />
-                        <button className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-indigo-300 bg-white px-4 text-sm font-semibold text-indigo-950 transition hover:bg-indigo-50" type="submit">
+                        <button className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-white/80 bg-white/70 backdrop-blur-md px-4 text-sm font-semibold text-indigo-950 shadow-sm transition hover:bg-white" type="submit">
                           <MessageCircle size={16} /> Message to propose swap
                         </button>
                       </form>
                       <form action={toggleWishlist}>
                         <input type="hidden" name="product_id" value={product.id} />
                         <input type="hidden" name="return_to" value={`/marketplace/${product.id}`} />
-                        <button className="grid size-12 shrink-0 place-items-center rounded-full border border-[#ddd7e4] bg-white text-violet-800 transition hover:border-violet-300" type="submit" title={savedData ? "Remove from wishlist" : "Save to wishlist"} aria-label={savedData ? "Remove from wishlist" : "Save to wishlist"}>
-                          <Bookmark size={17} fill={savedData ? "currentColor" : "none"} />
-                        </button>
+                        <button className="grid size-12 shrink-0 place-items-center rounded-full border border-white/80 bg-white/70 backdrop-blur-md text-violet-800 shadow-sm transition hover:bg-white" type="submit" title={savedData ? "Remove from wishlist" : "Save to wishlist"} aria-label={savedData ? "Remove from wishlist" : "Save to wishlist"}><Bookmark size={17} fill={savedData ? "currentColor" : "none"} /></button>
                       </form>
                     </div>
                   </>
                 ) : (
                   <>
-                    <form action={addToCart}><input type="hidden" name="product_id" value={product.id} /><button className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-[#ddd7e4] bg-white px-5 text-sm font-semibold text-[#403a47] transition hover:border-violet-300 hover:text-violet-900" type="submit"><ShoppingBag size={16} /> Add to cart</button></form>
-                    <form action={buyNow}><input type="hidden" name="product_id" value={product.id} /><button className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-violet-950 px-5 text-sm font-semibold text-white transition hover:bg-violet-900" type="submit">Buy now <ShoppingBag size={16} /></button></form>
+                    <form action={addToCart}><input type="hidden" name="product_id" value={product.id} /><button className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-white/80 bg-white/70 backdrop-blur-md px-5 text-sm font-semibold text-[#403a47] shadow-sm transition hover:bg-white hover:text-violet-900" type="submit"><ShoppingBag size={16} /> Add to cart</button></form>
+                    <form action={buyNow}><input type="hidden" name="product_id" value={product.id} /><button className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-violet-950 to-purple-900 px-5 text-sm font-semibold text-white shadow-md shadow-violet-950/20 transition hover:opacity-95" type="submit">Buy now <ShoppingBag size={16} /></button></form>
 
                     {waInquiryLink ? (
                       <a
                         href={waInquiryLink}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#25D366] px-5 text-sm font-bold text-white shadow-sm transition hover:bg-[#20ba59] sm:col-span-2"
+                        className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#25D366] px-5 text-sm font-bold text-white shadow-md shadow-emerald-500/20 transition hover:bg-[#20ba59] sm:col-span-2"
                       >
                         <MessageCircle size={18} />
                         <span>Chat & Pay on WhatsApp ({seller?.phone || "Seller"})</span>
@@ -274,18 +272,18 @@ export default async function ProductDetailsPage({ params, searchParams }: PageP
                     ) : null}
 
                     <div className="flex gap-2 sm:col-span-2">
-                      <form action={startConversation} className="flex-1"><input type="hidden" name="product_id" value={product.id} /><button className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-[#ddd7e4] bg-white px-4 text-sm font-semibold text-[#403a47] transition hover:border-violet-300 hover:text-violet-900" type="submit"><MessageCircle size={16} /> In-app message</button></form>
-                      <form action={toggleWishlist}><input type="hidden" name="product_id" value={product.id} /><input type="hidden" name="return_to" value={`/marketplace/${product.id}`} /><button className="grid size-12 shrink-0 place-items-center rounded-full border border-[#ddd7e4] bg-white text-violet-800 transition hover:border-violet-300" type="submit" title={savedData ? "Remove from wishlist" : "Save to wishlist"} aria-label={savedData ? "Remove from wishlist" : "Save to wishlist"}><Bookmark size={17} fill={savedData ? "currentColor" : "none"} /></button></form>
+                      <form action={startConversation} className="flex-1"><input type="hidden" name="product_id" value={product.id} /><button className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-white/80 bg-white/70 backdrop-blur-md px-4 text-sm font-semibold text-[#403a47] shadow-sm transition hover:bg-white hover:text-violet-900" type="submit"><MessageCircle size={16} /> In-app message</button></form>
+                      <form action={toggleWishlist}><input type="hidden" name="product_id" value={product.id} /><input type="hidden" name="return_to" value={`/marketplace/${product.id}`} /><button className="grid size-12 shrink-0 place-items-center rounded-full border border-white/80 bg-white/70 backdrop-blur-md text-violet-800 shadow-sm transition hover:bg-white" type="submit" title={savedData ? "Remove from wishlist" : "Save to wishlist"} aria-label={savedData ? "Remove from wishlist" : "Save to wishlist"}><Bookmark size={17} fill={savedData ? "currentColor" : "none"} /></button></form>
                     </div>
                   </>
                 )}
               </div>
-            ) : <p className="mt-5 rounded-xl bg-violet-50 px-4 py-3 text-sm text-violet-900">This is your listing. Manage it from <Link className="font-semibold underline" href="/listings">My listings</Link>.</p>}
-            {product.seller_id !== userId ? <details className="mt-5 rounded-2xl border border-[#e8e5e2] bg-white px-4 py-3"><summary className="cursor-pointer text-xs font-semibold text-[#756e7b]">Report this listing</summary><form action={reportListing} className="mt-4 space-y-3"><input type="hidden" name="product_id" value={product.id} /><label className="block text-xs font-semibold text-[#625b6b]">Reason<select className="mt-2 min-h-11 w-full rounded-xl border border-[#e4e0e8] bg-white px-3 text-sm outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-100" name="reason" required defaultValue=""><option value="" disabled>Select a reason</option><option value="prohibited_item">Prohibited item</option><option value="misleading_listing">Misleading listing</option><option value="safety">Safety concern</option><option value="harassment">Harassment</option><option value="other">Other</option></select></label><label className="block text-xs font-semibold text-[#625b6b]">Details <span className="font-normal">(optional)</span><textarea className="mt-2 min-h-20 w-full resize-y rounded-xl border border-[#e4e0e8] p-3 text-sm outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-100" name="details" maxLength={2000} /></label><button className="min-h-10 rounded-full border border-rose-200 px-4 text-xs font-semibold text-rose-800 hover:bg-rose-50" type="submit">Send report to admin</button></form></details> : null}
+            ) : <p className="mt-5 rounded-2xl border border-violet-200/80 bg-violet-50/70 backdrop-blur-md px-4 py-3 text-sm text-violet-900 shadow-sm">This is your listing. Manage it from <Link className="font-semibold underline" href="/listings">My listings</Link>.</p>}
+            {product.seller_id !== userId ? <details className="mt-5 rounded-2xl border border-white/80 bg-white/70 backdrop-blur-md px-4 py-3 shadow-sm"><summary className="cursor-pointer text-xs font-semibold text-[#756e7b]">Report this listing</summary><form action={reportListing} className="mt-4 space-y-3"><input type="hidden" name="product_id" value={product.id} /><label className="block text-xs font-semibold text-[#625b6b]">Reason<select className="mt-2 min-h-11 w-full rounded-xl border border-violet-100/80 bg-white/80 px-3 text-sm outline-none focus:bg-white focus:border-violet-500 focus:ring-4 focus:ring-violet-100 shadow-inner" name="reason" required defaultValue=""><option value="" disabled>Select a reason</option><option value="prohibited_item">Prohibited item</option><option value="misleading_listing">Misleading listing</option><option value="safety">Safety concern</option><option value="harassment">Harassment</option><option value="other">Other</option></select></label><label className="block text-xs font-semibold text-[#625b6b]">Details <span className="font-normal">(optional)</span><textarea className="mt-2 min-h-20 w-full resize-y rounded-xl border border-violet-100/80 bg-white/80 p-3 text-sm outline-none focus:bg-white focus:border-violet-500 focus:ring-4 focus:ring-violet-100 shadow-inner" name="details" maxLength={2000} /></label><button className="min-h-10 rounded-full border border-rose-200 px-4 text-xs font-semibold text-rose-800 hover:bg-rose-50" type="submit">Send report to admin</button></form></details> : null}
             <p className="mt-4 flex items-start gap-2 text-xs leading-5 text-[#88818d]"><ShieldCheck className="mt-0.5 shrink-0 text-violet-700" size={15} /> Arrange pickup at an approved campus location and coordinate through LOOPEC messages.</p>
           </div>
         </div>
-        {relatedCards.length ? <section className="mt-16 border-t border-[#e8e5e2] pt-9"><div className="flex items-end justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[.14em] text-violet-700">From the same category</p><h2 className="mt-2 font-serif text-3xl tracking-[-.04em] text-[#28232f]">More around your campus</h2></div><Link className="text-xs font-semibold text-violet-800 hover:text-violet-950" href={`/marketplace?category=${product.category_id}`}>See all</Link></div><div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">{relatedCards.map((item) => <ProductCard key={item.id} product={item} saved={savedRelated.has(item.id)} currentUserId={userId} returnTo={`/marketplace/${product.id}`} />)}</div></section> : null}
+        {relatedCards.length ? <section className="mt-16 border-t border-purple-100/60 pt-9"><div className="flex items-end justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[.14em] text-violet-700">From the same category</p><h2 className="mt-2 font-serif text-3xl tracking-[-.04em] text-[#28232f]">More around your campus</h2></div><Link className="text-xs font-semibold text-violet-800 hover:text-violet-950" href={`/marketplace?category=${product.category_id}`}>See all</Link></div><div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">{relatedCards.map((item) => <ProductCard key={item.id} product={item} saved={savedRelated.has(item.id)} currentUserId={userId} returnTo={`/marketplace/${product.id}`} />)}</div></section> : null}
       </section>
     </main>
   );

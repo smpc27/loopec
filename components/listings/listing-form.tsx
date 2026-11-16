@@ -82,7 +82,7 @@ export function ListingForm({
       <div className="lg:col-span-7">
         <form action={createListing} className="space-y-8">
           {/* STEP 1: LISTING TYPE SELECTOR */}
-          <div className="rounded-3xl border border-[#eae6ef] bg-white p-6 sm:p-7 shadow-[0_10px_35px_-20px_rgba(40,25,65,0.07)]">
+          <div className="rounded-3xl border border-white/80 bg-white/75 backdrop-blur-2xl p-6 sm:p-7 shadow-[0_15px_40px_-20px_rgba(40,25,65,0.08),_inset_0_1px_2px_rgba(255,255,255,0.95)]">
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-[11px] font-bold uppercase tracking-[.15em] text-violet-700">
@@ -92,7 +92,7 @@ export function ListingForm({
                   What type of listing is this?
                 </h2>
               </div>
-              <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-900 border border-violet-100">
+              <span className="rounded-full bg-violet-50/80 backdrop-blur-sm px-3 py-1 text-xs font-semibold text-violet-900 border border-violet-100/80 shadow-sm">
                 0% Campus Fee
               </span>
             </div>
@@ -107,8 +107,8 @@ export function ListingForm({
                 }}
                 className={`relative flex flex-col items-start justify-between rounded-2xl border p-4 text-left transition-all duration-200 ${
                   listingType === "sale"
-                    ? "border-violet-600 bg-gradient-to-b from-violet-50/90 to-white ring-2 ring-violet-600/20 shadow-md"
-                    : "border-gray-200 bg-white hover:border-violet-200 hover:bg-gray-50/50"
+                    ? "border-violet-600 bg-gradient-to-b from-violet-50/90 via-white/80 to-white ring-2 ring-violet-600/20 shadow-md backdrop-blur-md"
+                    : "border-white/80 bg-white/60 backdrop-blur-md hover:border-violet-200 hover:bg-white/80 shadow-sm"
                 }`}
               >
                 <div className="flex w-full items-center justify-between">
@@ -139,8 +139,8 @@ export function ListingForm({
                 onClick={() => setListingType("trade")}
                 className={`relative flex flex-col items-start justify-between rounded-2xl border p-4 text-left transition-all duration-200 ${
                   listingType === "trade"
-                    ? "border-indigo-600 bg-gradient-to-b from-indigo-50/90 to-white ring-2 ring-indigo-600/20 shadow-md"
-                    : "border-gray-200 bg-white hover:border-indigo-200 hover:bg-gray-50/50"
+                    ? "border-indigo-600 bg-gradient-to-b from-indigo-50/90 via-white/80 to-white ring-2 ring-indigo-600/20 shadow-md backdrop-blur-md"
+                    : "border-white/80 bg-white/60 backdrop-blur-md hover:border-indigo-200 hover:bg-white/80 shadow-sm"
                 }`}
               >
                 <div className="flex w-full items-center justify-between">
@@ -176,8 +176,8 @@ export function ListingForm({
                 }}
                 className={`relative flex flex-col items-start justify-between rounded-2xl border p-4 text-left transition-all duration-200 ${
                   listingType === "giveaway"
-                    ? "border-emerald-600 bg-gradient-to-b from-emerald-50/90 to-white ring-2 ring-emerald-600/20 shadow-md"
-                    : "border-gray-200 bg-white hover:border-emerald-200 hover:bg-gray-50/50"
+                    ? "border-emerald-600 bg-gradient-to-b from-emerald-50/90 via-white/80 to-white ring-2 ring-emerald-600/20 shadow-md backdrop-blur-md"
+                    : "border-white/80 bg-white/60 backdrop-blur-md hover:border-emerald-200 hover:bg-white/80 shadow-sm"
                 }`}
               >
                 <div className="flex w-full items-center justify-between">
@@ -209,7 +209,7 @@ export function ListingForm({
 
             {/* Contextual Banner for Trade */}
             {listingType === "trade" && (
-              <div className="mt-5 rounded-2xl border border-indigo-200 bg-indigo-50/70 p-4.5 space-y-2.5 animate-in fade-in duration-200">
+              <div className="mt-5 rounded-2xl border border-indigo-200/80 bg-indigo-50/70 backdrop-blur-md p-4.5 space-y-2.5 animate-in fade-in duration-200 shadow-sm">
                 <div className="flex items-center gap-2 text-indigo-950 font-bold text-xs uppercase tracking-wider">
                   <RefreshCw size={14} className="text-indigo-600" />
                   <span>Trade Wishlist</span>
@@ -218,7 +218,7 @@ export function ListingForm({
                   What specific item(s) are you looking to exchange for? *
                 </label>
                 <input
-                  className="w-full rounded-xl border border-indigo-200 bg-white px-3.5 py-2.5 text-sm text-[#2b2436] outline-none placeholder:text-indigo-300 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100"
+                  className="w-full rounded-xl border border-indigo-200/80 bg-white/80 backdrop-blur-sm px-3.5 py-2.5 text-sm text-[#2b2436] outline-none placeholder:text-indigo-300 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 shadow-inner"
                   name="trade_wishlist"
                   value={tradeWishlist}
                   onChange={(e) => setTradeWishlist(e.target.value)}
@@ -233,7 +233,7 @@ export function ListingForm({
 
             {/* Contextual Banner for Giveaway */}
             {listingType === "giveaway" && (
-              <div className="mt-5 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 text-xs text-emerald-950 animate-in fade-in duration-200">
+              <div className="mt-5 flex items-start gap-3 rounded-2xl border border-emerald-200/80 bg-emerald-50/70 backdrop-blur-md p-4 text-xs text-emerald-950 animate-in fade-in duration-200 shadow-sm">
                 <Gift className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
                 <div>
                   <p className="font-bold text-sm text-emerald-950">Free Senior Campus Giveaway</p>
@@ -246,7 +246,7 @@ export function ListingForm({
           </div>
 
           {/* STEP 2: ITEM DETAILS */}
-          <div className="rounded-3xl border border-[#eae6ef] bg-white p-6 sm:p-7 shadow-[0_10px_35px_-20px_rgba(40,25,65,0.07)] space-y-5">
+          <div className="rounded-3xl border border-white/80 bg-white/75 backdrop-blur-2xl p-6 sm:p-7 shadow-[0_15px_40px_-20px_rgba(40,25,65,0.08),_inset_0_1px_2px_rgba(255,255,255,0.95)] space-y-5">
             <div>
               <span className="text-[11px] font-bold uppercase tracking-[.15em] text-violet-700">
                 Step 2
@@ -263,7 +263,7 @@ export function ListingForm({
                 <span className="text-[11px] text-[#938b99]">{name.length}/140</span>
               </div>
               <input
-                className="mt-2 w-full rounded-xl border border-[#e4e0e8] bg-white px-3.5 py-3 text-sm font-medium text-[#28232f] outline-none transition placeholder:text-[#aaa4af] focus:border-violet-600 focus:ring-4 focus:ring-violet-100"
+                className="mt-2 w-full rounded-xl border border-violet-100/80 bg-white/70 backdrop-blur-sm px-3.5 py-3 text-sm font-medium text-[#28232f] outline-none transition placeholder:text-[#aaa4af] focus:bg-white focus:border-violet-600 focus:ring-4 focus:ring-violet-100 shadow-inner"
                 name="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -287,7 +287,7 @@ export function ListingForm({
                   Category *
                 </label>
                 <select
-                  className="mt-2 w-full rounded-xl border border-[#e4e0e8] bg-white px-3.5 py-3 text-sm text-[#28232f] outline-none transition focus:border-violet-600 focus:ring-4 focus:ring-violet-100"
+                  className="mt-2 w-full rounded-xl border border-violet-100/80 bg-white/70 backdrop-blur-sm px-3.5 py-3 text-sm text-[#28232f] outline-none transition focus:bg-white focus:border-violet-600 focus:ring-4 focus:ring-violet-100 shadow-inner"
                   name="category_id"
                   value={categoryId}
                   onChange={(e) => setCategoryId(e.target.value)}
@@ -306,7 +306,7 @@ export function ListingForm({
                   Quantity Available *
                 </label>
                 <input
-                  className="mt-2 w-full rounded-xl border border-[#e4e0e8] bg-white px-3.5 py-3 text-sm text-[#28232f] outline-none transition focus:border-violet-600 focus:ring-4 focus:ring-violet-100"
+                  className="mt-2 w-full rounded-xl border border-violet-100/80 bg-white/70 backdrop-blur-sm px-3.5 py-3 text-sm text-[#28232f] outline-none transition focus:bg-white focus:border-violet-600 focus:ring-4 focus:ring-violet-100 shadow-inner"
                   name="quantity"
                   type="number"
                   min="1"
@@ -329,10 +329,10 @@ export function ListingForm({
                     key={opt.value}
                     type="button"
                     onClick={() => setCondition(opt.value)}
-                    className={`rounded-xl border p-3 text-left transition ${
+                    className={`rounded-xl border p-3 text-left transition backdrop-blur-sm ${
                       condition === opt.value
-                        ? "border-violet-600 bg-violet-50/80 text-violet-950 ring-2 ring-violet-600/20 font-bold"
-                        : "border-[#e6e2ea] bg-white text-[#554d60] hover:border-violet-200"
+                        ? "border-violet-600 bg-violet-50/90 text-violet-950 ring-2 ring-violet-600/20 font-bold shadow-sm"
+                        : "border-white/80 bg-white/60 text-[#554d60] hover:border-violet-200 hover:bg-white/80"
                     }`}
                   >
                     <span className="block text-xs font-bold">{opt.label}</span>
@@ -354,7 +354,7 @@ export function ListingForm({
                 <span className="text-[11px] text-[#938b99]">{description.length}/5000</span>
               </div>
               <textarea
-                className="mt-2 min-h-32 w-full rounded-xl border border-[#e4e0e8] bg-white p-3.5 text-sm text-[#28232f] outline-none transition placeholder:text-[#aaa4af] focus:border-violet-600 focus:ring-4 focus:ring-violet-100 resize-y"
+                className="mt-2 min-h-32 w-full rounded-xl border border-violet-100/80 bg-white/70 backdrop-blur-sm p-3.5 text-sm text-[#28232f] outline-none transition placeholder:text-[#aaa4af] focus:bg-white focus:border-violet-600 focus:ring-4 focus:ring-violet-100 resize-y shadow-inner"
                 name="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -366,8 +366,8 @@ export function ListingForm({
             </div>
           </div>
 
-          {/* STEP 3: PRICING (IF SALE OR ESTIMATED TRADE VALUE) */}
-          <div className="rounded-3xl border border-[#eae6ef] bg-white p-6 sm:p-7 shadow-[0_10px_35px_-20px_rgba(40,25,65,0.07)]">
+          {/* STEP 3: PRICING */}
+          <div className="rounded-3xl border border-white/80 bg-white/75 backdrop-blur-2xl p-6 sm:p-7 shadow-[0_15px_40px_-20px_rgba(40,25,65,0.08),_inset_0_1px_2px_rgba(255,255,255,0.95)]">
             <span className="text-[11px] font-bold uppercase tracking-[.15em] text-violet-700">
               Step 3
             </span>
@@ -381,8 +381,8 @@ export function ListingForm({
 
             <div className="mt-4">
               {listingType === "giveaway" ? (
-                <div className="flex items-center gap-3 rounded-2xl bg-emerald-50/70 border border-emerald-200 p-4">
-                  <div className="grid size-12 place-items-center rounded-xl bg-emerald-600 text-white font-bold text-lg">
+                <div className="flex items-center gap-3 rounded-2xl bg-emerald-50/70 backdrop-blur-sm border border-emerald-200/80 p-4 shadow-sm">
+                  <div className="grid size-12 place-items-center rounded-xl bg-emerald-600 text-white font-bold text-lg shadow-sm">
                     ₹0
                   </div>
                   <div>
@@ -401,7 +401,7 @@ export function ListingForm({
                   <div className="relative flex items-center">
                     <span className="absolute left-4 text-base font-bold text-[#6a6275]">₹</span>
                     <input
-                      className="w-full rounded-xl border border-[#e4e0e8] bg-white pl-9 pr-4 py-3 text-lg font-bold text-[#28232f] outline-none transition focus:border-violet-600 focus:ring-4 focus:ring-violet-100"
+                      className="w-full rounded-xl border border-violet-100/80 bg-white/70 backdrop-blur-sm pl-9 pr-4 py-3 text-lg font-bold text-[#28232f] outline-none transition focus:bg-white focus:border-violet-600 focus:ring-4 focus:ring-violet-100 shadow-inner"
                       name="price"
                       type="number"
                       min="0"
@@ -424,7 +424,7 @@ export function ListingForm({
           </div>
 
           {/* STEP 4: PHOTOS */}
-          <div className="rounded-3xl border border-[#eae6ef] bg-white p-6 sm:p-7 shadow-[0_10px_35px_-20px_rgba(40,25,65,0.07)] space-y-4">
+          <div className="rounded-3xl border border-white/80 bg-white/75 backdrop-blur-2xl p-6 sm:p-7 shadow-[0_15px_40px_-20px_rgba(40,25,65,0.08),_inset_0_1px_2px_rgba(255,255,255,0.95)] space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-[11px] font-bold uppercase tracking-[.15em] text-violet-700">
@@ -450,7 +450,7 @@ export function ListingForm({
             {/* Drag & Drop Visual Area */}
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="group flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-violet-200 bg-violet-50/40 p-6 text-center transition hover:border-violet-400 hover:bg-violet-50/70"
+              className="group flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-violet-200/80 bg-white/50 backdrop-blur-md p-6 text-center transition hover:border-violet-400 hover:bg-white/80 shadow-sm"
             >
               <div className="grid size-12 place-items-center rounded-2xl bg-white text-violet-700 shadow-sm group-hover:scale-105 transition-transform">
                 <UploadCloud size={24} />
@@ -507,9 +507,9 @@ export function ListingForm({
       </div>
 
       {/* RIGHT PREVIEW COLUMN (lg:col-span-5) - STICKY */}
-      <div className="lg:col-span-5 lg:sticky lg:top-8 space-y-6">
-        <div className="rounded-3xl border border-[#eae6ef] bg-white p-6 shadow-[0_12px_40px_-25px_rgba(40,25,65,0.08)]">
-          <div className="flex items-center justify-between pb-4 border-b border-[#f0edf2]">
+      <div className="lg:col-span-5 lg:sticky lg:top-24 space-y-6">
+        <div className="rounded-3xl border border-white/80 bg-white/75 backdrop-blur-2xl p-6 shadow-[0_20px_50px_-25px_rgba(40,25,65,0.1),_inset_0_1px_2px_rgba(255,255,255,0.95)]">
+          <div className="flex items-center justify-between pb-4 border-b border-purple-100/60">
             <div className="flex items-center gap-2">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -524,8 +524,8 @@ export function ListingForm({
 
           {/* RENDER LIVE PRODUCT CARD */}
           <div className="mt-5">
-            <article className="overflow-hidden rounded-2xl border border-[#e8e4ee] bg-white shadow-sm transition hover:shadow-md">
-              <div className="relative aspect-[1.25/1] overflow-hidden bg-[#f3eff7]">
+            <article className="overflow-hidden rounded-[24px] border border-white/80 bg-white/80 backdrop-blur-xl shadow-sm transition hover:shadow-md">
+              <div className="relative aspect-[1.25/1] overflow-hidden bg-gradient-to-br from-[#f2eff7] to-[#ede7f5]">
                 {imagePreviews.length > 0 ? (
                   <Image
                     className="object-cover"
@@ -540,27 +540,27 @@ export function ListingForm({
                   </div>
                 )}
                 {/* Condition Tag */}
-                <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-[10px] font-bold text-[#453e4f] shadow-sm backdrop-blur-sm">
+                <span className="absolute left-3 top-3 rounded-full border border-white/80 bg-white/85 px-3 py-1 text-[10px] font-bold text-[#453e4f] shadow-sm backdrop-blur-md">
                   {conditionOptions.find((c) => c.value === condition)?.label}
                 </span>
 
                 {/* Listing Mode Badges */}
                 {listingType === "giveaway" ? (
-                  <span className="absolute right-3 top-3 rounded-full bg-emerald-600 px-3 py-1 text-[10px] font-bold text-white shadow-sm flex items-center gap-1">
+                  <span className="absolute right-3 top-3 rounded-full border border-emerald-400/30 bg-emerald-600/95 px-3 py-1 text-[10px] font-bold text-white shadow-md backdrop-blur-md flex items-center gap-1">
                     <Gift size={11} /> FREE
                   </span>
                 ) : listingType === "trade" ? (
-                  <span className="absolute right-3 top-3 rounded-full bg-indigo-600 px-3 py-1 text-[10px] font-bold text-white shadow-sm flex items-center gap-1">
+                  <span className="absolute right-3 top-3 rounded-full border border-indigo-400/30 bg-indigo-600/95 px-3 py-1 text-[10px] font-bold text-white shadow-md backdrop-blur-md flex items-center gap-1">
                     <RefreshCw size={11} /> TRADE
                   </span>
                 ) : (
-                  <span className="absolute right-3 top-3 rounded-full bg-violet-950 px-3 py-1 text-[10px] font-semibold text-white shadow-sm">
+                  <span className="absolute right-3 top-3 rounded-full border border-white/20 bg-violet-950/90 px-3 py-1 text-[10px] font-semibold text-white shadow-md backdrop-blur-md">
                     Verified
                   </span>
                 )}
               </div>
 
-              <div className="p-4">
+              <div className="p-4.5">
                 <p className="truncate text-[10px] font-bold uppercase tracking-[.12em] text-violet-700">
                   {selectedCategoryName}
                 </p>
@@ -569,12 +569,12 @@ export function ListingForm({
                 </h3>
 
                 {listingType === "trade" && tradeWishlist && (
-                  <div className="mt-2 rounded-lg bg-indigo-50/80 px-2.5 py-1.5 border border-indigo-100 text-[11px] text-indigo-900 truncate">
+                  <div className="mt-2 rounded-xl bg-indigo-50/80 backdrop-blur-sm px-2.5 py-1.5 border border-indigo-100/80 text-[11px] text-indigo-900 truncate">
                     <strong>Wants:</strong> {tradeWishlist}
                   </div>
                 )}
 
-                <div className="mt-3.5 flex items-end justify-between border-t border-[#f2eff4] pt-3">
+                <div className="mt-3.5 flex items-end justify-between border-t border-purple-100/60 pt-3">
                   <div>
                     <p
                       className={`text-lg font-extrabold tracking-tight ${
@@ -601,7 +601,7 @@ export function ListingForm({
         </div>
 
         {/* CAMPUS SELLER ADVICE CARD */}
-        <div className="rounded-3xl border border-violet-100 bg-gradient-to-br from-violet-50/70 via-purple-50/40 to-white p-6 shadow-sm space-y-3">
+        <div className="rounded-3xl border border-white/80 bg-gradient-to-br from-violet-50/80 via-purple-50/50 to-white/70 backdrop-blur-xl p-6 shadow-sm space-y-3">
           <div className="flex items-center gap-2 text-violet-950 font-bold text-xs uppercase tracking-wider">
             <Sparkles size={16} className="text-violet-700" />
             <span>NITC Campus Handover Tips</span>

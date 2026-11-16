@@ -56,7 +56,7 @@ export function MobileBottomNav() {
   return (
     <nav
       aria-label="Mobile navigation"
-      className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t border-[#e8e4ee] bg-white/95 px-2 backdrop-blur-md md:hidden shadow-[0_-8px_30px_rgba(40,25,65,0.08)]"
+      className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t border-white/70 bg-white/75 backdrop-blur-2xl px-2 md:hidden shadow-[0_-8px_30px_rgba(40,25,65,0.08)]"
     >
       {navItems.map((item) => {
         const Icon = item.icon;

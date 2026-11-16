@@ -41,7 +41,13 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="min-h-full pb-16 md:pb-0">
+      <body className="min-h-full pb-16 md:pb-0 relative text-[#221c2e] selection:bg-purple-200">
+        {/* Ambient Atmospheric Luminous Glass Blobs */}
+        <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none" aria-hidden="true">
+          <div className="absolute -top-[20%] -left-[10%] w-[55vw] h-[55vw] rounded-full bg-gradient-to-br from-violet-300/35 via-purple-300/25 to-transparent blur-[120px]" />
+          <div className="absolute top-[20%] -right-[15%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-br from-indigo-300/30 via-sky-200/20 to-transparent blur-[130px]" />
+          <div className="absolute -bottom-[20%] left-[20%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-tr from-fuchsia-200/25 via-violet-200/30 to-transparent blur-[140px]" />
+        </div>
         <PwaRegister />
         {children}
         <MobileBottomNav />

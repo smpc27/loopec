@@ -19,13 +19,14 @@ export default async function FeedbackPage({
   const { profile } = await requireApprovedMember();
 
   return (
-    <main className="min-h-screen bg-[#f7f6f4]">
-      <header className="border-b border-[#e8e5e2] bg-white/85">
+    <main className="min-h-screen bg-transparent">
+      {/* Header - Frosted Glass Bar */}
+      <header className="sticky top-0 z-40 border-b border-white/60 bg-white/70 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.03)]">
         <div className="mx-auto flex min-h-[72px] max-w-5xl items-center justify-between px-5 sm:px-8">
           <Link href="/marketplace" className="text-sm font-extrabold tracking-[.14em] text-[#302546]">
             LOOPEC <span className="ml-2 font-normal tracking-normal text-[#8b8590]">Campus Feedback</span>
           </Link>
-          <Link href="/marketplace" className="text-xs font-semibold text-violet-800 hover:text-violet-950">
+          <Link href="/marketplace" className="text-xs font-semibold text-violet-800 hover:text-violet-950 transition">
             Return to marketplace
           </Link>
         </div>
@@ -48,7 +49,7 @@ export default async function FeedbackPage({
               LOOPEC is built for NIT Calicut peers. Share ideas for new features, trade categories, senior giveaway drives, or report bugs.
             </p>
           </div>
-          <div className="rounded-2xl border border-violet-200 bg-violet-50/70 p-4 text-xs text-violet-950 max-w-xs">
+          <div className="rounded-2xl border border-violet-200/80 bg-violet-50/70 backdrop-blur-md p-4 text-xs text-violet-950 max-w-xs shadow-sm">
             <p className="font-bold flex items-center gap-1.5">
               <Sparkles size={14} className="text-violet-700" />
               Community Driven
@@ -60,7 +61,7 @@ export default async function FeedbackPage({
         </div>
 
         {isSuccess ? (
-          <div className="mt-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-950 shadow-sm animate-in fade-in">
+          <div className="mt-8 rounded-2xl border border-emerald-200/80 bg-emerald-50/80 backdrop-blur-md p-6 text-emerald-950 shadow-sm animate-in fade-in">
             <div className="flex items-start gap-3">
               <CheckCircle2 size={24} className="text-emerald-600 shrink-0 mt-0.5" />
               <div>
@@ -71,13 +72,13 @@ export default async function FeedbackPage({
                 <div className="mt-4 flex gap-3">
                   <Link
                     href="/marketplace"
-                    className="inline-flex items-center rounded-full bg-emerald-700 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-800 transition"
+                    className="inline-flex items-center rounded-full bg-emerald-700 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-800 transition shadow-sm"
                   >
                     Browse Marketplace
                   </Link>
                   <Link
                     href="/feedback"
-                    className="inline-flex items-center rounded-full border border-emerald-300 bg-white px-4 py-2 text-xs font-semibold text-emerald-900 hover:bg-emerald-50 transition"
+                    className="inline-flex items-center rounded-full border border-emerald-300 bg-white/80 backdrop-blur-sm px-4 py-2 text-xs font-semibold text-emerald-900 hover:bg-white transition"
                   >
                     Submit Another Feedback
                   </Link>
@@ -88,14 +89,14 @@ export default async function FeedbackPage({
         ) : null}
 
         {error ? (
-          <div className="mt-6 rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs font-semibold text-rose-800">
+          <div className="mt-6 rounded-xl border border-rose-200/80 bg-rose-50/80 backdrop-blur-md p-4 text-xs font-semibold text-rose-800 shadow-sm">
             Please make sure all fields are filled out accurately.
           </div>
         ) : null}
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(300px,.8fr)]">
-          {/* Main Form */}
-          <div className="rounded-[24px] border border-[#e8e5e2] bg-white p-6 sm:p-8 shadow-sm">
+          {/* Main Form - Frosted Glass Panel */}
+          <div className="rounded-[32px] border border-white/80 bg-white/75 backdrop-blur-2xl p-6 sm:p-8 shadow-[0_20px_60px_-25px_rgba(40,25,65,0.1),_inset_0_1px_2px_rgba(255,255,255,0.95)]">
             <h2 className="text-base font-bold text-[#30273a] flex items-center gap-2">
               <MessageSquareQuote size={18} className="text-violet-700" />
               Submit Your Feedback
@@ -111,7 +112,7 @@ export default async function FeedbackPage({
                   name="category"
                   required
                   defaultValue="feature_request"
-                  className="mt-2 min-h-11 w-full rounded-xl border border-[#e4e0e8] bg-white px-3.5 text-sm text-[#383141] outline-none focus:border-violet-600 focus:ring-4 focus:ring-violet-100"
+                  className="mt-2 min-h-11 w-full rounded-xl border border-violet-100/80 bg-white/70 backdrop-blur-sm px-3.5 text-sm text-[#383141] outline-none focus:bg-white focus:border-violet-600 focus:ring-4 focus:ring-violet-100 shadow-inner"
                 >
                   <option value="feature_request">💡 Feature Request & Improvement</option>
                   <option value="trade_barter">🔄 Trade & Barter Experience</option>
@@ -133,7 +134,7 @@ export default async function FeedbackPage({
                   ].map((item, idx) => (
                     <label
                       key={item.val}
-                      className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-[#e4e0e8] p-2 text-center transition hover:border-violet-300 has-[:checked]:border-violet-600 has-[:checked]:bg-violet-50/80"
+                      className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-white/80 bg-white/60 backdrop-blur-sm p-2 text-center transition hover:border-violet-300 hover:bg-white/90 has-[:checked]:border-violet-600 has-[:checked]:bg-violet-50/90 shadow-sm"
                     >
                       <input
                         type="radio"
@@ -157,7 +158,7 @@ export default async function FeedbackPage({
                   minLength={3}
                   maxLength={160}
                   placeholder="e.g. Add hostel block delivery meetup spots"
-                  className="mt-2 min-h-11 w-full rounded-xl border border-[#e4e0e8] bg-white px-3.5 text-sm outline-none focus:border-violet-600 focus:ring-4 focus:ring-violet-100"
+                  className="mt-2 min-h-11 w-full rounded-xl border border-violet-100/80 bg-white/70 backdrop-blur-sm px-3.5 text-sm outline-none focus:bg-white focus:border-violet-600 focus:ring-4 focus:ring-violet-100 shadow-inner"
                 />
               </div>
 
@@ -170,11 +171,11 @@ export default async function FeedbackPage({
                   maxLength={3000}
                   rows={5}
                   placeholder="Tell us what you love, what felt confusing, or what feature would make campus exchanges better for you."
-                  className="mt-2 w-full rounded-xl border border-[#e4e0e8] p-3.5 text-sm outline-none focus:border-violet-600 focus:ring-4 focus:ring-violet-100 resize-y"
+                  className="mt-2 w-full rounded-xl border border-violet-100/80 bg-white/70 backdrop-blur-sm p-3.5 text-sm outline-none focus:bg-white focus:border-violet-600 focus:ring-4 focus:ring-violet-100 resize-y shadow-inner"
                 />
               </div>
 
-              <div className="rounded-xl border border-gray-100 bg-[#fbfafc] p-3.5">
+              <div className="rounded-xl border border-white/80 bg-white/50 backdrop-blur-sm p-3.5">
                 <label className="flex items-center gap-2.5 cursor-pointer">
                   <input
                     type="checkbox"
@@ -187,15 +188,15 @@ export default async function FeedbackPage({
                 </label>
               </div>
 
-              <Button type="submit" size="lg" className="w-full">
+              <Button type="submit" size="lg" className="w-full h-12 rounded-2xl bg-gradient-to-r from-violet-950 via-purple-900 to-indigo-950 text-white font-bold shadow-lg shadow-violet-950/20 hover:opacity-95 transition">
                 Submit Campus Feedback
               </Button>
             </form>
           </div>
 
-          {/* Side Info Cards */}
+          {/* Side Info Cards - Frosted Glass */}
           <div className="space-y-4">
-            <div className="rounded-[22px] border border-indigo-200 bg-indigo-50/60 p-5">
+            <div className="rounded-[28px] border border-indigo-200/80 bg-indigo-50/70 backdrop-blur-xl p-6 shadow-sm">
               <h3 className="text-sm font-bold text-indigo-950 flex items-center gap-2">
                 <HeartHandshake size={16} className="text-indigo-700" />
                 Recent Feature Updates
@@ -216,7 +217,7 @@ export default async function FeedbackPage({
               </ul>
             </div>
 
-            <div className="rounded-[22px] border border-[#e8e5e2] bg-white p-5">
+            <div className="rounded-[28px] border border-white/80 bg-white/70 backdrop-blur-xl p-6 shadow-sm">
               <h3 className="text-sm font-bold text-[#30283c] flex items-center gap-2">
                 <Lightbulb size={16} className="text-amber-500" />
                 Community Guidelines

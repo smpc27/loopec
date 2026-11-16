@@ -16,10 +16,10 @@ export function CollegeTrustShowcase({
   collegeDomain = "nitc.ac.in",
 }: CollegeTrustShowcaseProps) {
   return (
-    <div className="flex flex-col justify-between space-y-8 rounded-[28px] border border-violet-100 bg-gradient-to-br from-violet-950 via-[#271b42] to-[#1a1230] p-7 text-white shadow-xl lg:p-9">
+    <div className="flex flex-col justify-between space-y-8 rounded-[32px] border border-white/20 bg-gradient-to-br from-violet-950/90 via-[#271b42]/90 to-[#18112d]/95 backdrop-blur-2xl p-7 text-white shadow-[0_30px_70px_-20px_rgba(20,10,35,0.45),_inset_0_1px_2px_rgba(255,255,255,0.25)] lg:p-9">
       {/* College Institution Header */}
       <div className="space-y-4">
-        <div className="inline-flex items-center gap-2 rounded-full border border-violet-400/30 bg-violet-400/10 px-3.5 py-1 text-xs font-semibold text-violet-200">
+        <div className="inline-flex items-center gap-2 rounded-full border border-violet-400/30 bg-violet-400/10 px-3.5 py-1 text-xs font-semibold text-violet-200 backdrop-blur-md">
           <GraduationCap className="h-4 w-4 text-violet-300" />
           <span>Official Campus Portal</span>
         </div>
@@ -46,15 +46,15 @@ export function CollegeTrustShowcase({
         </p>
       </div>
 
-      {/* Trust Pillars */}
+      {/* Trust Pillars - Frosted Tiles */}
       <div className="space-y-4">
         <p className="text-[11px] font-bold uppercase tracking-[.15em] text-violet-300">
           Why Campus Authentication?
         </p>
 
         <div className="space-y-3">
-          <div className="flex items-start gap-3.5 rounded-2xl border border-white/10 bg-white/5 p-3.5 transition hover:bg-white/10">
-            <div className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-violet-500/20 text-violet-300">
+          <div className="flex items-start gap-3.5 rounded-2xl border border-white/15 bg-white/10 backdrop-blur-md p-3.5 transition-all duration-200 hover:bg-white/15 hover:border-white/25 shadow-sm">
+            <div className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-violet-400/20 text-violet-200 border border-violet-400/30">
               <ShieldCheck className="h-4 w-4" />
             </div>
             <div className="space-y-0.5">
@@ -67,8 +67,8 @@ export function CollegeTrustShowcase({
             </div>
           </div>
 
-          <div className="flex items-start gap-3.5 rounded-2xl border border-white/10 bg-white/5 p-3.5 transition hover:bg-white/10">
-            <div className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-violet-500/20 text-violet-300">
+          <div className="flex items-start gap-3.5 rounded-2xl border border-white/15 bg-white/10 backdrop-blur-md p-3.5 transition-all duration-200 hover:bg-white/15 hover:border-white/25 shadow-sm">
+            <div className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-violet-400/20 text-violet-200 border border-violet-400/30">
               <Building2 className="h-4 w-4" />
             </div>
             <div className="space-y-0.5">
@@ -81,8 +81,8 @@ export function CollegeTrustShowcase({
             </div>
           </div>
 
-          <div className="flex items-start gap-3.5 rounded-2xl border border-white/10 bg-white/5 p-3.5 transition hover:bg-white/10">
-            <div className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-violet-500/20 text-violet-300">
+          <div className="flex items-start gap-3.5 rounded-2xl border border-white/15 bg-white/10 backdrop-blur-md p-3.5 transition-all duration-200 hover:bg-white/15 hover:border-white/25 shadow-sm">
+            <div className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-violet-400/20 text-violet-200 border border-violet-400/30">
               <Wallet className="h-4 w-4" />
             </div>
             <div className="space-y-0.5">
@@ -97,18 +97,18 @@ export function CollegeTrustShowcase({
         </div>
       </div>
 
-      {/* Campus Metrics & Status */}
-      <div className="border-t border-white/10 pt-5">
+      {/* Campus Metrics & Status - Frosted Counters */}
+      <div className="border-t border-white/15 pt-5">
         <div className="grid grid-cols-3 gap-2 text-center">
-          <div className="rounded-xl bg-white/5 p-2.5">
+          <div className="rounded-xl border border-white/15 bg-white/10 backdrop-blur-md p-2.5 shadow-sm">
             <p className="font-mono text-base font-bold text-white sm:text-lg">6,500+</p>
             <p className="text-[10px] text-violet-300">Campus Peers</p>
           </div>
-          <div className="rounded-xl bg-white/5 p-2.5">
+          <div className="rounded-xl border border-white/15 bg-white/10 backdrop-blur-md p-2.5 shadow-sm">
             <p className="font-mono text-base font-bold text-white sm:text-lg">12+</p>
             <p className="text-[10px] text-violet-300">Hostel Zones</p>
           </div>
-          <div className="rounded-xl bg-white/5 p-2.5">
+          <div className="rounded-xl border border-white/15 bg-white/10 backdrop-blur-md p-2.5 shadow-sm">
             <p className="font-mono text-base font-bold text-emerald-300 sm:text-lg">0%</p>
             <p className="text-[10px] text-violet-300">Fee on Campus</p>
           </div>
@@ -119,7 +119,7 @@ export function CollegeTrustShowcase({
             <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
             NITC Pilot Campus Live
           </span>
-          <span className="font-mono text-violet-400">CiGaRa Group</span>
+          <span className="font-mono text-violet-300">CiGaRa Group</span>
         </div>
       </div>
     </div>

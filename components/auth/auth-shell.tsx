@@ -21,9 +21,9 @@ export function AuthShell({
   campusBadge?: string;
 }) {
   return (
-    <main className="min-h-screen bg-[#f7f6f4] px-5 py-6 sm:px-8 sm:py-10">
-      {/* Top Header */}
-      <div className="mx-auto flex max-w-6xl items-center justify-between">
+    <main className="min-h-screen bg-transparent px-5 py-6 sm:px-8 sm:py-10">
+      {/* Top Header - Glass Bar */}
+      <div className="mx-auto flex max-w-6xl items-center justify-between rounded-full border border-white/80 bg-white/60 backdrop-blur-xl px-5 py-3 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
         <Link className="flex items-center gap-2.5" href="/" aria-label="LOOPEC home">
           <BrandMark />
           <span className="text-sm font-extrabold tracking-[.14em] text-[#302546]">LOOPEC</span>
@@ -31,7 +31,7 @@ export function AuthShell({
 
         <div className="flex items-center gap-3">
           {campusBadge ? (
-            <div className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50/80 px-3 py-1 text-xs font-semibold text-violet-900 shadow-sm">
+            <div className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-violet-200/80 bg-violet-50/70 backdrop-blur-md px-3 py-1 text-xs font-semibold text-violet-900 shadow-sm">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <GraduationCap className="h-3.5 w-3.5 text-violet-700" />
               <span>{campusBadge}</span>
@@ -54,14 +54,14 @@ export function AuthShell({
             {/* Left: College Trust & Campus Showcase */}
             <div className="lg:col-span-5 flex flex-col">{sidebar}</div>
 
-            {/* Right: Authentication Card */}
+            {/* Right: Authentication Card - Frosted Glass Container */}
             <div className="lg:col-span-7 flex flex-col justify-center">
-              <section className="w-full rounded-[28px] border border-[#e9e5eb] bg-white p-6 shadow-[0_24px_80px_-50px_rgba(43,29,68,.35)] sm:p-10">
+              <section className="w-full rounded-[32px] border border-white/80 bg-white/75 backdrop-blur-2xl p-6 shadow-[0_25px_70px_-25px_rgba(40,20,65,0.12),_inset_0_1px_2px_rgba(255,255,255,0.95)] sm:p-10">
                 <div className="flex items-center justify-between">
                   <p className="text-[11px] font-bold uppercase tracking-[.15em] text-violet-700">
                     {eyebrow}
                   </p>
-                  <span className="text-[11px] font-semibold text-violet-600 bg-violet-50 px-2.5 py-0.5 rounded-full border border-violet-200">
+                  <span className="text-[11px] font-semibold text-violet-700 bg-violet-50/80 backdrop-blur-sm px-2.5 py-0.5 rounded-full border border-violet-200/70">
                     Campus ID Required
                   </span>
                 </div>
@@ -79,9 +79,9 @@ export function AuthShell({
           </div>
         </div>
       ) : (
-        /* Classic Centered Layout for Secondary Auth Pages */
+        /* Classic Centered Layout for Secondary Auth Pages - Frosted Glass */
         <div className="mx-auto max-w-[520px]">
-          <section className="mt-12 rounded-[28px] border border-[#e9e5eb] bg-white p-6 shadow-[0_24px_80px_-50px_rgba(43,29,68,.35)] sm:mt-16 sm:p-10">
+          <section className="mt-12 rounded-[32px] border border-white/80 bg-white/75 backdrop-blur-2xl p-6 shadow-[0_25px_70px_-25px_rgba(40,20,65,0.12),_inset_0_1px_2px_rgba(255,255,255,0.95)] sm:mt-16 sm:p-10">
             <p className="text-[11px] font-bold uppercase tracking-[.15em] text-violet-700">
               {eyebrow}
             </p>
@@ -107,7 +107,7 @@ export function FormNotice({ children }: { children: ReactNode }) {
   return (
     <p
       role="alert"
-      className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-5 text-rose-800"
+      className="rounded-xl border border-rose-200/80 bg-rose-50/80 backdrop-blur-md px-4 py-3 text-sm leading-5 text-rose-900 shadow-sm"
     >
       {children}
     </p>
@@ -115,6 +115,6 @@ export function FormNotice({ children }: { children: ReactNode }) {
 }
 
 export const inputClassName =
-  "mt-2 min-h-12 w-full rounded-xl border border-[#e4e0e8] bg-white px-3.5 text-sm text-[#28232f] outline-none transition placeholder:text-[#aaa4af] focus:border-violet-500 focus:ring-4 focus:ring-violet-100";
+  "mt-2 min-h-12 w-full rounded-xl border border-violet-200/80 bg-white/70 backdrop-blur-md px-3.5 text-sm text-[#28232f] outline-none transition placeholder:text-[#a09aa6] focus:bg-white/95 focus:border-violet-600 focus:ring-4 focus:ring-violet-500/15 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)]";
 
 export const labelClassName = "block text-sm font-semibold text-[#383240]";

@@ -201,27 +201,27 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f6f4]">
+    <main className="min-h-screen bg-transparent">
       {previewMode ? <span className="sr-only">Developer preview</span> : null}
-      <header className="border-b border-[#e8e5e2] bg-white/85">
+      <header className="sticky top-0 z-40 border-b border-white/60 bg-white/70 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.03)]">
         <div className="mx-auto flex min-h-[74px] max-w-7xl items-center justify-between gap-3 px-5 sm:px-8">
           <Link href="/marketplace" className="text-sm font-extrabold tracking-[.14em] text-[#302546]">LOOPEC <span className="ml-2 hidden font-normal tracking-normal text-[#8b8590] sm:inline">Marketplace</span></Link>
           <nav className="flex items-center gap-2 text-sm">
             <div className="hidden items-center gap-1 lg:flex">
-              <Link className="rounded-full px-3 py-2 text-[#625b6b] hover:bg-violet-50 hover:text-violet-900" href="/orders">Orders</Link>
-              <Link className="rounded-full px-3 py-2 text-[#625b6b] hover:bg-violet-50 hover:text-violet-900" href="/messages">Messages</Link>
-              <Link className="rounded-full px-3 py-2 text-[#625b6b] hover:bg-violet-50 hover:text-violet-900" href="/notifications">Alerts{unreadCount ? ` · ${unreadCount}` : ""}</Link>
-              <Link className="rounded-full px-3 py-2 text-[#625b6b] hover:bg-violet-50 hover:text-violet-900" href="/wishlist">Wishlist</Link>
-              <Link className="rounded-full px-3 py-2 text-[#625b6b] hover:bg-violet-50 hover:text-violet-900" href="/feedback">Feedback</Link>
-              <Link className="rounded-full px-3 py-2 text-[#625b6b] hover:bg-violet-50 hover:text-violet-900" href="/dashboard">Studio</Link>
-              <Link className="rounded-full px-3 py-2 text-[#625b6b] hover:bg-violet-50 hover:text-violet-900" href="/profile">Profile</Link>
-              {profile.role === "college_admin" || profile.role === "super_admin" ? <Link className="rounded-full px-3 py-2 text-[#625b6b] hover:bg-violet-50 hover:text-violet-900" href="/admin">Admin</Link> : null}
+              <Link className="rounded-full px-3 py-2 text-[#625b6b] hover:bg-violet-50/80 hover:text-violet-900 transition" href="/orders">Orders</Link>
+              <Link className="rounded-full px-3 py-2 text-[#625b6b] hover:bg-violet-50/80 hover:text-violet-900 transition" href="/messages">Messages</Link>
+              <Link className="rounded-full px-3 py-2 text-[#625b6b] hover:bg-violet-50/80 hover:text-violet-900 transition" href="/notifications">Alerts{unreadCount ? ` · ${unreadCount}` : ""}</Link>
+              <Link className="rounded-full px-3 py-2 text-[#625b6b] hover:bg-violet-50/80 hover:text-violet-900 transition" href="/wishlist">Wishlist</Link>
+              <Link className="rounded-full px-3 py-2 text-[#625b6b] hover:bg-violet-50/80 hover:text-violet-900 transition" href="/feedback">Feedback</Link>
+              <Link className="rounded-full px-3 py-2 text-[#625b6b] hover:bg-violet-50/80 hover:text-violet-900 transition" href="/dashboard">Studio</Link>
+              <Link className="rounded-full px-3 py-2 text-[#625b6b] hover:bg-violet-50/80 hover:text-violet-900 transition" href="/profile">Profile</Link>
+              {profile.role === "college_admin" || profile.role === "super_admin" ? <Link className="rounded-full px-3 py-2 text-[#625b6b] hover:bg-violet-50/80 hover:text-violet-900 transition" href="/admin">Admin</Link> : null}
             </div>
             <details className="relative lg:hidden">
-              <summary className="inline-flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-full border border-[#e8e3ec] bg-white px-3 text-xs font-semibold text-[#504a57] outline-none hover:border-violet-300 focus-visible:ring-4 focus-visible:ring-violet-100">
+              <summary className="inline-flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-full border border-white/80 bg-white/70 backdrop-blur-md px-3 text-xs font-semibold text-[#504a57] outline-none hover:border-violet-300 focus-visible:ring-4 focus-visible:ring-violet-100 shadow-sm">
                 <MenuIcon size={15} aria-hidden="true" /> Menu
               </summary>
-              <div className="absolute right-0 top-12 z-50 grid w-56 gap-1 rounded-2xl border border-[#e8e3ec] bg-white p-2 shadow-[0_18px_50px_-25px_rgba(35,23,55,.4)]">
+              <div className="absolute right-0 top-12 z-50 grid w-56 gap-1 rounded-2xl border border-white/80 bg-white/90 backdrop-blur-2xl p-2 shadow-[0_18px_50px_-25px_rgba(35,23,55,.4)]">
                 <Link className="rounded-xl px-3 py-2.5 text-sm text-[#504a57] hover:bg-violet-50" href="/orders">Orders</Link>
                 <Link className="rounded-xl px-3 py-2.5 text-sm text-[#504a57] hover:bg-violet-50" href="/messages">Messages</Link>
                 <Link className="rounded-xl px-3 py-2.5 text-sm text-[#504a57] hover:bg-violet-50" href="/notifications">Alerts{unreadCount ? ` · ${unreadCount}` : ""}</Link>
@@ -233,7 +233,7 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
                 <form action={signOut} className="border-t border-[#f0edf0] pt-1"><button className="w-full rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-[#77717e] hover:bg-violet-50 hover:text-violet-950" type="submit">Sign out</button></form>
               </div>
             </details>
-            <Link aria-label="List an item" className="inline-flex min-h-10 items-center rounded-full bg-violet-950 px-4 text-xs font-semibold text-white transition hover:bg-violet-900" href="/listings/new"><span className="hidden sm:inline">List an item</span><span className="sm:hidden">Sell</span><span className="ml-1">+</span></Link>
+            <Link aria-label="List an item" className="inline-flex min-h-10 items-center rounded-full bg-gradient-to-r from-violet-950 to-purple-900 px-4 text-xs font-semibold text-white shadow-md shadow-violet-950/20 transition hover:opacity-95" href="/listings/new"><span className="hidden sm:inline">List an item</span><span className="sm:hidden">Sell</span><span className="ml-1">+</span></Link>
             <form action={signOut}><button className="hidden min-h-10 rounded-full px-3 text-xs font-semibold text-[#77717e] hover:text-violet-950 lg:inline-flex" type="submit">Sign out</button></form>
           </nav>
         </div>
@@ -246,17 +246,17 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
             <h1 className="mt-3 font-serif text-4xl tracking-[-.055em] text-[#28232f] sm:text-5xl">Find it in your loop.</h1>
             <p className="mt-2 max-w-xl text-sm leading-6 text-[#77717e]">Browse items shared by verified members of your college community.</p>
           </div>
-          {pickupName ? <p className="rounded-full border border-[#e8e3ec] bg-white px-4 py-2.5 text-xs text-[#696270]">Campus pickup · <b className="text-[#3e3748]">{pickupName}</b></p> : null}
+          {pickupName ? <p className="rounded-full border border-white/80 bg-white/70 backdrop-blur-md px-4 py-2.5 text-xs text-[#524b5c] shadow-sm">Campus pickup · <b className="text-violet-950">{pickupName}</b></p> : null}
         </div>
 
-        {/* Quick Type Filter Tabs */}
+        {/* Quick Type Filter Tabs - Glass Pills */}
         <div className="mt-7 flex flex-wrap items-center gap-2 sm:gap-2.5">
           <Link
             href={buildTypeUrl("all")}
             className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition ${
               listingType === "all"
-                ? "bg-violet-950 text-white shadow-sm"
-                : "border border-[#e4e0e8] bg-white text-[#625b6b] hover:border-violet-300 hover:text-violet-950"
+                ? "bg-gradient-to-r from-violet-950 to-purple-900 text-white shadow-md shadow-violet-950/20"
+                : "border border-white/80 bg-white/70 backdrop-blur-md text-[#554d60] hover:bg-white hover:border-violet-300 shadow-sm"
             }`}
           >
             All Items
@@ -265,8 +265,8 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
             href={buildTypeUrl("sale")}
             className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition ${
               listingType === "sale"
-                ? "bg-violet-950 text-white shadow-sm"
-                : "border border-[#e4e0e8] bg-white text-[#625b6b] hover:border-violet-300 hover:text-violet-950"
+                ? "bg-gradient-to-r from-violet-950 to-purple-900 text-white shadow-md shadow-violet-950/20"
+                : "border border-white/80 bg-white/70 backdrop-blur-md text-[#554d60] hover:bg-white hover:border-violet-300 shadow-sm"
             }`}
           >
             🏷️ For Sale
@@ -275,8 +275,8 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
             href={buildTypeUrl("trade")}
             className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition ${
               listingType === "trade"
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "border border-indigo-200 bg-white text-indigo-900 hover:border-indigo-400"
+                ? "bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-md shadow-indigo-600/25"
+                : "border border-indigo-200/80 bg-white/70 backdrop-blur-md text-indigo-900 hover:bg-white hover:border-indigo-400 shadow-sm"
             }`}
           >
             🔄 Trade / Barter
@@ -285,22 +285,23 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
             href={buildTypeUrl("giveaway")}
             className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition ${
               listingType === "giveaway"
-                ? "bg-emerald-600 text-white shadow-sm"
-                : "border border-emerald-200 bg-white text-emerald-900 hover:border-emerald-400"
+                ? "bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-md shadow-emerald-600/25"
+                : "border border-emerald-200/80 bg-white/70 backdrop-blur-md text-emerald-900 hover:bg-white hover:border-emerald-400 shadow-sm"
             }`}
           >
             🎁 Free Giveaways
           </Link>
         </div>
 
-        <form className="mt-4 grid gap-3 rounded-[22px] border border-[#e8e5e2] bg-white p-3 shadow-[0_15px_40px_-35px_rgba(43,29,68,.45)] sm:grid-cols-[minmax(0,1fr)_180px_130px_130px_150px_auto] sm:items-center">
+        {/* Search Bar - Frosted Glass Bar */}
+        <form className="mt-4 grid gap-3 rounded-[28px] border border-white/80 bg-white/75 backdrop-blur-2xl p-3.5 shadow-[0_20px_50px_-25px_rgba(43,29,68,0.1),_inset_0_1px_2px_rgba(255,255,255,0.95)] sm:grid-cols-[minmax(0,1fr)_180px_130px_130px_150px_auto] sm:items-center">
           <input type="hidden" name="type" value={listingType} />
-          <label className="relative block min-w-0"><span className="sr-only">Search products</span><Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#928b96]" size={16} /><input className="h-11 w-full rounded-full bg-[#f8f7f8] pl-10 pr-4 text-sm outline-none transition focus:ring-4 focus:ring-violet-100" type="search" name="q" defaultValue={search} placeholder="Search the campus marketplace" /></label>
-          <label><span className="sr-only">Filter by category</span><select className="h-11 w-full rounded-full bg-[#f8f7f8] px-4 text-sm text-[#504a57] outline-none focus:ring-4 focus:ring-violet-100" name="category" defaultValue={categoryId}><option value="">All categories</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
-          <label><span className="sr-only">Minimum price</span><input className="h-11 w-full rounded-full bg-[#f8f7f8] px-4 text-sm outline-none focus:ring-4 focus:ring-violet-100" name="min" type="number" min="0" step="1" placeholder="Min ₹" defaultValue={first(params.min) ?? ""} /></label>
-          <label><span className="sr-only">Maximum price</span><input className="h-11 w-full rounded-full bg-[#f8f7f8] px-4 text-sm outline-none focus:ring-4 focus:ring-violet-100" name="max" type="number" min="0" step="1" placeholder="Max ₹" defaultValue={first(params.max) ?? ""} /></label>
-          <label><span className="sr-only">Sort products</span><select className="h-11 w-full rounded-full bg-[#f8f7f8] px-4 text-sm text-[#504a57] outline-none focus:ring-4 focus:ring-violet-100" name="sort" defaultValue={sort}><option value="recent">Recently added</option><option value="price_low">Price: low to high</option><option value="price_high">Price: high to low</option></select></label>
-          <button className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-violet-950 px-5 text-sm font-semibold text-white transition hover:bg-violet-900" type="submit"><SlidersHorizontal size={15} /> Filter</button>
+          <label className="relative block min-w-0"><span className="sr-only">Search products</span><Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#928b96]" size={16} /><input className="h-11 w-full rounded-full bg-white/70 border border-violet-100/70 pl-10 pr-4 text-sm outline-none transition focus:bg-white focus:ring-4 focus:ring-violet-200" type="search" name="q" defaultValue={search} placeholder="Search the campus marketplace" /></label>
+          <label><span className="sr-only">Filter by category</span><select className="h-11 w-full rounded-full bg-white/70 border border-violet-100/70 px-4 text-sm text-[#504a57] outline-none focus:bg-white focus:ring-4 focus:ring-violet-200" name="category" defaultValue={categoryId}><option value="">All categories</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
+          <label><span className="sr-only">Minimum price</span><input className="h-11 w-full rounded-full bg-white/70 border border-violet-100/70 px-4 text-sm outline-none focus:bg-white focus:ring-4 focus:ring-violet-200" name="min" type="number" min="0" step="1" placeholder="Min ₹" defaultValue={first(params.min) ?? ""} /></label>
+          <label><span className="sr-only">Maximum price</span><input className="h-11 w-full rounded-full bg-white/70 border border-violet-100/70 px-4 text-sm outline-none focus:bg-white focus:ring-4 focus:ring-violet-200" name="max" type="number" min="0" step="1" placeholder="Max ₹" defaultValue={first(params.max) ?? ""} /></label>
+          <label><span className="sr-only">Sort products</span><select className="h-11 w-full rounded-full bg-white/70 border border-violet-100/70 px-4 text-sm text-[#504a57] outline-none focus:bg-white focus:ring-4 focus:ring-violet-200" name="sort" defaultValue={sort}><option value="recent">Recently added</option><option value="price_low">Price: low to high</option><option value="price_high">Price: high to low</option></select></label>
+          <button className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-violet-950 to-purple-900 px-5 text-sm font-semibold text-white shadow-md shadow-violet-950/20 transition hover:opacity-95" type="submit"><SlidersHorizontal size={15} /> Filter</button>
         </form>
 
         <div className="mt-7 flex flex-wrap items-center justify-between gap-3">

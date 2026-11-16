@@ -2,14 +2,14 @@
 
 :root {
   color-scheme: light;
-  --background: #f7f6f4;
-  --foreground: #24212b;
-  --muted: #77737f;
-  --purple: #49347f;
-  --purple-dark: #271b42;
-  --purple-soft: #eeeaf7;
-  --line: #e8e5e2;
-  --paper: #fffefd;
+  --background: #f8f7fc;
+  --foreground: #221c2e;
+  --muted: #736d7d;
+  --purple: #5c3fa8;
+  --purple-dark: #24183d;
+  --purple-soft: #ede7f8;
+  --line: rgba(228, 222, 238, 0.7);
+  --paper: rgba(255, 255, 255, 0.75);
 }
 
 @theme inline {
@@ -32,6 +32,80 @@ body {
 a { text-decoration: none; }
 button, a { -webkit-tap-highlight-color: transparent; }
 ::selection { background: #ded5f5; color: #2d1e53; }
+
+/* ==========================================================================
+   GLASSMORPHISM DESIGN SYSTEM (Glass Model)
+   ========================================================================== */
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 16px 40px -15px rgba(35, 20, 55, 0.07),
+              inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.glass-panel-elevated {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 25px 60px -20px rgba(38, 20, 60, 0.12),
+              0 0 0 1px rgba(255, 255, 255, 0.6),
+              inset 0 1px 2px 0 rgba(255, 255, 255, 1);
+}
+
+.glass-panel-dark {
+  background: linear-gradient(135deg, rgba(39, 23, 66, 0.94), rgba(22, 14, 40, 0.92));
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 30px 70px -20px rgba(18, 9, 33, 0.55),
+              inset 0 1px 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 10px 30px -10px rgba(45, 25, 75, 0.06),
+              inset 0 1px 1px 0 rgba(255, 255, 255, 0.85);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card:hover {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(255, 255, 255, 1);
+  box-shadow: 0 22px 50px -15px rgba(45, 25, 75, 0.14),
+              inset 0 1px 1px 0 rgba(255, 255, 255, 1);
+  transform: translateY(-2px);
+}
+
+.glass-input {
+  background: rgba(255, 255, 255, 0.65) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(226, 218, 236, 0.8) !important;
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.02) !important;
+  transition: all 0.2s ease !important;
+}
+
+.glass-input:focus {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(124, 58, 237, 0.8) !important;
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15),
+              inset 0 1px 2px 0 rgba(0, 0, 0, 0.02) !important;
+}
+
+.glass-pill {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 2px 8px 0 rgba(40, 20, 65, 0.04);
+}
 
 .page-shell { width: min(100% - 64px, 1240px); margin-inline: auto; }
 .site-header { position: relative; z-index: 2; border-bottom: 1px solid rgba(39, 27, 66, 0.075); }
