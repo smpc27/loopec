@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   ArrowDownRight,
   ArrowRight,
@@ -47,7 +48,23 @@ const guardrails = [
   { icon: Handshake, label: "Campus pickup" },
 ];
 
-export default function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams?: Promise<{ code?: string | string[]; next?: string | string[] }>;
+}) {
+  const params = searchParams ? await searchParams : {};
+  const code = Array.isArray(params.code) ? params.code[0] : params.code;
+  const next = Array.isArray(params.next) ? params.next[0] : params.next;
+
+  if (code) {
+    const q = new URLSearchParams();
+    q.set("code", code);
+    if (next) q.set("next", next);
+    else q.set("next", "/marketplace");
+    redirect(`/auth/callback?${q.toString()}`);
+  }
+
   return (
     <>
       <header className="site-header">
