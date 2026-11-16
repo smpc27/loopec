@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { labelClassName } from "@/components/auth/auth-shell";
 import { signUp } from "@/app/auth/actions";
+import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 
 type College = {
   id: string;
@@ -86,7 +87,19 @@ export function CollegeSignUpForm({ colleges }: CollegeSignUpFormProps) {
   };
 
   return (
-    <form action={signUp} className="space-y-4">
+    <div className="space-y-4">
+      {/* 1-Click NITC Google Sign-Up */}
+      <div className="space-y-3">
+        <GoogleSignInButton label="Sign up with NITC Google Account" />
+        <div className="relative flex items-center justify-center">
+          <div className="w-full border-t border-gray-200" />
+          <span className="bg-[#fcfbf9] px-3 text-xs uppercase tracking-wider text-gray-400">
+            Or register with password
+          </span>
+        </div>
+      </div>
+
+      <form action={signUp} className="space-y-4">
       {/* Full Name */}
       <div>
         <label className={labelClassName} htmlFor="full-name-input">
@@ -259,5 +272,6 @@ export function CollegeSignUpForm({ colleges }: CollegeSignUpFormProps) {
         By joining, you agree to follow the campus community rules. Account access begins after your college email and ID are verified.
       </p>
     </form>
+    </div>
   );
 }

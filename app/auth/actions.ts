@@ -75,7 +75,10 @@ export async function signUp(formData: FormData) {
       emailRedirectTo: `${siteOrigin()}/auth/callback?next=%2Fverification`,
     },
   });
-  if (error) redirect("/auth/sign-up?error=sign_up");
+  if (error) {
+    console.error("LOOPEC_AUTH_SIGNUP_ERROR:", error.message, error.status, error.name);
+    redirect("/auth/sign-up?error=sign_up");
+  }
 
   // If session was immediately created (e.g. email confirmation disabled), go straight to campus portal!
   if (authData?.session) {
@@ -84,6 +87,30 @@ export async function signUp(formData: FormData) {
 
   (await cookies()).set("loopec_pending_email", email, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/auth/check-email", maxAge: 15 * 60 });
   redirect("/auth/check-email");
+}
+
+export async function signInWithGoogle(formData?: FormData) {
+  if (!isSupabaseConfigured()) redirect("/setup");
+  const supabase = await createClient();
+  const next = formData?.get("next") ? String(formData.get("next")) : "/marketplace";
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${siteOrigin()}/auth/callback?next=${encodeURIComponent(next)}`,
+      queryParams: {
+        access_type: "offline",
+        prompt: "select_account",
+        hd: "nitc.ac.in",
+      },
+    },
+  });
+
+  if (error || !data?.url) {
+    console.error("LOOPEC_GOOGLE_OAUTH_ERROR:", error);
+    redirect("/auth/sign-in?error=sign_in");
+  }
+
+  redirect(data.url);
 }
 
 export async function signIn(formData: FormData) {

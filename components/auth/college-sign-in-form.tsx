@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { labelClassName } from "@/components/auth/auth-shell";
 import { signIn } from "@/app/auth/actions";
+import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 
 type CollegeSignInFormProps = {
   nextPath?: string;
@@ -119,6 +120,17 @@ export function CollegeSignInForm({
           <Building2 className="h-4 w-4" />
           <span>Faculty & Staff</span>
         </button>
+      </div>
+
+      {/* 1-Click NITC Google Sign-In */}
+      <div className="space-y-3 pt-1">
+        <GoogleSignInButton nextPath={nextPath} label="Sign in with NITC Google Account" />
+        <div className="relative flex items-center justify-center">
+          <div className="w-full border-t border-gray-200" />
+          <span className="bg-[#fcfbf9] px-3 text-xs uppercase tracking-wider text-gray-400">
+            Or sign in with email & password
+          </span>
+        </div>
       </div>
 
       <form action={signIn} className="space-y-4">
