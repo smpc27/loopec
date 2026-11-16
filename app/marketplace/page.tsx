@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ArrowRight, Menu as MenuIcon, Search, ShieldCheck, SlidersHorizontal } from "lucide-react";
+import { ArrowRight, Menu as MenuIcon, Search, ShieldCheck } from "lucide-react";
 import { connection } from "next/server";
 import { ProductCard, type MarketplaceProduct } from "@/components/marketplace/product-card";
+import { MarketplaceFilterDock } from "@/components/marketplace/marketplace-filter-dock";
 import { requireApprovedMember } from "@/lib/auth/member";
 import { signOut } from "@/app/auth/actions";
 
@@ -188,18 +189,6 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
   const selectedCategory = categories.find((category) => category.id === categoryId);
   const pickupName = (pickupData?.[0] as { name?: string } | undefined)?.name;
 
-  function buildTypeUrl(newType: string) {
-    const p = new URLSearchParams();
-    if (search) p.set("q", search);
-    if (categoryId) p.set("category", categoryId);
-    if (minPrice !== null) p.set("min", String(minPrice));
-    if (maxPrice !== null) p.set("max", String(maxPrice));
-    if (sort !== "recent") p.set("sort", sort);
-    if (newType !== "all") p.set("type", newType);
-    const qs = p.toString();
-    return `/marketplace${qs ? `?${qs}` : ""}`;
-  }
-
   return (
     <main className="min-h-screen bg-transparent">
       {previewMode ? <span className="sr-only">Developer preview</span> : null}
@@ -249,60 +238,18 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
           {pickupName ? <p className="rounded-full border border-white/80 bg-white/70 backdrop-blur-md px-4 py-2.5 text-xs text-[#524b5c] shadow-sm">Campus pickup · <b className="text-violet-950">{pickupName}</b></p> : null}
         </div>
 
-        {/* Quick Type Filter Tabs - Glass Pills */}
-        <div className="mt-7 flex flex-wrap items-center gap-2 sm:gap-2.5">
-          <Link
-            href={buildTypeUrl("all")}
-            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition ${
-              listingType === "all"
-                ? "bg-gradient-to-r from-violet-950 to-purple-900 text-white shadow-md shadow-violet-950/20"
-                : "border border-white/80 bg-white/70 backdrop-blur-md text-[#554d60] hover:bg-white hover:border-violet-300 shadow-sm"
-            }`}
-          >
-            All Items
-          </Link>
-          <Link
-            href={buildTypeUrl("sale")}
-            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition ${
-              listingType === "sale"
-                ? "bg-gradient-to-r from-violet-950 to-purple-900 text-white shadow-md shadow-violet-950/20"
-                : "border border-white/80 bg-white/70 backdrop-blur-md text-[#554d60] hover:bg-white hover:border-violet-300 shadow-sm"
-            }`}
-          >
-            🏷️ For Sale
-          </Link>
-          <Link
-            href={buildTypeUrl("trade")}
-            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition ${
-              listingType === "trade"
-                ? "bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-md shadow-indigo-600/25"
-                : "border border-indigo-200/80 bg-white/70 backdrop-blur-md text-indigo-900 hover:bg-white hover:border-indigo-400 shadow-sm"
-            }`}
-          >
-            🔄 Trade / Barter
-          </Link>
-          <Link
-            href={buildTypeUrl("giveaway")}
-            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition ${
-              listingType === "giveaway"
-                ? "bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-md shadow-emerald-600/25"
-                : "border border-emerald-200/80 bg-white/70 backdrop-blur-md text-emerald-900 hover:bg-white hover:border-emerald-400 shadow-sm"
-            }`}
-          >
-            🎁 Free Giveaways
-          </Link>
+        {/* Ultra-Modern Glass Category Chips, Filter Tabs & Search Dock */}
+        <div className="mt-7 relative z-30">
+          <MarketplaceFilterDock
+            categories={categories}
+            initialSearch={search}
+            initialCategoryId={categoryId}
+            initialMinPrice={first(params.min) ?? ""}
+            initialMaxPrice={first(params.max) ?? ""}
+            initialSort={sort}
+            initialType={listingType}
+          />
         </div>
-
-        {/* Search Bar - Frosted Glass Bar */}
-        <form className="mt-4 grid gap-3 rounded-[28px] border border-white/80 bg-white/75 backdrop-blur-2xl p-3.5 shadow-[0_20px_50px_-25px_rgba(43,29,68,0.1),_inset_0_1px_2px_rgba(255,255,255,0.95)] sm:grid-cols-[minmax(0,1fr)_180px_130px_130px_150px_auto] sm:items-center">
-          <input type="hidden" name="type" value={listingType} />
-          <label className="relative block min-w-0"><span className="sr-only">Search products</span><Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#928b96]" size={16} /><input className="h-11 w-full rounded-full bg-white/70 border border-violet-100/70 pl-10 pr-4 text-sm outline-none transition focus:bg-white focus:ring-4 focus:ring-violet-200" type="search" name="q" defaultValue={search} placeholder="Search the campus marketplace" /></label>
-          <label><span className="sr-only">Filter by category</span><select className="h-11 w-full rounded-full bg-white/70 border border-violet-100/70 px-4 text-sm text-[#504a57] outline-none focus:bg-white focus:ring-4 focus:ring-violet-200" name="category" defaultValue={categoryId}><option value="">All categories</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
-          <label><span className="sr-only">Minimum price</span><input className="h-11 w-full rounded-full bg-white/70 border border-violet-100/70 px-4 text-sm outline-none focus:bg-white focus:ring-4 focus:ring-violet-200" name="min" type="number" min="0" step="1" placeholder="Min ₹" defaultValue={first(params.min) ?? ""} /></label>
-          <label><span className="sr-only">Maximum price</span><input className="h-11 w-full rounded-full bg-white/70 border border-violet-100/70 px-4 text-sm outline-none focus:bg-white focus:ring-4 focus:ring-violet-200" name="max" type="number" min="0" step="1" placeholder="Max ₹" defaultValue={first(params.max) ?? ""} /></label>
-          <label><span className="sr-only">Sort products</span><select className="h-11 w-full rounded-full bg-white/70 border border-violet-100/70 px-4 text-sm text-[#504a57] outline-none focus:bg-white focus:ring-4 focus:ring-violet-200" name="sort" defaultValue={sort}><option value="recent">Recently added</option><option value="price_low">Price: low to high</option><option value="price_high">Price: high to low</option></select></label>
-          <button className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-violet-950 to-purple-900 px-5 text-sm font-semibold text-white shadow-md shadow-violet-950/20 transition hover:opacity-95" type="submit"><SlidersHorizontal size={15} /> Filter</button>
-        </form>
 
         <div className="mt-7 flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-[#77717e]">{selectedCategory ? <><b className="text-[#403a47]">{selectedCategory.name}</b><span className="mx-2">·</span></> : null}{search ? <>Results for <b className="text-[#403a47]">“{search}”</b><span className="mx-2">·</span></> : null}{cards.length} {cards.length === 1 ? "item" : "items"}</p>
