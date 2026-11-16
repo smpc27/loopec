@@ -38,14 +38,14 @@ export default async function ProductDetailsPage({ params, searchParams }: PageP
   if (!productData) notFound();
   const product = productData as Product;
   const [{ data: sellerData }, { data: categoryData }, { data: imageData }, { data: savedData }, { data: reviewData }, { data: relatedData }] = await Promise.all([
-    supabase.from("profiles").select("id, full_name, handle, role, verification_status").eq("id", product.seller_id).maybeSingle(),
+    supabase.from("profiles").select("id, full_name, handle, role, verification_status, phone").eq("id", product.seller_id).maybeSingle(),
     supabase.from("categories").select("name, slug").eq("id", product.category_id).maybeSingle(),
     supabase.from("product_images").select("id, storage_path, alt_text, sort_order").eq("product_id", product.id).order("sort_order"),
     supabase.from("wishlists").select("product_id").eq("user_id", userId).eq("product_id", product.id).maybeSingle(),
     supabase.from("reviews").select("rating").eq("reviewed_user_id", product.seller_id).limit(100),
     supabase.from("products").select("id, seller_id, category_id, name, description, price, item_condition, quantity, is_featured, published_at").eq("college_id", product.college_id).eq("category_id", product.category_id).eq("status", "approved").gt("quantity", 0).neq("id", product.id).order("published_at", { ascending: false, nullsFirst: false }).limit(4),
   ]);
-  const seller = sellerData as { id: string; full_name: string; handle: string; role: string; verification_status: string } | null;
+  const seller = sellerData as { id: string; full_name: string; handle: string; role: string; verification_status: string; phone?: string | null } | null;
   const category = categoryData as { name: string; slug: string } | null;
   const images = (imageData ?? []) as { id: string; storage_path: string; alt_text: string; sort_order: number }[];
   const reviewRatings = (reviewData ?? []).map((item) => Number((item as { rating: number }).rating));
@@ -84,6 +84,13 @@ export default async function ProductDetailsPage({ params, searchParams }: PageP
   const error = Array.isArray(query.error) ? query.error[0] : query.error;
   const savedRelated = new Set((relatedSaved ?? []).map((item) => (item as { product_id: string }).product_id));
   const sellerRole = seller?.role === "faculty" ? "Faculty" : seller?.role === "staff" ? "College staff" : "Student";
+  const rawSellerPhone = (seller?.phone || "").replace(/\D/g, "");
+  const waSellerPhone = rawSellerPhone.length === 10 ? `91${rawSellerPhone}` : rawSellerPhone;
+  const waInquiryLink = waSellerPhone
+    ? `https://wa.me/${waSellerPhone}?text=${encodeURIComponent(
+        `Hi ${seller?.full_name || "there"}! 👋 I saw your listing for "${product.name}" (₹${product.price}) on LOOPEC. Is it still available for campus pickup?`
+      )}`
+    : null;
 
   return (
     <main className="min-h-screen bg-[#f7f6f4]">
@@ -123,8 +130,21 @@ export default async function ProductDetailsPage({ params, searchParams }: PageP
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 <form action={addToCart}><input type="hidden" name="product_id" value={product.id} /><button className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-[#ddd7e4] bg-white px-5 text-sm font-semibold text-[#403a47] transition hover:border-violet-300 hover:text-violet-900" type="submit"><ShoppingBag size={16} /> Add to cart</button></form>
                 <form action={buyNow}><input type="hidden" name="product_id" value={product.id} /><button className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-violet-950 px-5 text-sm font-semibold text-white transition hover:bg-violet-900" type="submit">Buy now <ShoppingBag size={16} /></button></form>
+
+                {waInquiryLink ? (
+                  <a
+                    href={waInquiryLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#25D366] px-5 text-sm font-bold text-white shadow-sm transition hover:bg-[#20ba59] sm:col-span-2"
+                  >
+                    <MessageCircle size={18} />
+                    <span>Chat & Pay on WhatsApp ({seller?.phone || "Seller"})</span>
+                  </a>
+                ) : null}
+
                 <div className="flex gap-2 sm:col-span-2">
-                  <form action={startConversation}><input type="hidden" name="product_id" value={product.id} /><button className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full border border-[#ddd7e4] bg-white px-4 text-sm font-semibold text-[#403a47] transition hover:border-violet-300 hover:text-violet-900" type="submit"><MessageCircle size={16} /> Message seller</button></form>
+                  <form action={startConversation}><input type="hidden" name="product_id" value={product.id} /><button className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full border border-[#ddd7e4] bg-white px-4 text-sm font-semibold text-[#403a47] transition hover:border-violet-300 hover:text-violet-900" type="submit"><MessageCircle size={16} /> In-app message</button></form>
                   <form action={toggleWishlist}><input type="hidden" name="product_id" value={product.id} /><input type="hidden" name="return_to" value={`/marketplace/${product.id}`} /><button className="grid size-12 shrink-0 place-items-center rounded-full border border-[#ddd7e4] bg-white text-violet-800 transition hover:border-violet-300" type="submit" title={savedData ? "Remove from wishlist" : "Save to wishlist"} aria-label={savedData ? "Remove from wishlist" : "Save to wishlist"}><Bookmark size={17} fill={savedData ? "currentColor" : "none"} /></button></form>
                 </div>
               </div>

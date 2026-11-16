@@ -66,10 +66,11 @@ export async function POST(req: Request) {
       payment_id: paymentId,
       order_id: orderId,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Payment verification error:", error);
+    const errObj = error as { message?: string } | null;
     return NextResponse.json(
-      { error: error?.message || "Internal server error during verification" },
+      { error: errObj?.message || "Internal server error during verification" },
       { status: 500 }
     );
   }

@@ -1,11 +1,55 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { CheckCircle2, Loader2, ShieldCheck, Zap } from "lucide-react";
+
+interface RazorpaySuccessResponse {
+  razorpay_payment_id: string;
+  razorpay_order_id: string;
+  razorpay_signature: string;
+}
+
+interface RazorpayErrorResponse {
+  error?: {
+    code?: string;
+    description?: string;
+    source?: string;
+    step?: string;
+    reason?: string;
+  };
+}
+
+interface RazorpayOptions {
+  key?: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description?: string;
+  image?: string;
+  order_id: string;
+  prefill?: {
+    name?: string;
+    email?: string;
+    contact?: string;
+  };
+  theme?: {
+    color?: string;
+  };
+  modal?: {
+    ondismiss?: () => void;
+  };
+  handler: (response: RazorpaySuccessResponse) => void | Promise<void>;
+}
+
+interface RazorpayInstance {
+  open: () => void;
+  on: (event: string, callback: (response: RazorpayErrorResponse) => void) => void;
+}
 
 declare global {
   interface Window {
-    Razorpay: any;
+    Razorpay?: new (options: RazorpayOptions) => RazorpayInstance;
   }
 }
 
@@ -32,6 +76,7 @@ export function RazorpayCheckoutButton({
   onSuccess,
   className = "",
 }: RazorpayButtonProps) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isAuthError, setIsAuthError] = useState(false);
@@ -93,7 +138,7 @@ export function RazorpayCheckoutButton({
       const keyId = orderData.key_id || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
 
       // Step 3: Open Razorpay Standard Checkout Modal
-      const options = {
+      const options: RazorpayOptions = {
         key: keyId,
         amount: orderData.amount,
         currency: orderData.currency || "INR",
@@ -114,11 +159,7 @@ export function RazorpayCheckoutButton({
             setLoading(false);
           },
         },
-        handler: async function (response: {
-          razorpay_payment_id: string;
-          razorpay_order_id: string;
-          razorpay_signature: string;
-        }) {
+        handler: async function (response: RazorpaySuccessResponse) {
           try {
             // Step 4: Call Backend Verify Signature Endpoint
             const verifyRes = await fetch("/api/verify-payment", {
@@ -147,24 +188,31 @@ export function RazorpayCheckoutButton({
                 signature: response.razorpay_signature,
               });
             } else if (orderId) {
-              window.location.href = `/orders/${orderId}?paid=1`;
+              router.push(`/orders/${orderId}?paid=1`);
+              router.refresh();
             }
-          } catch (verifyErr: any) {
-            setError(verifyErr.message || "Payment verification failed");
+          } catch (verifyErr: unknown) {
+            const msg = verifyErr instanceof Error ? verifyErr.message : "Payment verification failed";
+            setError(msg);
             setLoading(false);
           }
         },
       };
 
+      if (!window.Razorpay) {
+        throw new Error("Razorpay checkout failed to initialize");
+      }
+
       const rzp = new window.Razorpay(options);
-      rzp.on("payment.failed", function (response: any) {
+      rzp.on("payment.failed", function (response: RazorpayErrorResponse) {
         setError(response.error?.description || "Payment failed or was declined.");
         setLoading(false);
       });
 
       rzp.open();
-    } catch (err: any) {
-      setError(err.message || "An unexpected payment error occurred");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "An unexpected payment error occurred";
+      setError(msg);
       setLoading(false);
     }
   }
@@ -222,7 +270,8 @@ export function RazorpayCheckoutButton({
                 signature: "simulated_test_sig",
               });
             } else if (orderId) {
-              window.location.href = `/orders/${orderId}?paid=1`;
+              router.push(`/orders/${orderId}?paid=1`);
+              router.refresh();
             }
           }}
           className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-full border border-violet-300 bg-violet-50 px-4 text-xs font-semibold text-violet-950 transition hover:bg-violet-100"

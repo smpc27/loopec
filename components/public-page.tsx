@@ -22,6 +22,7 @@ export function PublicPage({
             <span className="text-sm font-extrabold tracking-[.14em] text-[#302546]">LOOPEC</span>
           </Link>
           <nav aria-label="Public navigation" className="flex items-center gap-4 text-xs font-semibold text-[#716b77] sm:gap-6">
+            <Link className="hover:text-violet-900" href="/marketplace">Marketplace</Link>
             <Link className="hover:text-violet-900" href="/about">About</Link>
             <Link className="hover:text-violet-900" href="/auth/sign-in">Sign in</Link>
           </nav>

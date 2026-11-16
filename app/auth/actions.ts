@@ -189,11 +189,13 @@ export async function verifyEmailOtp(formData: FormData) {
 
   const supabase = await createClient();
 
-  let { data, error } = await supabase.auth.verifyOtp({
+  const { data: initialData, error } = await supabase.auth.verifyOtp({
     email,
     token,
     type: "signup",
   });
+
+  let data = initialData;
 
   if (error) {
     const fallback = await supabase.auth.verifyOtp({

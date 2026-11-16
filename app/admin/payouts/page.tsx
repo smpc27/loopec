@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, CircleDollarSign, ExternalLink, QrCode, ShieldCheck, Wallet } from "lucide-react";
+import { ArrowLeft, Wallet } from "lucide-react";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { getCurrentMember } from "@/lib/auth/member";
 import { isSupabaseConfigured } from "@/lib/supabase/env";

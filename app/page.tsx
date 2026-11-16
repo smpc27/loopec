@@ -60,15 +60,22 @@ export default function Home() {
           </Link>
 
           <nav className="desktop-nav" aria-label="Main navigation">
+            <Link href="/marketplace">Marketplace</Link>
             <a href="#how-it-works">How it works</a>
             <a href="#community">Our community</a>
+            <Link href="/auth/sign-in">Sign in</Link>
           </nav>
 
-          <Button asChild size="sm" className="header-action">
-            <Link href="/auth/sign-up">
-              Join your campus <MoveUpRight aria-hidden="true" size={15} />
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="secondary" size="sm" className="hidden sm:inline-flex rounded-full border-violet-200 text-xs font-semibold text-violet-900 hover:bg-violet-50">
+              <Link href="/auth/sign-in">Sign in</Link>
+            </Button>
+            <Button asChild size="sm" className="header-action">
+              <Link href="/auth/sign-up">
+                Join your campus <MoveUpRight aria-hidden="true" size={15} />
+              </Link>
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -94,6 +101,11 @@ export default function Home() {
               <Button asChild size="lg">
                 <Link href="/auth/sign-up">
                   Get started <ArrowRight aria-hidden="true" size={17} />
+                </Link>
+              </Button>
+              <Button asChild variant="secondary" size="lg" className="rounded-full border-[#dcd7e3] bg-white text-[#383141] hover:border-violet-300 hover:text-violet-900">
+                <Link href="/marketplace">
+                  Browse items <MoveUpRight aria-hidden="true" size={16} />
                 </Link>
               </Button>
               <a className="text-link" href="#community">

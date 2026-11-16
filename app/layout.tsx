@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { PwaRegister } from "@/components/pwa-register";
+import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import "./globals.css";
 
 // Opt out of static-shell validation for the whole app: pages with real
@@ -40,9 +41,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="min-h-full">
+      <body className="min-h-full pb-16 md:pb-0">
         <PwaRegister />
         {children}
+        <MobileBottomNav />
       </body>
     </html>
   );

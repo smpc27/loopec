@@ -1,13 +1,57 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { CheckCircle2, CreditCard, Landmark, Loader2, QrCode, ShieldCheck, Sparkles, Zap } from "lucide-react";
-import { initiateOrderPaymentSession, completeOrderPayment } from "@/app/orders/payment-actions";
-import { calculateCommission, inrFormatter } from "@/lib/payments/commission";
+import { completeOrderPayment } from "@/app/orders/payment-actions";
+import { calculateCommission } from "@/lib/payments/commission";
+
+interface RazorpaySuccessResponse {
+  razorpay_payment_id: string;
+  razorpay_order_id: string;
+  razorpay_signature: string;
+}
+
+interface RazorpayErrorResponse {
+  error?: {
+    code?: string;
+    description?: string;
+    source?: string;
+    step?: string;
+    reason?: string;
+  };
+}
+
+interface RazorpayOptions {
+  key?: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description?: string;
+  image?: string;
+  order_id: string;
+  prefill?: {
+    name?: string;
+    email?: string;
+    contact?: string;
+  };
+  theme?: {
+    color?: string;
+  };
+  modal?: {
+    ondismiss?: () => void;
+  };
+  handler: (response: RazorpaySuccessResponse) => void | Promise<void>;
+}
+
+interface RazorpayInstance {
+  open: () => void;
+  on: (event: string, callback: (response: RazorpayErrorResponse) => void) => void;
+}
 
 declare global {
   interface Window {
-    Razorpay: any;
+    Razorpay?: new (options: RazorpayOptions) => RazorpayInstance;
   }
 }
 
@@ -18,13 +62,27 @@ type PayOnlineCardProps = {
   buyerName?: string;
 };
 
-export function PayOnlineCard({ orderId, amount, currency = "INR", buyerName = "Campus Member" }: PayOnlineCardProps) {
+export function PayOnlineCard({ orderId, amount, buyerName = "Campus Member" }: PayOnlineCardProps) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [showSandboxModal, setShowSandboxModal] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<"upi" | "card" | "netbanking">("upi");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [sandboxPaymentId, setSandboxPaymentId] = useState("");
+  const [sandboxOrderRef, setSandboxOrderRef] = useState("");
 
   const breakdown = calculateCommission(amount, 5);
+
+  const openSandbox = (method: "upi" | "card" | "netbanking" = selectedMethod) => {
+    setSandboxPaymentId(`PAY-${method.toUpperCase()}-${Date.now().toString(36).toUpperCase()}`);
+    setSandboxOrderRef(`REF-${Math.random().toString(36).slice(2, 10).toUpperCase()}`);
+    setShowSandboxModal(true);
+  };
+
+  const handleMethodSelect = (method: "upi" | "card" | "netbanking") => {
+    setSelectedMethod(method);
+    setSandboxPaymentId(`PAY-${method.toUpperCase()}-${Date.now().toString(36).toUpperCase()}`);
+  };
 
   async function handleStartPayment() {
     setLoading(true);
@@ -63,13 +121,13 @@ export function PayOnlineCard({ orderId, amount, currency = "INR", buyerName = "
       // If backend create-order fails or returns error, open campus sandbox modal
       if (!createRes.ok || !orderData.order_id) {
         console.warn("Live Razorpay order creation returned:", orderData.error);
-        setShowSandboxModal(true);
+        openSandbox();
         setLoading(false);
         return;
       }
 
       // 3. Open Razorpay Standard Checkout Modal
-      const options = {
+      const options: RazorpayOptions = {
         key: orderData.key_id || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: orderData.amount,
         currency: orderData.currency || "INR",
@@ -88,11 +146,7 @@ export function PayOnlineCard({ orderId, amount, currency = "INR", buyerName = "
             setLoading(false);
           },
         },
-        handler: async function (response: {
-          razorpay_payment_id: string;
-          razorpay_order_id: string;
-          razorpay_signature: string;
-        }) {
+        handler: async function (response: RazorpaySuccessResponse) {
           try {
             // 4. Send all three to verify endpoint
             const verifyRes = await fetch("/api/verify-payment", {
@@ -111,23 +165,30 @@ export function PayOnlineCard({ orderId, amount, currency = "INR", buyerName = "
               throw new Error(verifyData.error || "Payment signature verification failed");
             }
 
-            window.location.href = `/orders/${orderId}?paid=1`;
-          } catch (verifyErr: any) {
-            setErrorMessage(verifyErr.message || "Payment verification failed");
+            router.push(`/orders/${orderId}?paid=1`);
+            router.refresh();
+          } catch (verifyErr: unknown) {
+            const msg = verifyErr instanceof Error ? verifyErr.message : "Payment verification failed";
+            setErrorMessage(msg);
             setLoading(false);
           }
         },
       };
 
+      if (!window.Razorpay) {
+        throw new Error("Razorpay checkout failed to initialize");
+      }
+
       const rzp = new window.Razorpay(options);
-      rzp.on("payment.failed", function (response: any) {
+      rzp.on("payment.failed", function (response: RazorpayErrorResponse) {
         setErrorMessage(response.error?.description || "Payment failed or was cancelled.");
         setLoading(false);
       });
 
       rzp.open();
-    } catch (err: any) {
-      setErrorMessage(err.message || "An unexpected error occurred while initiating payment.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "An unexpected error occurred while initiating payment.";
+      setErrorMessage(msg);
       setLoading(false);
     }
   }
@@ -140,144 +201,172 @@ export function PayOnlineCard({ orderId, amount, currency = "INR", buyerName = "
             <Zap size={18} />
           </span>
           <div>
-            <h2 className="text-base font-bold text-[#302546]">Online Campus Payment</h2>
-            <p className="text-xs text-[#71687d]">Instant UPI · Cards · NetBanking</p>
+            <h2 className="text-base font-bold text-violet-950">Pay Online · Instant Escrow</h2>
+            <p className="text-xs text-violet-800/80">
+              UPI, Cards, Netbanking via Razorpay · 0% buyer processing fee
+            </p>
           </div>
         </div>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-100 px-3 py-1 text-[11px] font-semibold text-violet-900">
-          <ShieldCheck size={13} /> Secured 5% Commission
+        <span className="inline-flex items-center gap-1 rounded-full bg-violet-100/80 px-2.5 py-1 text-[11px] font-semibold text-violet-900 border border-violet-200/60">
+          <ShieldCheck size={13} className="text-violet-700" />
+          Buyer Protection Escrow
+        </span>
+      </div>
+
+      {/* Commission & Escrow Breakdown */}
+      <div className="mt-5 rounded-2xl border border-violet-100 bg-white/90 p-4 text-xs shadow-xs">
+        <div className="flex items-center justify-between font-medium text-violet-900">
+          <span className="flex items-center gap-1.5">
+            <Sparkles size={14} className="text-violet-600" />
+            Amount to Pay
+          </span>
+          <span className="text-base font-extrabold text-violet-950">
+            {breakdown.formatted.totalAmount}
+          </span>
+        </div>
+
+        <div className="mt-3 space-y-1.5 border-t border-violet-50 pt-2.5 text-[11px] text-[#71687d]">
+          <div className="flex justify-between">
+            <span>Marketplace Subtotal:</span>
+            <span>{breakdown.formatted.subtotal}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>LOOPEC Platform Commission (5%):</span>
+            <span className="text-violet-700">{breakdown.formatted.commissionAmount}</span>
+          </div>
+          <div className="flex justify-between font-medium text-[#443c50]">
+            <span>Net Seller Payout (95% held in escrow):</span>
+            <span className="text-emerald-800">{breakdown.formatted.sellerNetAmount}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Escrow Guarantee Pill */}
+      <div className="mt-3.5 flex items-start gap-2 text-xs leading-relaxed text-[#686074]">
+        <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-emerald-600" />
+        <span>
+          <strong>Campus Escrow Policy:</strong> Your money is held safely. The seller only receives payout after you physically meet on campus and verify the item.
         </span>
       </div>
 
       {errorMessage && (
-        <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs text-rose-800">
-          {errorMessage}
-        </p>
+        <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
+          <p className="font-semibold">Payment Notice</p>
+          <p className="mt-0.5">{errorMessage}</p>
+        </div>
       )}
 
-      {/* 5% Platform Fee Transparency Breakdown */}
-      <div className="mt-5 rounded-2xl border border-violet-100 bg-white/80 p-4 backdrop-blur-sm">
-        <p className="text-[10px] font-bold uppercase tracking-[.14em] text-violet-700">Financial Breakdown</p>
-        <div className="mt-3 space-y-2 text-xs">
-          <div className="flex justify-between text-[#686071]">
-            <span>Item Subtotal</span>
-            <b className="font-semibold text-[#302546]">{breakdown.formatted.subtotal}</b>
-          </div>
-          <div className="flex justify-between text-[#686071]">
-            <span className="inline-flex items-center gap-1">
-              CiGaRa / LOOPEC Fee ({breakdown.commissionPercent}%)
-              <span className="rounded bg-violet-50 px-1 py-0.5 text-[9px] font-bold text-violet-700">Platform</span>
-            </span>
-            <b className="font-semibold text-violet-900">{breakdown.formatted.commissionAmount}</b>
-          </div>
-          <div className="flex justify-between text-[#686071]">
-            <span>Seller Net Payout (95%)</span>
-            <span className="font-medium text-[#493e54]">{breakdown.formatted.sellerNetAmount}</span>
-          </div>
-          <div className="border-t border-[#ede9f2] pt-2 flex justify-between text-sm">
-            <span className="font-semibold text-[#302546]">Total Amount Payable</span>
-            <b className="font-bold text-violet-950">{breakdown.formatted.totalAmount}</b>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-5">
+      {/* Pay CTA Button */}
+      <div className="mt-5 flex flex-wrap items-center gap-3">
         <button
+          type="button"
           onClick={handleStartPayment}
           disabled={loading}
-          className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-violet-950 px-6 text-sm font-semibold text-white shadow-md transition hover:bg-violet-900 active:scale-[0.99] disabled:pointer-events-none disabled:bg-violet-300"
+          className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full bg-violet-950 px-6 text-sm font-semibold text-white shadow-md transition hover:bg-violet-900 active:scale-[0.98] disabled:opacity-60"
         >
           {loading ? (
             <>
-              <Loader2 size={16} className="animate-spin" /> Preparing payment...
+              <Loader2 size={16} className="animate-spin" />
+              Opening Secure Payment Gateway...
             </>
           ) : (
             <>
-              <Zap size={16} /> Pay {breakdown.formatted.totalAmount} Online
+              <Zap size={16} />
+              Pay {breakdown.formatted.totalAmount} with Razorpay
             </>
           )}
         </button>
-        <p className="mt-2 text-center text-[11px] text-[#867e91]">
-          Funds remain protected until both buyer and seller confirm campus pickup handover.
-        </p>
+
+        <button
+          type="button"
+          onClick={() => openSandbox()}
+          className="inline-flex min-h-12 items-center justify-center rounded-full border border-violet-200 bg-white px-4 text-xs font-semibold text-violet-900 transition hover:bg-violet-50"
+          title="Campus Sandbox Simulation for offline test runs"
+        >
+          Campus Sandbox
+        </button>
       </div>
 
-      {/* Campus Sandbox Simulation Modal */}
+      {/* Campus Sandbox Simulation Modal (For offline/sandbox fallback) */}
       {showSandboxModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-md animate-in fade-in zoom-in-95 rounded-[26px] border border-[#e8e5ec] bg-white p-6 shadow-2xl">
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-100 px-2.5 py-0.5 text-[10px] font-bold text-violet-900">
-                  <Sparkles size={11} /> Campus Online Gateway
-                </span>
-                <h3 className="mt-2 font-serif text-2xl text-[#2b2438]">Choose Payment Method</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-violet-950/60 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-md rounded-[28px] border border-violet-100 bg-white p-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[#eee] pb-3">
+              <div className="flex items-center gap-2 text-violet-950">
+                <ShieldCheck size={20} className="text-violet-700" />
+                <h3 className="font-serif text-lg font-bold">LOOPEC Campus Sandbox</h3>
               </div>
               <button
+                type="button"
                 onClick={() => setShowSandboxModal(false)}
-                className="grid size-8 place-items-center rounded-full text-[#7a7385] hover:bg-[#f0edf3]"
+                className="text-xs text-gray-400 hover:text-gray-700"
               >
-                ✕
+                ✕ Close
               </button>
             </div>
 
-            <div className="mt-5 grid grid-cols-3 gap-2">
+            <p className="mt-3 text-xs leading-5 text-[#6c6475]">
+              Simulate standard payment gateway callback for local test orders. Select your simulated channel:
+            </p>
+
+            <div className="mt-4 grid grid-cols-3 gap-2">
               <button
                 type="button"
-                onClick={() => setSelectedMethod("upi")}
-                className={`flex flex-col items-center gap-1.5 rounded-2xl border p-3 text-xs font-semibold transition ${
+                onClick={() => handleMethodSelect("upi")}
+                className={`flex flex-col items-center justify-center gap-1.5 rounded-2xl border p-3 text-xs font-semibold transition ${
                   selectedMethod === "upi"
-                    ? "border-violet-600 bg-violet-50 text-violet-950"
-                    : "border-[#e5e1eb] bg-white text-[#686072] hover:bg-[#fbfafc]"
+                    ? "border-violet-600 bg-violet-50 text-violet-950 shadow-xs"
+                    : "border-gray-200 text-gray-600 hover:bg-gray-50"
                 }`}
               >
-                <QrCode size={20} className={selectedMethod === "upi" ? "text-violet-700" : "text-[#7a7385]"} />
-                Instant UPI
+                <QrCode size={18} />
+                <span>UPI / QR</span>
               </button>
+
               <button
                 type="button"
-                onClick={() => setSelectedMethod("card")}
-                className={`flex flex-col items-center gap-1.5 rounded-2xl border p-3 text-xs font-semibold transition ${
+                onClick={() => handleMethodSelect("card")}
+                className={`flex flex-col items-center justify-center gap-1.5 rounded-2xl border p-3 text-xs font-semibold transition ${
                   selectedMethod === "card"
-                    ? "border-violet-600 bg-violet-50 text-violet-950"
-                    : "border-[#e5e1eb] bg-white text-[#686072] hover:bg-[#fbfafc]"
+                    ? "border-violet-600 bg-violet-50 text-violet-950 shadow-xs"
+                    : "border-gray-200 text-gray-600 hover:bg-gray-50"
                 }`}
               >
-                <CreditCard size={20} className={selectedMethod === "card" ? "text-violet-700" : "text-[#7a7385]"} />
-                Debit / Card
+                <CreditCard size={18} />
+                <span>Cards</span>
               </button>
+
               <button
                 type="button"
-                onClick={() => setSelectedMethod("netbanking")}
-                className={`flex flex-col items-center gap-1.5 rounded-2xl border p-3 text-xs font-semibold transition ${
+                onClick={() => handleMethodSelect("netbanking")}
+                className={`flex flex-col items-center justify-center gap-1.5 rounded-2xl border p-3 text-xs font-semibold transition ${
                   selectedMethod === "netbanking"
-                    ? "border-violet-600 bg-violet-50 text-violet-950"
-                    : "border-[#e5e1eb] bg-white text-[#686072] hover:bg-[#fbfafc]"
+                    ? "border-violet-600 bg-violet-50 text-violet-950 shadow-xs"
+                    : "border-gray-200 text-gray-600 hover:bg-gray-50"
                 }`}
               >
-                <Landmark size={20} className={selectedMethod === "netbanking" ? "text-violet-700" : "text-[#7a7385]"} />
-                NetBanking
+                <Landmark size={18} />
+                <span>Net Banking</span>
               </button>
             </div>
 
-            <div className="mt-5 rounded-2xl bg-[#f7f5fa] p-4 text-xs">
+            <div className="mt-4 rounded-xl bg-violet-50/70 p-3 text-xs text-violet-950">
               {selectedMethod === "upi" && (
-                <div className="space-y-1.5 text-[#5e5668]">
-                  <p className="font-semibold text-[#2f273b]">⚡ Instant UPI Transfer</p>
-                  <p>Compatible with Google Pay, PhonePe, Paytm, BHIM, and campus UPI IDs.</p>
-                  <small className="block text-violet-700">Payer: {buyerName} · NIT Calicut</small>
+                <div className="space-y-1">
+                  <p className="font-semibold">Simulated UPI Intent: Google Pay, PhonePe, Paytm</p>
+                  <p className="text-[11px] text-violet-800">Direct instant authorization without external bank network latency.</p>
                 </div>
               )}
               {selectedMethod === "card" && (
-                <div className="space-y-1.5 text-[#5e5668]">
-                  <p className="font-semibold text-[#2f273b]">💳 RuPay / Visa / Mastercard</p>
-                  <p>Student campus debit cards and all major Indian bank credit cards accepted.</p>
+                <div className="space-y-1">
+                  <p className="font-semibold">Simulated RuPay / Visa / Mastercard</p>
+                  <p className="text-[11px] text-violet-800">Auto-approved 3D-Secure campus sandbox transaction.</p>
                 </div>
               )}
               {selectedMethod === "netbanking" && (
-                <div className="space-y-1.5 text-[#5e5668]">
-                  <p className="font-semibold text-[#2f273b]">🏦 Campus Bank Branch NetBanking</p>
-                  <p>State Bank of India (SBI NITC Branch), Canara Bank, HDFC, ICICI supported.</p>
+                <div className="space-y-1">
+                  <p className="font-semibold">Simulated Campus NetBanking</p>
+                  <p className="text-[11px] text-violet-800">State Bank of India (SBI NITC Branch), Canara Bank, HDFC, ICICI supported.</p>
                 </div>
               )}
             </div>
@@ -288,12 +377,12 @@ export function PayOnlineCard({ orderId, amount, currency = "INR", buyerName = "
               <input
                 type="hidden"
                 name="payment_id"
-                value={`PAY-${selectedMethod.toUpperCase()}-${Date.now().toString(36).toUpperCase()}`}
+                value={sandboxPaymentId || `PAY-${selectedMethod.toUpperCase()}-SANDBOX`}
               />
               <input
                 type="hidden"
                 name="order_reference"
-                value={`REF-${Math.random().toString(36).slice(2, 10).toUpperCase()}`}
+                value={sandboxOrderRef || "REF-SANDBOX"}
               />
               <button
                 type="submit"
@@ -338,12 +427,18 @@ export function PaymentReceiptCard({
             </p>
           </div>
         </div>
-        <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-bold text-emerald-900">
-          PAID · {paymentMethod}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-bold text-emerald-900">
+            PAID · {paymentMethod}
+          </span>
+        </div>
       </div>
 
       <div className="mt-4 rounded-2xl border border-emerald-100 bg-white/90 p-4 text-xs">
+        <div className="mb-2.5 flex justify-between border-b border-[#eee] pb-2 text-[#686072]">
+          <span>Order ID</span>
+          <code className="font-mono font-semibold text-[#2f273b]">#{orderId.slice(0, 8)}</code>
+        </div>
         {referenceId && (
           <div className="mb-3 flex justify-between border-b border-[#eee] pb-2 text-[#686072]">
             <span>Transaction Reference</span>

@@ -63,7 +63,7 @@ export async function requireApprovedMember() {
       redirect("/auth/suspended");
     }
 
-    let activeProfile = { ...member.profile };
+    const activeProfile = { ...member.profile };
 
     // Ensure college_id is set to active campus if not already linked
     if (!activeProfile.college_id) {

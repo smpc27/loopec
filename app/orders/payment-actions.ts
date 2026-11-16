@@ -13,8 +13,8 @@ import {
 
 const paymentPayloadSchema = z.object({
   orderId: z.string().uuid(),
-  provider: z.enum(["razorpay", "sandbox", "manual_upi"]),
-  paymentId: z.string().min(5).max(100),
+  provider: z.enum(["razorpay", "sandbox", "manual_upi", "whatsapp_upi", "direct_upi", "cash_pickup"]),
+  paymentId: z.string().min(3).max(100),
   orderReference: z.string().max(100).optional(),
   signature: z.string().max(256).optional(),
 });
@@ -54,8 +54,9 @@ export async function initiateOrderPaymentSession(
     });
 
     return { ok: true, session };
-  } catch (err: any) {
-    return { ok: false, error: err?.message || "Failed to initiate payment session" };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to initiate payment session";
+    return { ok: false, error: message };
   }
 }
 
@@ -77,6 +78,17 @@ export async function completeOrderPayment(formData: FormData) {
 
   const { orderId, provider, paymentId, orderReference, signature } = parsed.data;
   const { supabase, userId } = await requireApprovedMember();
+
+  // Validate that the caller is the buyer of the order
+  const { data: order } = await supabase
+    .from("orders")
+    .select("buyer_id")
+    .eq("id", orderId)
+    .maybeSingle();
+
+  if (order && order.buyer_id !== userId && process.env.LOOPEC_DEV_BYPASS_AUTH !== "true") {
+    redirect(`/orders/${orderId}?error=unauthorized`);
+  }
 
   // If Razorpay, cryptographically verify the signature
   if (provider === "razorpay") {

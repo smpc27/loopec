@@ -21,10 +21,13 @@ export async function verifyCampusHandover(formData: FormData) {
   const { supabase } = await requireApprovedMember();
 
   // Try RPC transition first
-  const { error } = await supabase.rpc("transition_order_status", {
+  const { error: rpcError } = await supabase.rpc("transition_order_status", {
     p_order_id: orderId,
     p_next_status: "completed",
   });
+  if (rpcError) {
+    console.warn("Handover RPC notice:", rpcError.message);
+  }
 
   // Ensure timestamps are updated
   try {

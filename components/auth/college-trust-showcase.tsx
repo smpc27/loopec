@@ -2,10 +2,6 @@ import {
   GraduationCap,
   ShieldCheck,
   MapPin,
-  Sparkles,
-  Lock,
-  ArrowRight,
-  CheckCircle2,
   Building2,
   Wallet,
 } from "lucide-react";

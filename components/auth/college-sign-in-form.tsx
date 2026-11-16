@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useTransition } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import { useFormStatus } from "react-dom";
 import {
@@ -13,7 +13,6 @@ import {
   EyeOff,
   CheckCircle2,
   AlertCircle,
-  Sparkles,
   Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -88,6 +87,11 @@ export function CollegeSignInForm({
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-between text-xs text-[#736c7c]">
+        <span>Campus Portal</span>
+        <span className="font-semibold text-violet-950">{collegeName}</span>
+      </div>
+
       {/* Role Switcher */}
       <div className="flex rounded-xl bg-violet-50/70 p-1 border border-violet-100">
         <button
@@ -229,6 +233,46 @@ export function CollegeSignInForm({
           <SubmitButton label="Sign in to LOOPEC" />
         </div>
       </form>
+
+      {showDevHelpers && (
+        <div className="rounded-xl border border-dashed border-violet-200 bg-violet-50/50 p-3 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="font-semibold text-violet-900">Developer Demo Accounts</span>
+            <button
+              type="button"
+              onClick={() => setShowDevPanel(!showDevPanel)}
+              className="text-[11px] font-semibold text-violet-700 underline"
+            >
+              {showDevPanel ? "Hide" : "Quick Fill"}
+            </button>
+          </div>
+          {showDevPanel && (
+            <div className="mt-2.5 flex flex-wrap gap-2 border-t border-violet-100 pt-2">
+              <button
+                type="button"
+                onClick={() => fillDemoAccount("student@nitc.ac.in", "Password1234!")}
+                className="rounded-lg border border-violet-200 bg-white px-2.5 py-1 text-[11px] font-medium text-violet-950 shadow-xs hover:bg-violet-50"
+              >
+                Student Demo
+              </button>
+              <button
+                type="button"
+                onClick={() => fillDemoAccount("faculty@nitc.ac.in", "Password1234!")}
+                className="rounded-lg border border-violet-200 bg-white px-2.5 py-1 text-[11px] font-medium text-violet-950 shadow-xs hover:bg-violet-50"
+              >
+                Faculty Demo
+              </button>
+              <button
+                type="button"
+                onClick={() => fillDemoAccount("admin@nitc.ac.in", "Password1234!")}
+                className="rounded-lg border border-violet-200 bg-white px-2.5 py-1 text-[11px] font-medium text-violet-950 shadow-xs hover:bg-violet-50"
+              >
+                Admin Demo
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

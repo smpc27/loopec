@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { calculateCommission, type CommissionBreakdown } from "@/lib/payments/commission";
 
-export type PaymentProvider = "razorpay" | "sandbox" | "manual_upi";
+export type PaymentProvider = "razorpay" | "sandbox" | "manual_upi" | "whatsapp_upi" | "direct_upi" | "cash_pickup";
 
 export type PaymentSessionResult = {
   mode: "razorpay" | "sandbox";
@@ -76,6 +76,8 @@ export async function createPaymentSession({
           commission_5pct: breakdown.commissionAmount.toString(),
           seller_net_95pct: breakdown.sellerNetAmount.toString(),
           customer_name: customerName || "Campus Member",
+          customer_email: customerEmail || "",
+          customer_contact: customerContact || "",
         },
       });
 

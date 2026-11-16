@@ -2,16 +2,11 @@
 
 import { useState, useRef, useEffect, useTransition } from "react";
 import { useFormStatus } from "react-dom";
-import Link from "next/link";
 import {
   ArrowRight,
-  ShieldCheck,
   Mail,
   RotateCw,
-  CheckCircle2,
-  AlertCircle,
   Loader2,
-  KeyRound,
   Edit2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";

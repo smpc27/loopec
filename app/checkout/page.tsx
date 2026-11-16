@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, MapPin, ShieldCheck } from "lucide-react";
+import { ArrowLeft, MapPin, MessageCircle } from "lucide-react";
 import { AuthShell, FormNotice } from "@/components/auth/auth-shell";
 import { requireApprovedMember } from "@/lib/auth/member";
 import { authMessage } from "@/lib/auth/messages";
@@ -107,10 +107,10 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/checkou
           </div>
           <aside className="h-fit rounded-[22px] border border-[#e8e5e2] bg-white p-5 sm:p-6">
             <h2 className="text-lg font-semibold text-[#302b37]">Payment & Pickup</h2>
-            <div className="mt-4 flex gap-3 rounded-2xl bg-violet-50 p-4">
-              <ShieldCheck className="mt-0.5 shrink-0 text-violet-800" size={18} />
-              <p className="text-xs leading-5 text-violet-950">
-                <b>Secure Campus Online Payments.</b> Pay online via UPI (GPay, PhonePe, Paytm), Cards, or NetBanking upon seller confirmation. LOOPEC charges a transparent 5% platform fee to maintain college operations.
+            <div className="mt-4 flex gap-3 rounded-2xl bg-emerald-50 p-4 border border-emerald-200/80">
+              <MessageCircle className="mt-0.5 shrink-0 text-emerald-700" size={18} />
+              <p className="text-xs leading-5 text-emerald-950">
+                <b>Direct WhatsApp & UPI Pay.</b> Connect with the seller directly on WhatsApp, pay via GPay, PhonePe, or Cash on campus pickup. Zero payment gateway fees!
               </p>
             </div>
             

@@ -1,12 +1,13 @@
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, Clock3, MapPin, MessageCircle, ShieldCheck, Zap } from "lucide-react";
+import { ArrowLeft, Clock3, MapPin, MessageCircle } from "lucide-react";
 import { notFound } from "next/navigation";
 import { FormNotice } from "@/components/auth/auth-shell";
 import { authMessage } from "@/lib/auth/messages";
 import { requireApprovedMember } from "@/lib/auth/member";
 import { signOut } from "@/app/auth/actions";
 import { submitOrderReview, submitPaymentReference, updateOrderStatus } from "@/app/orders/actions";
-import { PayOnlineCard, PaymentReceiptCard } from "@/components/payments/pay-online-card";
+import { PaymentReceiptCard } from "@/components/payments/pay-online-card";
+import { WhatsAppPayCard } from "@/components/payments/whatsapp-pay-card";
 import { CampusHandoverCard } from "@/components/orders/campus-handover-card";
 import { getOrderHandoverPin } from "@/lib/orders/handover";
 import { calculateCommission } from "@/lib/payments/commission";
@@ -56,20 +57,18 @@ export default async function OrderDetailsPage({ params, searchParams }: PagePro
   const [{ data: itemData }, { data: paymentData }, { data: personData }, { data: pickupData }, { data: conversationData }, { data: reviewData }] = await Promise.all([
     supabase.from("order_items").select("id, product_name, unit_price, quantity, line_total").eq("order_id", order.id),
     supabase.from("payments").select("id, method, provider, status, amount, provider_payment_id, review_note, verified_at").eq("order_id", order.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
-    supabase.from("profiles").select("id, full_name, handle").eq("id", otherId).maybeSingle(),
+    supabase.from("profiles").select("id, full_name, handle, phone, upi_id").eq("id", otherId).maybeSingle(),
     order.pickup_location_id ? supabase.from("pickup_locations").select("id, name, address, instructions").eq("id", order.pickup_location_id).maybeSingle() : Promise.resolve({ data: null }),
     supabase.from("conversations").select("id").eq("order_id", order.id).maybeSingle(),
     supabase.from("reviews").select("id, rating, comment").eq("order_id", order.id).eq("reviewer_id", userId).maybeSingle(),
   ]);
   const items = (itemData ?? []) as OrderItem[];
   const payment = paymentData as Payment | null;
-  const person = personData as { id: string; full_name: string; handle: string } | null;
+  const person = personData as { id: string; full_name: string; handle: string; phone?: string | null; upi_id?: string | null } | null;
   const pickup = pickupData as { id: string; name: string; address: string; instructions: string } | null;
   const conversation = conversationData as { id: string } | null;
   const review = reviewData as { id: string; rating: number; comment: string } | null;
   const errorMessage = errorCode ? authMessage(errorCode) : null;
-  const otherConfirmed = buyerView ? order.seller_confirmed_at : order.buyer_confirmed_at;
-  const ownConfirmed = buyerView ? order.buyer_confirmed_at : order.seller_confirmed_at;
   const title = statusLabels[order.status] ?? order.status;
   const isPaid = order.status === "paid" || ["ready_for_pickup", "completed"].includes(order.status) || payment?.status === "paid";
   const commission = calculateCommission(order.total_amount, 5);
@@ -104,13 +103,19 @@ export default async function OrderDetailsPage({ params, searchParams }: PagePro
           {paramsData.updated ? <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Order status updated.</p> : null}
           {paramsData.reference_submitted ? <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Payment reference submitted for verification.</p> : null}
 
-          {/* Online Payment Card (When accepted / awaiting payment) */}
+          {/* WhatsApp Direct Contact & UPI Pay Card (When accepted / awaiting payment) */}
           {buyerView && ["accepted", "payment_pending"].includes(order.status) && !isPaid ? (
-            <PayOnlineCard
+            <WhatsAppPayCard
               orderId={order.id}
               amount={Number(order.total_amount)}
               currency={order.currency}
-              buyerName={person?.full_name}
+              itemNames={items.map((i) => i.product_name)}
+              buyerName={profile.full_name}
+              sellerName={person?.full_name || "Campus Seller"}
+              sellerPhone={person?.phone}
+              sellerUpiId={person?.upi_id}
+              pickupLocationName={pickup?.name}
+              conversationId={conversation?.id}
             />
           ) : null}
 
@@ -119,7 +124,17 @@ export default async function OrderDetailsPage({ params, searchParams }: PagePro
             <PaymentReceiptCard
               orderId={order.id}
               amount={Number(order.total_amount)}
-              paymentMethod={payment?.provider === "razorpay" ? "Razorpay Online" : payment?.method === "online" ? "Online Instant" : "UPI"}
+              paymentMethod={
+                payment?.provider === "whatsapp_upi"
+                  ? "WhatsApp Direct Pay"
+                  : payment?.provider === "direct_upi"
+                  ? "Direct UPI App"
+                  : payment?.provider === "cash_pickup"
+                  ? "Cash Handover"
+                  : payment?.provider === "razorpay"
+                  ? "Online"
+                  : "Direct UPI"
+              }
               referenceId={payment?.provider_payment_id}
               verifiedAt={payment?.verified_at}
             />

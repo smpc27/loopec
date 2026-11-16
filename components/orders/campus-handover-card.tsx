@@ -76,9 +76,20 @@ export function CampusHandoverCard({
             <ShieldCheck className="h-4 w-4 text-emerald-700" />
             Verified Handover at {pickupLocationName}
           </span>
-          <span className="font-mono text-emerald-800">
-            Order ID: {orderId.slice(0, 8)}...
-          </span>
+          <div className="flex items-center gap-3">
+            {(buyerConfirmedAt || sellerConfirmedAt) && (
+              <span className="flex items-center gap-1 text-[11px] text-emerald-800">
+                <Clock3 className="h-3.5 w-3.5 text-emerald-600" />
+                {new Date(buyerConfirmedAt || sellerConfirmedAt || "").toLocaleString("en-IN", {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                })}
+              </span>
+            )}
+            <span className="font-mono text-emerald-800">
+              Order ID: {orderId.slice(0, 8)}...
+            </span>
+          </div>
         </div>
       </article>
     );

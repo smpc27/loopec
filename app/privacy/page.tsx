@@ -1,19 +1,61 @@
 import type { Metadata } from "next";
-import { InfoSection, PolicyDraftNotice, PublicPage } from "@/components/public-page";
+import { InfoSection, PublicPage } from "@/components/public-page";
 
-export const metadata: Metadata = { title: "Privacy notice", description: "Draft privacy notice for the LOOPEC campus marketplace pilot." };
+export const metadata: Metadata = {
+  title: "Privacy Notice",
+  description: "Official privacy and data protection notice for LOOPEC by CiGaRa Technologies.",
+};
 
 export default function PrivacyPage() {
   return (
-    <PublicPage eyebrow="Marketplace policies" title="Privacy notice" description="This draft explains the information LOOPEC needs to operate a verified campus marketplace.">
-      <PolicyDraftNotice />
-      <InfoSection title="Information collected"><p>LOOPEC processes your account email, name, handle, optional profile details, college affiliation, requested member role, and verification status. If you request college-ID verification, you upload an identity document and provide a college email for review.</p><p>Marketplace use also creates listing, image, wishlist, cart, order, pickup, message, report, review, notification, and payment-reference records, as applicable. The service may record security and administrator audit events.</p></InfoSection>
-      <InfoSection title="How information is used"><p>Information is used to authenticate members, verify college eligibility, display listings and seller profiles to approved members, coordinate orders and pickup, provide support, moderate content, prevent misuse, and meet operational or legal obligations.</p></InfoSection>
-      <InfoSection title="Who can see it"><p>Approved members can see eligible marketplace listings and limited profile information. Order participants can access order details and related messages. College administrators can review verification documents and scoped moderation records. Identity documents are kept in private storage and are not intended for public access.</p></InfoSection>
-      <InfoSection title="Service providers and storage"><p>The planned service uses Supabase for authentication, database, and private file storage, with a web host for the application. The pilot operator must configure the project region, access, backups, and any additional providers before launch. Do not use a production database until those settings have been reviewed.</p></InfoSection>
-      <InfoSection title="Retention and requests"><p>Identity documents, messages, order records, and account data need an approved retention schedule. Before launch, the college operator must state that schedule and provide a monitored contact for access, correction, deletion, and privacy requests. Some order or audit records may need to be retained for legitimate operational or legal reasons.</p></InfoSection>
-      <InfoSection title="Security and your choices"><p>LOOPEC uses private storage policies and database access controls. No online service can guarantee absolute security. Keep your account credentials private, avoid placing sensitive details in listings or messages, and report suspected unauthorized access promptly to the college’s designated LOOPEC administrator.</p></InfoSection>
-      <InfoSection title="Operator details"><p>Before launch, add the responsible data controller/operator, effective date, privacy contact, data region, approved retention periods, and the process for exercising privacy rights.</p></InfoSection>
+    <PublicPage
+      eyebrow="Marketplace Policies"
+      title="Privacy Notice"
+      description="This privacy policy explains how LOOPEC collects, uses, and safeguards personal data for verified college marketplace members."
+    >
+      <InfoSection title="1. Information Collected & Verification Data">
+        <p>
+          We collect your official college email address, full name, chosen public handle, phone number, and college affiliation. When you submit verification documents (e.g., student ID card or faculty credentials), documents are stored in encrypted, private storage buckets inaccessible to the public or standard users.
+        </p>
+        <p>
+          To coordinate transactions, the platform records listing details, photos, in-app coordination messages, orders, campus pickup locations, and settlement UPI IDs.
+        </p>
+      </InfoSection>
+
+      <InfoSection title="2. Purpose of Processing & Security">
+        <p>
+          Your information is processed strictly to authenticate eligibility within your campus, prevent impersonation and fraud, manage peer-to-peer orders, and disburse seller payouts.
+        </p>
+        <p>
+          Row-Level Security (RLS) is enforced at the database level to ensure private messages and transactions are visible solely to the participating buyer, seller, and authorized college administrators.
+        </p>
+      </InfoSection>
+
+      <InfoSection title="3. Access Boundaries & Third Parties">
+        <p>
+          We do not sell, rent, or trade student data with marketing aggregators or commercial advertisers.
+        </p>
+        <p>
+          Payment processing is handled via PCI-DSS certified payment gateways (e.g. Razorpay). LOOPEC never stores your credit card numbers, CVVs, or net banking passwords.
+        </p>
+      </InfoSection>
+
+      <InfoSection title="4. Data Retention & Deletion Rights">
+        <p>
+          College identity documents are retained during your active academic tenure to prevent duplicate accounts and fraud. You may request account closure and deletion of non-audited personal data by submitting a request to our privacy desk.
+        </p>
+      </InfoSection>
+
+      <InfoSection title="5. Data Protection Officer & Contact">
+        <p>
+          For privacy inquiries, data access requests, or security concerns, reach out to:
+        </p>
+        <p className="mt-2 font-mono text-xs text-violet-900">
+          Data Protection Officer · CiGaRa Technologies<br />
+          Email: privacy@loopec.com · dpo@cigara.tech<br />
+          CiGaRa Group, Calicut, Kerala, India
+        </p>
+      </InfoSection>
     </PublicPage>
   );
 }

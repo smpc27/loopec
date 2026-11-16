@@ -213,5 +213,25 @@ test("Razorpay standard checkout demo page loads cleanly", async () => {
   assert.match(html, /Pay ₹.*100.*with Razorpay/);
 });
 
+test("WhatsApp direct link and UPI intent URI format generator", () => {
+  const formatWaNumber = (phone) => {
+    const raw = (phone || "").replace(/\D/g, "");
+    return raw.length === 10 ? `91${raw}` : raw;
+  };
+
+  assert.equal(formatWaNumber("9876543210"), "919876543210");
+  assert.equal(formatWaNumber("+91 98765-43210"), "919876543210");
+
+  const buildWaLink = (phone, text) => `https://wa.me/${formatWaNumber(phone)}?text=${encodeURIComponent(text)}`;
+  const wa = buildWaLink("9876543210", "Hello Seller!");
+  assert.match(wa, /^https:\/\/wa\.me\/919876543210\?text=Hello%20Seller!$/);
+
+  const buildUpiLink = (upiId, name, amount, orderId) =>
+    `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(name)}&am=${amount}&cu=INR&tn=${encodeURIComponent(`LOOPEC Order ${orderId}`)}`;
+  const upi = buildUpiLink("seller@okaxis", "Student Seller", 450, "ord123");
+  assert.equal(upi, "upi://pay?pa=seller%40okaxis&pn=Student%20Seller&am=450&cu=INR&tn=LOOPEC%20Order%20ord123");
+});
+
+
 
 

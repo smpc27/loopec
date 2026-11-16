@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json().catch(() => ({}));
-    let amount = Number(body.amount);
+    const amount = Number(body.amount);
     const currency = (body.currency || "INR").toUpperCase();
     const receipt = body.receipt || `rcpt_${Date.now().toString(36)}`;
     const notes = body.notes || {};
@@ -46,17 +46,18 @@ export async function POST(req: Request) {
       currency: razorpayOrder.currency,
       key_id: keyId,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Razorpay create-order error:", error);
-    const desc = error?.error?.description || error?.message || "Failed to create Razorpay order";
-    const isAuthError = desc.toLowerCase().includes("auth") || error?.statusCode === 401;
+    const errObj = error as { message?: string; statusCode?: number; error?: { description?: string; code?: string } } | null;
+    const desc = errObj?.error?.description || errObj?.message || "Failed to create Razorpay order";
+    const isAuthError = desc.toLowerCase().includes("auth") || errObj?.statusCode === 401;
 
     return NextResponse.json(
       {
         error: isAuthError
           ? "Authentication failed: Razorpay rejected your Key ID or Key Secret. Please check or regenerate your API keys in the Razorpay Dashboard (Settings > API Keys)."
           : desc,
-        code: error?.error?.code || (isAuthError ? "AUTH_FAILED" : "ORDER_CREATION_FAILED"),
+        code: errObj?.error?.code || (isAuthError ? "AUTH_FAILED" : "ORDER_CREATION_FAILED"),
         isAuthError,
       },
       { status: isAuthError ? 401 : 500 }

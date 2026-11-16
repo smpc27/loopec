@@ -1,11 +1,9 @@
 "use client";
 
 import { useState, useRef } from "react";
-import Link from "next/link";
 import { useFormStatus } from "react-dom";
 import {
   ArrowRight,
-  GraduationCap,
   Mail,
   Lock,
   User,
@@ -15,7 +13,6 @@ import {
   AlertCircle,
   Building2,
   Loader2,
-  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { labelClassName } from "@/components/auth/auth-shell";

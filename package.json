@@ -8,9 +8,16 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test:smoke": "node --test tests/smoke-local.test.mjs"
+    "test:smoke": "node --test tests/smoke-local.test.mjs",
+    "mobile:sync": "cap sync",
+    "mobile:android": "cap open android",
+    "mobile:ios": "cap open ios"
   },
   "dependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/cli": "^8.6.2",
+    "@capacitor/core": "^8.6.2",
+    "@capacitor/ios": "^8.6.2",
     "@radix-ui/react-slot": "^1.5.0",
     "@supabase/ssr": "0.12.7",
     "@supabase/supabase-js": "2.119.0",
