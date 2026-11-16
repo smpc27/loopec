@@ -126,11 +126,12 @@ export async function createListing(formData: FormData) {
   const fields = readFields(formData);
   const files = getImageFiles(formData);
   if (!fields.success || files.length < 1 || files.length > 5) redirect("/listings/new?error=invalid");
+  const previewMode = process.env.NODE_ENV === "development" && process.env.LOOPEC_DEV_BYPASS_AUTH === "true";
   const { supabase, userId, profile } = await requireApprovedMember();
   const storageAdmin = createStorageAdminClient();
   if (!profile.college_id) redirect("/listings/new?error=invalid");
   const { data: category } = await supabase.from("categories").select("id").eq("id", fields.data.categoryId).eq("is_active", true).maybeSingle();
-  if (!category) redirect("/listings/new?error=invalid");
+  if (!category && !previewMode) redirect("/listings/new?error=invalid");
 
   const { data: product, error } = await supabase
     .from("products")
