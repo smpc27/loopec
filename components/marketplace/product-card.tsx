@@ -42,6 +42,9 @@ export function ProductCard({
   currentUserId: string;
   previewMode?: boolean;
 }) {
+  const isGiveaway = Number(product.price) === 0 || product.description?.includes("[GIVEAWAY]");
+  const isTrade = product.description?.includes("[TRADE") || product.name.toLowerCase().includes("trade");
+
   return (
     <article className="group overflow-hidden rounded-[22px] border border-[#e8e5e2] bg-white transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_45px_-35px_rgba(43,29,68,.5)]">
       <div className="relative aspect-[1.15/1] overflow-hidden bg-[#f0edf3]">
@@ -51,7 +54,17 @@ export function ProductCard({
           <div className="grid h-full place-items-center text-violet-300"><PackageOpen size={34} strokeWidth={1.3} /></div>
         )}
         <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1.5 text-[10px] font-semibold text-[#504b57] shadow-sm">{conditionLabel[product.item_condition]}</span>
-        {product.is_featured ? <span className="absolute right-3 top-3 rounded-full bg-violet-950 px-3 py-1.5 text-[10px] font-semibold text-white">Featured</span> : null}
+        {isGiveaway ? (
+          <span className="absolute right-3 top-3 rounded-full bg-emerald-600 px-3 py-1.5 text-[10px] font-bold text-white shadow-sm">
+            🎁 FREE
+          </span>
+        ) : isTrade ? (
+          <span className="absolute right-3 top-3 rounded-full bg-indigo-600 px-3 py-1.5 text-[10px] font-bold text-white shadow-sm">
+            🔄 TRADE
+          </span>
+        ) : product.is_featured ? (
+          <span className="absolute right-3 top-3 rounded-full bg-violet-950 px-3 py-1.5 text-[10px] font-semibold text-white">Featured</span>
+        ) : null}
       </div>
       <div className="p-4">
         <div className="flex items-start justify-between gap-3">
@@ -71,7 +84,18 @@ export function ProductCard({
         </div>
         <div className="mt-4 flex items-end justify-between gap-3 border-t border-[#f0edf0] pt-3.5">
           <div>
-            <p className="text-lg font-bold tracking-tight text-[#2b2632]">{currency.format(Number(product.price))}</p>
+            {isGiveaway ? (
+              <p className="text-lg font-bold tracking-tight text-emerald-700">FREE</p>
+            ) : isTrade ? (
+              <div>
+                <p className="text-base font-bold tracking-tight text-indigo-950">Trade / Barter</p>
+                {Number(product.price) > 0 ? (
+                  <span className="text-[11px] text-gray-500">Valued ~ {currency.format(Number(product.price))}</span>
+                ) : null}
+              </div>
+            ) : (
+              <p className="text-lg font-bold tracking-tight text-[#2b2632]">{currency.format(Number(product.price))}</p>
+            )}
             {showSeller ? previewMode ? <span className="mt-1 block max-w-[160px] truncate text-[11px] text-[#817a87]">{product.sellerName}</span> : <Link href={`/members/${product.sellerHandle}`} className="mt-1 block max-w-[160px] truncate text-[11px] text-[#817a87] hover:text-violet-800">{product.sellerName}</Link> : null}
           </div>
           <span className="text-[10px] text-[#928b96]">{product.quantity} available</span>

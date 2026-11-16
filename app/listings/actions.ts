@@ -16,13 +16,27 @@ const listingFields = z.object({
 });
 
 function readFields(formData: FormData) {
+  const listingType = String(formData.get("listing_type") ?? "sale");
+  const tradeWishlist = String(formData.get("trade_wishlist") ?? "").trim();
+  let priceStr = String(formData.get("price") ?? "").trim();
+  if (listingType === "giveaway" || (!priceStr && listingType === "trade")) {
+    priceStr = "0";
+  }
+
+  let description = String(formData.get("description") ?? "").trim();
+  if (listingType === "giveaway" && !description.includes("[GIVEAWAY]")) {
+    description = `[GIVEAWAY] ${description}`;
+  } else if (listingType === "trade" && tradeWishlist && !description.includes("[TRADE")) {
+    description = `[TRADE: ${tradeWishlist}] ${description}`;
+  }
+
   return listingFields.safeParse({
     categoryId: formData.get("category_id"),
     name: formData.get("name"),
-    description: formData.get("description"),
-    price: String(formData.get("price") ?? ""),
+    description,
+    price: priceStr,
     condition: formData.get("item_condition"),
-    quantity: formData.get("quantity"),
+    quantity: formData.get("quantity") || "1",
   });
 }
 

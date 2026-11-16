@@ -50,6 +50,7 @@ function filterPreviewProducts({
   maxPrice,
   sort,
   categories,
+  listingType = "all",
 }: {
   search: string;
   categoryId: string;
@@ -57,6 +58,7 @@ function filterPreviewProducts({
   maxPrice: number | null;
   sort: "recent" | "price_low" | "price_high";
   categories: Category[];
+  listingType?: string;
 }) {
   const searchTerms = search.toLowerCase().split(/\s+/).filter(Boolean);
   const activeCategoryId = categories.some((category) => category.id === categoryId) ? categoryId : "";
@@ -69,7 +71,17 @@ function filterPreviewProducts({
       const price = Number(product.price);
       const matchesMin = minPrice === null || price >= minPrice;
       const matchesMax = maxPrice === null || price <= maxPrice;
-      return matchesSearch && matchesCategory && matchesMin && matchesMax;
+      const isGiveaway = price === 0 || product.description.includes("[GIVEAWAY]");
+      const isTrade = product.description.includes("[TRADE") || product.name.toLowerCase().includes("trade");
+      const matchesType =
+        listingType === "giveaway"
+          ? isGiveaway
+          : listingType === "trade"
+          ? isTrade
+          : listingType === "sale"
+          ? !isGiveaway && !isTrade
+          : true;
+      return matchesSearch && matchesCategory && matchesMin && matchesMax && matchesType;
     })
     .sort((left, right) => {
       const featuredOrder = Number(right.is_featured) - Number(left.is_featured);
@@ -96,6 +108,7 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
   const maxPrice = parsePrice(first(params.max));
   const requestedSort = first(params.sort);
   const sort = requestedSort === "price_low" || requestedSort === "price_high" ? requestedSort : "recent";
+  const listingType = first(params.type) || "all";
   const previewMode = process.env.NODE_ENV === "development" && process.env.LOOPEC_DEV_BYPASS_AUTH === "true";
   const { supabase, userId, profile } = await requireApprovedMember();
 
@@ -128,9 +141,17 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
   }
 
   const { data: productData, error: productsError } = previewMode
-    ? { data: filterPreviewProducts({ search, categoryId, minPrice, maxPrice, sort, categories }), error: null }
+    ? { data: filterPreviewProducts({ search, categoryId, minPrice, maxPrice, sort, categories, listingType }), error: null }
     : await query;
-  const products = (productData ?? []) as ProductRow[];
+  const rawProducts = (productData ?? []) as ProductRow[];
+  const products = rawProducts.filter((p) => {
+    const isGiveaway = Number(p.price) === 0 || p.description?.includes("[GIVEAWAY]");
+    const isTrade = p.description?.includes("[TRADE") || p.name.toLowerCase().includes("trade");
+    if (listingType === "giveaway") return isGiveaway;
+    if (listingType === "trade") return isTrade;
+    if (listingType === "sale") return !isGiveaway && !isTrade;
+    return true;
+  });
   const productIds = products.map((product) => product.id);
   const sellerIds = [...new Set(products.map((product) => product.seller_id))];
   const [{ data: imageData }, { data: sellersData }, { data: savedData }] = await Promise.all([
@@ -167,6 +188,18 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
   const selectedCategory = categories.find((category) => category.id === categoryId);
   const pickupName = (pickupData?.[0] as { name?: string } | undefined)?.name;
 
+  function buildTypeUrl(newType: string) {
+    const p = new URLSearchParams();
+    if (search) p.set("q", search);
+    if (categoryId) p.set("category", categoryId);
+    if (minPrice !== null) p.set("min", String(minPrice));
+    if (maxPrice !== null) p.set("max", String(maxPrice));
+    if (sort !== "recent") p.set("sort", sort);
+    if (newType !== "all") p.set("type", newType);
+    const qs = p.toString();
+    return `/marketplace${qs ? `?${qs}` : ""}`;
+  }
+
   return (
     <main className="min-h-screen bg-[#f7f6f4]">
       {previewMode ? <span className="sr-only">Developer preview</span> : null}
@@ -179,6 +212,7 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
               <Link className="rounded-full px-3 py-2 text-[#625b6b] hover:bg-violet-50 hover:text-violet-900" href="/messages">Messages</Link>
               <Link className="rounded-full px-3 py-2 text-[#625b6b] hover:bg-violet-50 hover:text-violet-900" href="/notifications">Alerts{unreadCount ? ` · ${unreadCount}` : ""}</Link>
               <Link className="rounded-full px-3 py-2 text-[#625b6b] hover:bg-violet-50 hover:text-violet-900" href="/wishlist">Wishlist</Link>
+              <Link className="rounded-full px-3 py-2 text-[#625b6b] hover:bg-violet-50 hover:text-violet-900" href="/feedback">Feedback</Link>
               <Link className="rounded-full px-3 py-2 text-[#625b6b] hover:bg-violet-50 hover:text-violet-900" href="/dashboard">Studio</Link>
               <Link className="rounded-full px-3 py-2 text-[#625b6b] hover:bg-violet-50 hover:text-violet-900" href="/profile">Profile</Link>
               {profile.role === "college_admin" || profile.role === "super_admin" ? <Link className="rounded-full px-3 py-2 text-[#625b6b] hover:bg-violet-50 hover:text-violet-900" href="/admin">Admin</Link> : null}
@@ -192,6 +226,7 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
                 <Link className="rounded-xl px-3 py-2.5 text-sm text-[#504a57] hover:bg-violet-50" href="/messages">Messages</Link>
                 <Link className="rounded-xl px-3 py-2.5 text-sm text-[#504a57] hover:bg-violet-50" href="/notifications">Alerts{unreadCount ? ` · ${unreadCount}` : ""}</Link>
                 <Link className="rounded-xl px-3 py-2.5 text-sm text-[#504a57] hover:bg-violet-50" href="/wishlist">Wishlist</Link>
+                <Link className="rounded-xl px-3 py-2.5 text-sm text-[#504a57] hover:bg-violet-50" href="/feedback">Campus Feedback</Link>
                 <Link className="rounded-xl px-3 py-2.5 text-sm text-[#504a57] hover:bg-violet-50" href="/dashboard">Seller studio</Link>
                 <Link className="rounded-xl px-3 py-2.5 text-sm text-[#504a57] hover:bg-violet-50" href="/profile">Profile</Link>
                 {profile.role === "college_admin" || profile.role === "super_admin" ? <Link className="rounded-xl px-3 py-2.5 text-sm text-[#504a57] hover:bg-violet-50" href="/admin">Admin</Link> : null}
@@ -214,7 +249,52 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
           {pickupName ? <p className="rounded-full border border-[#e8e3ec] bg-white px-4 py-2.5 text-xs text-[#696270]">Campus pickup · <b className="text-[#3e3748]">{pickupName}</b></p> : null}
         </div>
 
-        <form className="mt-8 grid gap-3 rounded-[22px] border border-[#e8e5e2] bg-white p-3 shadow-[0_15px_40px_-35px_rgba(43,29,68,.45)] sm:grid-cols-[minmax(0,1fr)_180px_130px_130px_150px_auto] sm:items-center">
+        {/* Quick Type Filter Tabs */}
+        <div className="mt-7 flex flex-wrap items-center gap-2 sm:gap-2.5">
+          <Link
+            href={buildTypeUrl("all")}
+            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition ${
+              listingType === "all"
+                ? "bg-violet-950 text-white shadow-sm"
+                : "border border-[#e4e0e8] bg-white text-[#625b6b] hover:border-violet-300 hover:text-violet-950"
+            }`}
+          >
+            All Items
+          </Link>
+          <Link
+            href={buildTypeUrl("sale")}
+            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition ${
+              listingType === "sale"
+                ? "bg-violet-950 text-white shadow-sm"
+                : "border border-[#e4e0e8] bg-white text-[#625b6b] hover:border-violet-300 hover:text-violet-950"
+            }`}
+          >
+            🏷️ For Sale
+          </Link>
+          <Link
+            href={buildTypeUrl("trade")}
+            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition ${
+              listingType === "trade"
+                ? "bg-indigo-600 text-white shadow-sm"
+                : "border border-indigo-200 bg-white text-indigo-900 hover:border-indigo-400"
+            }`}
+          >
+            🔄 Trade / Barter
+          </Link>
+          <Link
+            href={buildTypeUrl("giveaway")}
+            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition ${
+              listingType === "giveaway"
+                ? "bg-emerald-600 text-white shadow-sm"
+                : "border border-emerald-200 bg-white text-emerald-900 hover:border-emerald-400"
+            }`}
+          >
+            🎁 Free Giveaways
+          </Link>
+        </div>
+
+        <form className="mt-4 grid gap-3 rounded-[22px] border border-[#e8e5e2] bg-white p-3 shadow-[0_15px_40px_-35px_rgba(43,29,68,.45)] sm:grid-cols-[minmax(0,1fr)_180px_130px_130px_150px_auto] sm:items-center">
+          <input type="hidden" name="type" value={listingType} />
           <label className="relative block min-w-0"><span className="sr-only">Search products</span><Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#928b96]" size={16} /><input className="h-11 w-full rounded-full bg-[#f8f7f8] pl-10 pr-4 text-sm outline-none transition focus:ring-4 focus:ring-violet-100" type="search" name="q" defaultValue={search} placeholder="Search the campus marketplace" /></label>
           <label><span className="sr-only">Filter by category</span><select className="h-11 w-full rounded-full bg-[#f8f7f8] px-4 text-sm text-[#504a57] outline-none focus:ring-4 focus:ring-violet-100" name="category" defaultValue={categoryId}><option value="">All categories</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
           <label><span className="sr-only">Minimum price</span><input className="h-11 w-full rounded-full bg-[#f8f7f8] px-4 text-sm outline-none focus:ring-4 focus:ring-violet-100" name="min" type="number" min="0" step="1" placeholder="Min ₹" defaultValue={first(params.min) ?? ""} /></label>

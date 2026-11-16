@@ -64,7 +64,10 @@ export default async function ProfilePage({ searchParams }: PageProps<"/profile"
           <label className={labelClassName}>About you <span className="font-normal text-[#918b96]">(optional)</span><textarea className={`${inputClassName} min-h-28 resize-y py-3`} name="bio" maxLength={500} defaultValue={member.profile.bio ?? ""} /></label>
           <Button className="w-full" size="lg" type="submit">Save profile</Button>
         </form>
-        <Link className="inline-flex items-center gap-2 text-xs font-semibold text-[#77717e] hover:text-violet-950" href="/"><ArrowLeft size={14} /> Back to LOOPEC</Link>
+        <div className="flex items-center justify-between pt-2 text-xs font-semibold text-[#77717e]">
+          <Link className="inline-flex items-center gap-2 hover:text-violet-950" href="/marketplace"><ArrowLeft size={14} /> Back to marketplace</Link>
+          <Link className="text-violet-800 hover:text-violet-950" href="/feedback">Campus Feedback →</Link>
+        </div>
       </div>
     </AuthShell>
   );
