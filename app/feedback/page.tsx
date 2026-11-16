@@ -96,23 +96,23 @@ export default async function FeedbackPage({
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(300px,.8fr)]">
           {/* Main Form - Frosted Glass Panel */}
-          <div className="rounded-[32px] border border-white/80 bg-white/75 backdrop-blur-2xl p-6 sm:p-8 shadow-[0_20px_60px_-25px_rgba(40,25,65,0.1),_inset_0_1px_2px_rgba(255,255,255,0.95)]">
-            <h2 className="text-base font-bold text-[#30273a] flex items-center gap-2">
-              <MessageSquareQuote size={18} className="text-violet-700" />
+          <div className="rounded-[32px] border border-white/80 bg-white/75 backdrop-blur-2xl p-6 sm:p-8 shadow-[0_20px_60px_-25px_rgba(36,30,20,0.08),_inset_0_1px_2px_rgba(255,255,255,0.95)]">
+            <h2 className="text-base font-bold text-[#241e14] flex items-center gap-2">
+              <MessageSquareQuote size={18} className="text-[#241e14]" />
               Submit Your Feedback
             </h2>
-            <p className="mt-1 text-xs text-[#827b8a]">
-              Submitting as <span className="font-semibold text-violet-950">{profile.full_name}</span> (@{profile.handle})
+            <p className="mt-1 text-xs text-[#736b60]">
+              Submitting as <span className="font-semibold text-[#241e14]">{profile.full_name}</span> (@{profile.handle})
             </p>
 
             <form action={submitPlatformFeedback} className="mt-6 space-y-5">
               <div>
-                <label className="block text-xs font-bold text-[#4c4556]">Feedback Category *</label>
+                <label className="block text-xs font-bold text-[#241e14]">Feedback Category *</label>
                 <select
                   name="category"
                   required
                   defaultValue="feature_request"
-                  className="mt-2 min-h-11 w-full rounded-xl border border-violet-100/80 bg-white/70 backdrop-blur-sm px-3.5 text-sm text-[#383141] outline-none focus:bg-white focus:border-violet-600 focus:ring-4 focus:ring-violet-100 shadow-inner"
+                  className="mt-2 min-h-11 w-full rounded-xl border border-[#d0c1ab]/50 bg-white/80 backdrop-blur-sm px-3.5 text-sm text-[#241e14] outline-none focus:bg-white focus:border-[#241e14] focus:ring-4 focus:ring-[#d0c1ab]/30 shadow-inner"
                 >
                   <option value="feature_request">💡 Feature Request & Improvement</option>
                   <option value="trade_barter">🔄 Trade & Barter Experience</option>
@@ -188,7 +188,7 @@ export default async function FeedbackPage({
                 </label>
               </div>
 
-              <Button type="submit" size="lg" className="w-full h-12 rounded-2xl bg-gradient-to-r from-violet-950 via-purple-900 to-indigo-950 text-white font-bold shadow-lg shadow-violet-950/20 hover:opacity-95 transition">
+              <Button type="submit" size="lg" className="w-full h-12 rounded-2xl bg-[#241e14] hover:bg-[#382f20] text-white font-bold shadow-lg shadow-[#241e14]/20 transition cursor-pointer">
                 Submit Campus Feedback
               </Button>
             </form>

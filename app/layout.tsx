@@ -34,19 +34,19 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#302546",
+  themeColor: "#241e14",
   colorScheme: "light",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="min-h-full pb-16 md:pb-0 relative text-[#221c2e] selection:bg-purple-200">
-        {/* Ambient Atmospheric Luminous Glass Blobs */}
+      <body className="min-h-full pb-16 md:pb-0 relative text-[#241e14] bg-[#eee9e2] selection:bg-[#d0c1ab] selection:text-[#241e14]">
+        {/* Ambient Atmospheric Luminous Glass Blobs in warm palette */}
         <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none" aria-hidden="true">
-          <div className="absolute -top-[20%] -left-[10%] w-[55vw] h-[55vw] rounded-full bg-gradient-to-br from-violet-300/35 via-purple-300/25 to-transparent blur-[120px]" />
-          <div className="absolute top-[20%] -right-[15%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-br from-indigo-300/30 via-sky-200/20 to-transparent blur-[130px]" />
-          <div className="absolute -bottom-[20%] left-[20%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-tr from-fuchsia-200/25 via-violet-200/30 to-transparent blur-[140px]" />
+          <div className="absolute -top-[20%] -left-[10%] w-[55vw] h-[55vw] rounded-full bg-gradient-to-br from-[#d0c1ab]/40 via-[#eee9e2]/60 to-transparent blur-[120px]" />
+          <div className="absolute top-[20%] -right-[15%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-br from-[#ffffff]/70 via-[#d0c1ab]/30 to-transparent blur-[130px]" />
+          <div className="absolute -bottom-[20%] left-[20%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-tr from-[#d0c1ab]/35 via-[#eee9e2]/50 to-transparent blur-[140px]" />
         </div>
         <PwaRegister />
         {children}

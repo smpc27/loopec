@@ -39,17 +39,17 @@ export default async function NewListingPage({
   return (
     <main className="min-h-screen bg-transparent pb-24 text-[#28232f]">
       {/* STUDIO NAVIGATION BAR - FROSTED GLASS */}
-      <header className="sticky top-0 z-40 border-b border-white/60 bg-white/70 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.03)]">
+      <header className="sticky top-0 z-40 border-b border-[#d0c1ab]/40 bg-white/75 backdrop-blur-xl shadow-[0_4px_30px_rgba(36,30,20,0.03)]">
         <div className="mx-auto flex min-h-[70px] max-w-7xl items-center justify-between px-5 sm:px-8">
           <div className="flex items-center gap-3">
             <Link className="flex items-center gap-2.5" href="/" aria-label="LOOPEC home">
               <BrandMark />
-              <span className="text-sm font-extrabold tracking-[.14em] text-[#302546]">LOOPEC</span>
+              <span className="text-sm font-extrabold tracking-[.14em] text-[#241e14]">LOOPEC</span>
             </Link>
-            <span className="hidden sm:inline-block h-4 w-px bg-gray-200" />
-            <div className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-violet-200/80 bg-violet-50/70 backdrop-blur-md px-3 py-1 text-xs font-semibold text-violet-900 shadow-sm">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <GraduationCap className="h-3.5 w-3.5 text-violet-700" />
+            <span className="hidden sm:inline-block h-4 w-px bg-[#d0c1ab]/40" />
+            <div className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-[#d0c1ab]/60 bg-[#eee9e2]/80 backdrop-blur-md px-3 py-1 text-xs font-semibold text-[#241e14] shadow-sm">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse" />
+              <GraduationCap className="h-3.5 w-3.5 text-[#241e14]" />
               <span>NIT Calicut Studio</span>
             </div>
           </div>
@@ -57,13 +57,13 @@ export default async function NewListingPage({
           <div className="flex items-center gap-3">
             <Link
               href="/listings"
-              className="rounded-full border border-white/80 bg-white/70 backdrop-blur-md px-4 py-2 text-xs font-semibold text-[#504a57] hover:border-violet-300 hover:text-violet-950 shadow-sm transition"
+              className="rounded-full border border-white/80 bg-white/75 backdrop-blur-md px-4 py-2 text-xs font-semibold text-[#5f574d] hover:border-[#241e14] hover:text-[#241e14] shadow-sm transition"
             >
               My Listings
             </Link>
             <Link
               href="/marketplace"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-800 hover:text-violet-950 transition"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#241e14] hover:opacity-80 transition"
             >
               <ArrowLeft size={14} /> Back to marketplace
             </Link>

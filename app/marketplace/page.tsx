@@ -192,38 +192,38 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
   return (
     <main className="min-h-screen bg-transparent">
       {previewMode ? <span className="sr-only">Developer preview</span> : null}
-      <header className="sticky top-0 z-40 border-b border-white/60 bg-white/70 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.03)]">
+      <header className="sticky top-0 z-40 border-b border-[#d0c1ab]/40 bg-white/75 backdrop-blur-xl shadow-[0_4px_30px_rgba(36,30,20,0.03)]">
         <div className="mx-auto flex min-h-[74px] max-w-7xl items-center justify-between gap-3 px-5 sm:px-8">
-          <Link href="/marketplace" className="text-sm font-extrabold tracking-[.14em] text-[#302546]">LOOPEC <span className="ml-2 hidden font-normal tracking-normal text-[#8b8590] sm:inline">Marketplace</span></Link>
+          <Link href="/marketplace" className="text-sm font-extrabold tracking-[.14em] text-[#241e14]">LOOPEC <span className="ml-2 hidden font-normal tracking-normal text-[#736b60] sm:inline">Marketplace</span></Link>
           <nav className="flex items-center gap-2 text-sm">
             <div className="hidden items-center gap-1 lg:flex">
-              <Link className="rounded-full px-3 py-2 text-[#625b6b] hover:bg-violet-50/80 hover:text-violet-900 transition" href="/orders">Orders</Link>
-              <Link className="rounded-full px-3 py-2 text-[#625b6b] hover:bg-violet-50/80 hover:text-violet-900 transition" href="/messages">Messages</Link>
-              <Link className="rounded-full px-3 py-2 text-[#625b6b] hover:bg-violet-50/80 hover:text-violet-900 transition" href="/notifications">Alerts{unreadCount ? ` · ${unreadCount}` : ""}</Link>
-              <Link className="rounded-full px-3 py-2 text-[#625b6b] hover:bg-violet-50/80 hover:text-violet-900 transition" href="/wishlist">Wishlist</Link>
-              <Link className="rounded-full px-3 py-2 text-[#625b6b] hover:bg-violet-50/80 hover:text-violet-900 transition" href="/feedback">Feedback</Link>
-              <Link className="rounded-full px-3 py-2 text-[#625b6b] hover:bg-violet-50/80 hover:text-violet-900 transition" href="/dashboard">Studio</Link>
-              <Link className="rounded-full px-3 py-2 text-[#625b6b] hover:bg-violet-50/80 hover:text-violet-900 transition" href="/profile">Profile</Link>
-              {profile.role === "college_admin" || profile.role === "super_admin" ? <Link className="rounded-full px-3 py-2 text-[#625b6b] hover:bg-violet-50/80 hover:text-violet-900 transition" href="/admin">Admin</Link> : null}
+              <Link className="rounded-full px-3 py-2 text-[#5f574d] hover:bg-[#eee9e2] hover:text-[#241e14] transition" href="/orders">Orders</Link>
+              <Link className="rounded-full px-3 py-2 text-[#5f574d] hover:bg-[#eee9e2] hover:text-[#241e14] transition" href="/messages">Messages</Link>
+              <Link className="rounded-full px-3 py-2 text-[#5f574d] hover:bg-[#eee9e2] hover:text-[#241e14] transition" href="/notifications">Alerts{unreadCount ? ` · ${unreadCount}` : ""}</Link>
+              <Link className="rounded-full px-3 py-2 text-[#5f574d] hover:bg-[#eee9e2] hover:text-[#241e14] transition" href="/wishlist">Wishlist</Link>
+              <Link className="rounded-full px-3 py-2 text-[#5f574d] hover:bg-[#eee9e2] hover:text-[#241e14] transition" href="/feedback">Feedback</Link>
+              <Link className="rounded-full px-3 py-2 text-[#5f574d] hover:bg-[#eee9e2] hover:text-[#241e14] transition" href="/dashboard">Studio</Link>
+              <Link className="rounded-full px-3 py-2 text-[#5f574d] hover:bg-[#eee9e2] hover:text-[#241e14] transition" href="/profile">Profile</Link>
+              {profile.role === "college_admin" || profile.role === "super_admin" ? <Link className="rounded-full px-3 py-2 text-[#5f574d] hover:bg-[#eee9e2] hover:text-[#241e14] transition" href="/admin">Admin</Link> : null}
             </div>
             <details className="relative lg:hidden">
-              <summary className="inline-flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-full border border-white/80 bg-white/70 backdrop-blur-md px-3 text-xs font-semibold text-[#504a57] outline-none hover:border-violet-300 focus-visible:ring-4 focus-visible:ring-violet-100 shadow-sm">
+              <summary className="inline-flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-full border border-[#d0c1ab]/60 bg-white/75 backdrop-blur-md px-3 text-xs font-semibold text-[#241e14] outline-none hover:border-[#241e14] focus-visible:ring-4 focus-visible:ring-[#d0c1ab]/30 shadow-sm">
                 <MenuIcon size={15} aria-hidden="true" /> Menu
               </summary>
-              <div className="absolute right-0 top-12 z-50 grid w-56 gap-1 rounded-2xl border border-white/80 bg-white/90 backdrop-blur-2xl p-2 shadow-[0_18px_50px_-25px_rgba(35,23,55,.4)]">
-                <Link className="rounded-xl px-3 py-2.5 text-sm text-[#504a57] hover:bg-violet-50" href="/orders">Orders</Link>
-                <Link className="rounded-xl px-3 py-2.5 text-sm text-[#504a57] hover:bg-violet-50" href="/messages">Messages</Link>
-                <Link className="rounded-xl px-3 py-2.5 text-sm text-[#504a57] hover:bg-violet-50" href="/notifications">Alerts{unreadCount ? ` · ${unreadCount}` : ""}</Link>
-                <Link className="rounded-xl px-3 py-2.5 text-sm text-[#504a57] hover:bg-violet-50" href="/wishlist">Wishlist</Link>
-                <Link className="rounded-xl px-3 py-2.5 text-sm text-[#504a57] hover:bg-violet-50" href="/feedback">Campus Feedback</Link>
-                <Link className="rounded-xl px-3 py-2.5 text-sm text-[#504a57] hover:bg-violet-50" href="/dashboard">Seller studio</Link>
-                <Link className="rounded-xl px-3 py-2.5 text-sm text-[#504a57] hover:bg-violet-50" href="/profile">Profile</Link>
-                {profile.role === "college_admin" || profile.role === "super_admin" ? <Link className="rounded-xl px-3 py-2.5 text-sm text-[#504a57] hover:bg-violet-50" href="/admin">Admin</Link> : null}
-                <form action={signOut} className="border-t border-[#f0edf0] pt-1"><button className="w-full rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-[#77717e] hover:bg-violet-50 hover:text-violet-950" type="submit">Sign out</button></form>
+              <div className="absolute right-0 top-12 z-50 grid w-56 gap-1 rounded-2xl border border-white/90 bg-white/95 backdrop-blur-2xl p-2 shadow-[0_18px_50px_-25px_rgba(36,30,20,.25)]">
+                <Link className="rounded-xl px-3 py-2.5 text-sm text-[#241e14] hover:bg-[#eee9e2]" href="/orders">Orders</Link>
+                <Link className="rounded-xl px-3 py-2.5 text-sm text-[#241e14] hover:bg-[#eee9e2]" href="/messages">Messages</Link>
+                <Link className="rounded-xl px-3 py-2.5 text-sm text-[#241e14] hover:bg-[#eee9e2]" href="/notifications">Alerts{unreadCount ? ` · ${unreadCount}` : ""}</Link>
+                <Link className="rounded-xl px-3 py-2.5 text-sm text-[#241e14] hover:bg-[#eee9e2]" href="/wishlist">Wishlist</Link>
+                <Link className="rounded-xl px-3 py-2.5 text-sm text-[#241e14] hover:bg-[#eee9e2]" href="/feedback">Campus Feedback</Link>
+                <Link className="rounded-xl px-3 py-2.5 text-sm text-[#241e14] hover:bg-[#eee9e2]" href="/dashboard">Seller studio</Link>
+                <Link className="rounded-xl px-3 py-2.5 text-sm text-[#241e14] hover:bg-[#eee9e2]" href="/profile">Profile</Link>
+                {profile.role === "college_admin" || profile.role === "super_admin" ? <Link className="rounded-xl px-3 py-2.5 text-sm text-[#241e14] hover:bg-[#eee9e2]" href="/admin">Admin</Link> : null}
+                <form action={signOut} className="border-t border-[#d0c1ab]/30 pt-1"><button className="w-full rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-[#736b60] hover:bg-[#eee9e2] hover:text-[#241e14]" type="submit">Sign out</button></form>
               </div>
             </details>
-            <Link aria-label="List an item" className="inline-flex min-h-10 items-center rounded-full bg-gradient-to-r from-violet-950 to-purple-900 px-4 text-xs font-semibold text-white shadow-md shadow-violet-950/20 transition hover:opacity-95" href="/listings/new"><span className="hidden sm:inline">List an item</span><span className="sm:hidden">Sell</span><span className="ml-1">+</span></Link>
-            <form action={signOut}><button className="hidden min-h-10 rounded-full px-3 text-xs font-semibold text-[#77717e] hover:text-violet-950 lg:inline-flex" type="submit">Sign out</button></form>
+            <Link aria-label="List an item" className="inline-flex min-h-10 items-center rounded-full bg-[#241e14] hover:bg-[#382f20] px-4 text-xs font-semibold text-white shadow-md shadow-[#241e14]/20 transition" href="/listings/new"><span className="hidden sm:inline">List an item</span><span className="sm:hidden">Sell</span><span className="ml-1">+</span></Link>
+            <form action={signOut}><button className="hidden min-h-10 rounded-full px-3 text-xs font-semibold text-[#736b60] hover:text-[#241e14] lg:inline-flex" type="submit">Sign out</button></form>
           </nav>
         </div>
       </header>
@@ -231,11 +231,11 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
       <section className="mx-auto max-w-7xl px-5 pb-16 pt-10 sm:px-8 sm:pt-14">
         <div className="flex flex-wrap items-end justify-between gap-5">
           <div>
-            <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.16em] text-violet-700"><ShieldCheck size={14} /> Verified campus exchange</p>
-            <h1 className="mt-3 font-serif text-4xl tracking-[-.055em] text-[#28232f] sm:text-5xl">Find it in your loop.</h1>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-[#77717e]">Browse items shared by verified members of your college community.</p>
+            <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.16em] text-[#8e7a63]"><ShieldCheck size={14} className="text-[#241e14]" /> Verified campus exchange</p>
+            <h1 className="mt-3 font-serif text-4xl tracking-[-.055em] text-[#241e14] sm:text-5xl">Find it in your loop.</h1>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-[#736b60]">Browse items shared by verified members of your college community.</p>
           </div>
-          {pickupName ? <p className="rounded-full border border-white/80 bg-white/70 backdrop-blur-md px-4 py-2.5 text-xs text-[#524b5c] shadow-sm">Campus pickup · <b className="text-violet-950">{pickupName}</b></p> : null}
+          {pickupName ? <p className="rounded-full border border-white/80 bg-white/75 backdrop-blur-md px-4 py-2.5 text-xs text-[#241e14] shadow-sm">Campus pickup · <b className="text-[#241e14] font-bold">{pickupName}</b></p> : null}
         </div>
 
         {/* Ultra-Modern Glass Category Chips, Filter Tabs & Search Dock */}

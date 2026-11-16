@@ -492,14 +492,14 @@ export function ListingForm({
           {/* SUBMIT BUTTON */}
           <div className="space-y-3 pt-2">
             <Button
-              className="w-full h-14 rounded-2xl bg-gradient-to-r from-violet-950 via-purple-900 to-indigo-950 text-base font-bold shadow-lg shadow-violet-950/20 hover:opacity-95 transition"
+              className="w-full h-14 rounded-2xl bg-[#241e14] hover:bg-[#382f20] text-white text-base font-bold shadow-lg shadow-[#241e14]/20 transition cursor-pointer"
               size="lg"
               type="submit"
             >
               <ShieldCheck size={20} className="mr-2" />
               Publish Listing to Campus Loop
             </Button>
-            <p className="text-center text-xs text-[#87808f]">
+            <p className="text-center text-xs text-[#736b60]">
               Protected by NIT Calicut member authentication · 0% commission on peer exchanges
             </p>
           </div>
@@ -525,7 +525,7 @@ export function ListingForm({
           {/* RENDER LIVE PRODUCT CARD */}
           <div className="mt-5">
             <article className="overflow-hidden rounded-[24px] border border-white/80 bg-white/80 backdrop-blur-xl shadow-sm transition hover:shadow-md">
-              <div className="relative aspect-[1.25/1] overflow-hidden bg-gradient-to-br from-[#f2eff7] to-[#ede7f5]">
+              <div className="relative aspect-[1.25/1] overflow-hidden bg-gradient-to-br from-[#eee9e2] to-[#e4ded5]">
                 {imagePreviews.length > 0 ? (
                   <Image
                     className="object-cover"
@@ -535,36 +535,36 @@ export function ListingForm({
                     unoptimized
                   />
                 ) : (
-                  <div className="grid h-full place-items-center text-violet-300">
+                  <div className="grid h-full place-items-center text-[#d0c1ab]">
                     <PackageOpen size={42} strokeWidth={1.2} />
                   </div>
                 )}
                 {/* Condition Tag */}
-                <span className="absolute left-3 top-3 rounded-full border border-white/80 bg-white/85 px-3 py-1 text-[10px] font-bold text-[#453e4f] shadow-sm backdrop-blur-md">
+                <span className="absolute left-3 top-3 rounded-full border border-white/80 bg-white/85 px-3 py-1 text-[10px] font-bold text-[#241e14] shadow-sm backdrop-blur-md">
                   {conditionOptions.find((c) => c.value === condition)?.label}
                 </span>
 
                 {/* Listing Mode Badges */}
                 {listingType === "giveaway" ? (
-                  <span className="absolute right-3 top-3 rounded-full border border-emerald-400/30 bg-emerald-600/95 px-3 py-1 text-[10px] font-bold text-white shadow-md backdrop-blur-md flex items-center gap-1">
+                  <span className="absolute right-3 top-3 rounded-full border border-emerald-400/30 bg-emerald-700/95 px-3 py-1 text-[10px] font-bold text-white shadow-md backdrop-blur-md flex items-center gap-1">
                     <Gift size={11} /> FREE
                   </span>
                 ) : listingType === "trade" ? (
-                  <span className="absolute right-3 top-3 rounded-full border border-indigo-400/30 bg-indigo-600/95 px-3 py-1 text-[10px] font-bold text-white shadow-md backdrop-blur-md flex items-center gap-1">
+                  <span className="absolute right-3 top-3 rounded-full border border-[#d0c1ab]/40 bg-[#241e14]/95 px-3 py-1 text-[10px] font-bold text-[#eee9e2] shadow-md backdrop-blur-md flex items-center gap-1">
                     <RefreshCw size={11} /> TRADE
                   </span>
                 ) : (
-                  <span className="absolute right-3 top-3 rounded-full border border-white/20 bg-violet-950/90 px-3 py-1 text-[10px] font-semibold text-white shadow-md backdrop-blur-md">
+                  <span className="absolute right-3 top-3 rounded-full border border-white/20 bg-[#241e14]/95 px-3 py-1 text-[10px] font-semibold text-white shadow-md backdrop-blur-md">
                     Verified
                   </span>
                 )}
               </div>
 
               <div className="p-4.5">
-                <p className="truncate text-[10px] font-bold uppercase tracking-[.12em] text-violet-700">
+                <p className="truncate text-[10px] font-bold uppercase tracking-[.12em] text-[#8e7a63]">
                   {selectedCategoryName}
                 </p>
-                <h3 className="mt-1 line-clamp-2 min-h-[40px] text-sm font-bold text-[#2a2533]">
+                <h3 className="mt-1 line-clamp-2 min-h-[40px] text-sm font-bold text-[#241e14]">
                   {name || "Your item title will appear here..."}
                 </h3>
 

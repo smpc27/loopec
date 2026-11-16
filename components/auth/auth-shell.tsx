@@ -23,23 +23,23 @@ export function AuthShell({
   return (
     <main className="min-h-screen bg-transparent px-5 py-6 sm:px-8 sm:py-10">
       {/* Top Header - Glass Bar */}
-      <div className="mx-auto flex max-w-6xl items-center justify-between rounded-full border border-white/80 bg-white/60 backdrop-blur-xl px-5 py-3 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+      <div className="mx-auto flex max-w-6xl items-center justify-between rounded-full border border-white/80 bg-white/75 backdrop-blur-xl px-5 py-3 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
         <Link className="flex items-center gap-2.5" href="/" aria-label="LOOPEC home">
           <BrandMark />
-          <span className="text-sm font-extrabold tracking-[.14em] text-[#302546]">LOOPEC</span>
+          <span className="text-sm font-extrabold tracking-[.14em] text-[#241e14]">LOOPEC</span>
         </Link>
 
         <div className="flex items-center gap-3">
           {campusBadge ? (
-            <div className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-violet-200/80 bg-violet-50/70 backdrop-blur-md px-3 py-1 text-xs font-semibold text-violet-900 shadow-sm">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <GraduationCap className="h-3.5 w-3.5 text-violet-700" />
+            <div className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-[#d0c1ab]/60 bg-[#eee9e2]/80 backdrop-blur-md px-3 py-1 text-xs font-semibold text-[#241e14] shadow-sm">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse" />
+              <GraduationCap className="h-3.5 w-3.5 text-[#241e14]" />
               <span>{campusBadge}</span>
             </div>
           ) : null}
 
           <Link
-            className="text-sm font-medium text-[#685e74] transition hover:text-violet-950"
+            className="text-sm font-medium text-[#736b60] transition hover:text-[#241e14]"
             href="/"
           >
             Back to home

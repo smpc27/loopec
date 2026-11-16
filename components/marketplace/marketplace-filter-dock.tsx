@@ -166,11 +166,11 @@ export function MarketplaceFilterDock({
             onClick={() => selectCategory("")}
             className={`flex items-center gap-2 rounded-2xl px-4 py-2.5 text-xs font-bold transition-all duration-200 cursor-pointer ${
               !selectedCategory
-                ? "bg-gradient-to-r from-violet-950 via-purple-900 to-indigo-950 text-white shadow-md shadow-violet-950/20 ring-2 ring-violet-500/30"
-                : "border border-white/80 bg-white/70 backdrop-blur-md text-[#524b5c] hover:bg-white hover:border-violet-300 shadow-sm"
+                ? "bg-[#241e14] text-white shadow-md shadow-[#241e14]/20 ring-2 ring-[#d0c1ab]"
+                : "border border-white/80 bg-white/75 backdrop-blur-md text-[#241e14]/80 hover:bg-white hover:border-[#d0c1ab] shadow-sm"
             }`}
           >
-            <Layers size={15} className={!selectedCategory ? "text-violet-200" : "text-violet-600"} />
+            <Layers size={15} className={!selectedCategory ? "text-[#d0c1ab]" : "text-[#241e14]"} />
             <span>All Categories</span>
           </button>
 
@@ -186,11 +186,11 @@ export function MarketplaceFilterDock({
                 onClick={() => selectCategory(cat.id)}
                 className={`flex items-center gap-2 rounded-2xl px-4 py-2.5 text-xs font-bold transition-all duration-200 cursor-pointer ${
                   isSelected
-                    ? "bg-gradient-to-r from-violet-950 via-purple-900 to-indigo-950 text-white shadow-md shadow-violet-950/20 ring-2 ring-violet-500/30"
-                    : "border border-white/80 bg-white/70 backdrop-blur-md text-[#524b5c] hover:bg-white hover:border-violet-300 shadow-sm"
+                    ? "bg-[#241e14] text-white shadow-md shadow-[#241e14]/20 ring-2 ring-[#d0c1ab]"
+                    : "border border-white/80 bg-white/75 backdrop-blur-md text-[#241e14]/80 hover:bg-white hover:border-[#d0c1ab] shadow-sm"
                 }`}
               >
-                <IconComponent size={15} className={isSelected ? "text-violet-200" : "text-violet-600"} />
+                <IconComponent size={15} className={isSelected ? "text-[#d0c1ab]" : "text-[#241e14]"} />
                 <span>{cat.name}</span>
               </button>
             );
@@ -206,8 +206,8 @@ export function MarketplaceFilterDock({
             onClick={() => selectType("all")}
             className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition cursor-pointer ${
               listingType === "all"
-                ? "bg-gradient-to-r from-violet-950 to-purple-900 text-white shadow-md shadow-violet-950/20"
-                : "border border-white/80 bg-white/70 backdrop-blur-md text-[#554d60] hover:bg-white hover:border-violet-300 shadow-sm"
+                ? "bg-[#241e14] text-white shadow-md shadow-[#241e14]/20 ring-1 ring-[#d0c1ab]"
+                : "border border-white/80 bg-white/75 backdrop-blur-md text-[#241e14]/80 hover:bg-white hover:border-[#d0c1ab] shadow-sm"
             }`}
           >
             All Items
@@ -218,11 +218,11 @@ export function MarketplaceFilterDock({
             onClick={() => selectType("sale")}
             className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition cursor-pointer ${
               listingType === "sale"
-                ? "bg-gradient-to-r from-violet-950 to-purple-900 text-white shadow-md shadow-violet-950/20"
-                : "border border-white/80 bg-white/70 backdrop-blur-md text-[#554d60] hover:bg-white hover:border-violet-300 shadow-sm"
+                ? "bg-[#241e14] text-white shadow-md shadow-[#241e14]/20 ring-1 ring-[#d0c1ab]"
+                : "border border-white/80 bg-white/75 backdrop-blur-md text-[#241e14]/80 hover:bg-white hover:border-[#d0c1ab] shadow-sm"
             }`}
           >
-            <Tag size={13} className={listingType === "sale" ? "text-violet-200" : "text-amber-600"} />
+            <Tag size={13} className={listingType === "sale" ? "text-[#d0c1ab]" : "text-[#8e7a63]"} />
             <span>For Sale</span>
           </button>
 
@@ -231,11 +231,11 @@ export function MarketplaceFilterDock({
             onClick={() => selectType("trade")}
             className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition cursor-pointer ${
               listingType === "trade"
-                ? "bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-md shadow-indigo-600/25"
-                : "border border-indigo-200/80 bg-white/70 backdrop-blur-md text-indigo-900 hover:bg-white hover:border-indigo-400 shadow-sm"
+                ? "bg-[#241e14] text-white shadow-md shadow-[#241e14]/20 ring-1 ring-[#d0c1ab]"
+                : "border border-white/80 bg-white/75 backdrop-blur-md text-[#241e14]/80 hover:bg-white hover:border-[#d0c1ab] shadow-sm"
             }`}
           >
-            <RefreshCw size={13} className={listingType === "trade" ? "text-indigo-200" : "text-indigo-600"} />
+            <RefreshCw size={13} className={listingType === "trade" ? "text-[#d0c1ab]" : "text-[#8e7a63]"} />
             <span>Trade / Barter</span>
           </button>
 
@@ -244,11 +244,11 @@ export function MarketplaceFilterDock({
             onClick={() => selectType("giveaway")}
             className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition cursor-pointer ${
               listingType === "giveaway"
-                ? "bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-md shadow-emerald-600/25"
-                : "border border-emerald-200/80 bg-white/70 backdrop-blur-md text-emerald-900 hover:bg-white hover:border-emerald-400 shadow-sm"
+                ? "bg-[#241e14] text-white shadow-md shadow-[#241e14]/20 ring-1 ring-[#d0c1ab]"
+                : "border border-white/80 bg-white/75 backdrop-blur-md text-[#241e14]/80 hover:bg-white hover:border-[#d0c1ab] shadow-sm"
             }`}
           >
-            <Gift size={13} className={listingType === "giveaway" ? "text-emerald-200" : "text-emerald-600"} />
+            <Gift size={13} className={listingType === "giveaway" ? "text-[#d0c1ab]" : "text-[#8e7a63]"} />
             <span>Free Giveaways</span>
           </button>
         </div>
@@ -257,7 +257,7 @@ export function MarketplaceFilterDock({
           <button
             type="button"
             onClick={clearAllFilters}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-rose-700 hover:text-rose-900 bg-rose-50/80 backdrop-blur-sm border border-rose-200 px-3 py-1.5 rounded-full transition cursor-pointer"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-[#8b4539] hover:text-[#5e2d24] bg-white/80 backdrop-blur-sm border border-[#d0c1ab] px-3 py-1.5 rounded-full transition cursor-pointer"
           >
             <X size={13} />
             <span>Reset filters</span>
@@ -268,20 +268,20 @@ export function MarketplaceFilterDock({
       {/* 3. ULTRA-MODERN FROSTED GLASS SEARCH & FILTER DOCK */}
       <form
         onSubmit={handleSearchSubmit}
-        className="relative z-20 rounded-[28px] border border-white/80 bg-white/75 backdrop-blur-2xl p-3 sm:p-3.5 shadow-[0_20px_50px_-25px_rgba(43,29,68,0.1),_inset_0_1px_2px_rgba(255,255,255,0.95)] grid grid-cols-1 gap-2.5 sm:grid-cols-12 sm:items-center"
+        className="relative z-20 rounded-[28px] border border-white/80 bg-white/75 backdrop-blur-2xl p-3 sm:p-3.5 shadow-[0_20px_50px_-25px_rgba(36,30,20,0.08),_inset_0_1px_2px_rgba(255,255,255,0.95)] grid grid-cols-1 gap-2.5 sm:grid-cols-12 sm:items-center"
       >
         {/* Main Keyword Search Input (5 Cols) */}
         <div className="relative sm:col-span-4 lg:col-span-4">
           <Search
             size={17}
-            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-violet-500"
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8e7a63]"
           />
           <input
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search textbooks, calculators, drafters, cycles..."
-            className="h-11 w-full rounded-2xl bg-white/80 border border-violet-100/80 pl-10 pr-4 text-xs sm:text-sm text-[#272130] outline-none placeholder:text-[#958e9c] transition focus:bg-white focus:border-violet-500 focus:ring-4 focus:ring-violet-100 shadow-inner"
+            className="h-11 w-full rounded-2xl bg-white/80 border border-[#d0c1ab]/50 pl-10 pr-4 text-xs sm:text-sm text-[#241e14] outline-none placeholder:text-[#8a8175] transition focus:bg-white focus:border-[#241e14] focus:ring-4 focus:ring-[#d0c1ab]/30 shadow-inner"
           />
         </div>
 
@@ -293,42 +293,42 @@ export function MarketplaceFilterDock({
               setIsCategoryOpen(!isCategoryOpen);
               setIsSortOpen(false);
             }}
-            className="h-11 w-full flex items-center justify-between rounded-2xl border border-violet-100/80 bg-white/80 px-3.5 text-xs sm:text-sm text-[#2c2636] outline-none transition hover:bg-white hover:border-violet-300 focus:ring-4 focus:ring-violet-100 shadow-inner cursor-pointer"
+            className="h-11 w-full flex items-center justify-between rounded-2xl border border-[#d0c1ab]/50 bg-white/80 px-3.5 text-xs sm:text-sm text-[#241e14] outline-none transition hover:bg-white hover:border-[#241e14] focus:ring-4 focus:ring-[#d0c1ab]/30 shadow-inner cursor-pointer"
           >
             <div className="flex items-center gap-2 truncate">
-              <CurrentCatIcon size={15} className="text-violet-700 shrink-0" />
+              <CurrentCatIcon size={15} className="text-[#241e14] shrink-0" />
               <span className="truncate font-medium">
                 {currentCategoryObj ? currentCategoryObj.name : "All Categories"}
               </span>
             </div>
             <ChevronDown
               size={15}
-              className={`text-[#87808f] shrink-0 transition-transform duration-200 ${
-                isCategoryOpen ? "rotate-180 text-violet-700" : ""
+              className={`text-[#8a8175] shrink-0 transition-transform duration-200 ${
+                isCategoryOpen ? "rotate-180 text-[#241e14]" : ""
               }`}
             />
           </button>
 
           {/* Custom Frosted Glass Dropdown Menu */}
           {isCategoryOpen && (
-            <div className="absolute left-0 top-full mt-2 z-50 w-64 max-h-72 overflow-y-auto rounded-2xl border border-white/90 bg-white/95 backdrop-blur-2xl p-2 shadow-[0_20px_50px_-10px_rgba(30,15,55,0.28)] animate-in fade-in zoom-in-95 duration-150">
+            <div className="absolute left-0 top-full mt-2 z-50 w-64 max-h-72 overflow-y-auto rounded-2xl border border-white/95 bg-white/95 backdrop-blur-2xl p-2 shadow-[0_20px_50px_-10px_rgba(36,30,20,0.25)] animate-in fade-in zoom-in-95 duration-150">
               <button
                 type="button"
                 onClick={() => selectCategory("")}
                 className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs text-left transition cursor-pointer ${
                   !selectedCategory
-                    ? "bg-violet-50 text-violet-950 font-bold"
-                    : "text-[#484252] hover:bg-violet-50/60"
+                    ? "bg-[#eee9e2] text-[#241e14] font-bold"
+                    : "text-[#5f574d] hover:bg-[#eee9e2]/60 hover:text-[#241e14]"
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <Layers size={14} className="text-violet-700" />
+                  <Layers size={14} className="text-[#241e14]" />
                   <span>All Categories</span>
                 </div>
-                {!selectedCategory && <Check size={14} className="text-violet-700" />}
+                {!selectedCategory && <Check size={14} className="text-[#241e14]" />}
               </button>
 
-              <div className="my-1 border-t border-purple-100/60" />
+              <div className="my-1 border-t border-[#d0c1ab]/30" />
 
               {categories.map((c) => {
                 const Icon = getCategoryIcon(c.name);
@@ -341,15 +341,15 @@ export function MarketplaceFilterDock({
                     onClick={() => selectCategory(c.id)}
                     className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs text-left transition cursor-pointer ${
                       isItemSel
-                        ? "bg-violet-50 text-violet-950 font-bold"
-                        : "text-[#484252] hover:bg-violet-50/60"
+                        ? "bg-[#eee9e2] text-[#241e14] font-bold"
+                        : "text-[#5f574d] hover:bg-[#eee9e2]/60 hover:text-[#241e14]"
                     }`}
                   >
                     <div className="flex items-center gap-2.5 truncate">
-                      <Icon size={14} className="text-violet-700 shrink-0" />
+                      <Icon size={14} className="text-[#241e14] shrink-0" />
                       <span className="truncate">{c.name}</span>
                     </div>
-                    {isItemSel && <Check size={14} className="text-violet-700 shrink-0" />}
+                    {isItemSel && <Check size={14} className="text-[#241e14] shrink-0" />}
                   </button>
                 );
               })}
@@ -360,7 +360,7 @@ export function MarketplaceFilterDock({
         {/* Price Inputs: Min & Max (3 Cols: 1.5 + 1.5) */}
         <div className="grid grid-cols-2 gap-2 sm:col-span-3 lg:col-span-3">
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#8a8393]">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#8e7a63]">
               ₹
             </span>
             <input
@@ -370,12 +370,12 @@ export function MarketplaceFilterDock({
               value={minPrice}
               onChange={(e) => setMinPrice(e.target.value)}
               placeholder="Min"
-              className="h-11 w-full rounded-2xl bg-white/80 border border-violet-100/80 pl-6 pr-2.5 text-xs text-[#272130] outline-none transition focus:bg-white focus:border-violet-500 focus:ring-4 focus:ring-violet-100 shadow-inner"
+              className="h-11 w-full rounded-2xl bg-white/80 border border-[#d0c1ab]/50 pl-6 pr-2.5 text-xs text-[#241e14] outline-none transition focus:bg-white focus:border-[#241e14] focus:ring-4 focus:ring-[#d0c1ab]/30 shadow-inner"
             />
           </div>
 
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#8a8393]">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#8e7a63]">
               ₹
             </span>
             <input
@@ -385,7 +385,7 @@ export function MarketplaceFilterDock({
               value={maxPrice}
               onChange={(e) => setMaxPrice(e.target.value)}
               placeholder="Max"
-              className="h-11 w-full rounded-2xl bg-white/80 border border-violet-100/80 pl-6 pr-2.5 text-xs text-[#272130] outline-none transition focus:bg-white focus:border-violet-500 focus:ring-4 focus:ring-violet-100 shadow-inner"
+              className="h-11 w-full rounded-2xl bg-white/80 border border-[#d0c1ab]/50 pl-6 pr-2.5 text-xs text-[#241e14] outline-none transition focus:bg-white focus:border-[#241e14] focus:ring-4 focus:ring-[#d0c1ab]/30 shadow-inner"
             />
           </div>
         </div>
@@ -401,16 +401,16 @@ export function MarketplaceFilterDock({
                 setIsCategoryOpen(false);
               }}
               title="Sort products"
-              className="h-11 w-full flex items-center justify-center gap-1.5 rounded-2xl border border-violet-100/80 bg-white/80 px-2.5 text-xs text-[#484252] outline-none hover:bg-white transition shadow-inner cursor-pointer"
+              className="h-11 w-full flex items-center justify-center gap-1.5 rounded-2xl border border-[#d0c1ab]/50 bg-white/80 px-2.5 text-xs text-[#241e14] outline-none hover:bg-white hover:border-[#241e14] transition shadow-inner cursor-pointer"
             >
-              <ArrowUpDown size={14} className="text-violet-700 shrink-0" />
+              <ArrowUpDown size={14} className="text-[#241e14] shrink-0" />
               <span className="hidden xl:inline text-[11px] font-medium truncate">
                 {sort === "price_low" ? "Low" : sort === "price_high" ? "High" : "Recent"}
               </span>
             </button>
 
             {isSortOpen && (
-              <div className="absolute right-0 top-full mt-2 z-50 w-48 rounded-2xl border border-white/90 bg-white/95 backdrop-blur-2xl p-2 shadow-[0_20px_50px_-10px_rgba(30,15,55,0.28)] animate-in fade-in zoom-in-95 duration-150">
+              <div className="absolute right-0 top-full mt-2 z-50 w-48 rounded-2xl border border-white/95 bg-white/95 backdrop-blur-2xl p-2 shadow-[0_20px_50px_-10px_rgba(36,30,20,0.25)] animate-in fade-in zoom-in-95 duration-150">
                 {(["recent", "price_low", "price_high"] as const).map((s) => (
                   <button
                     key={s}
@@ -418,12 +418,12 @@ export function MarketplaceFilterDock({
                     onClick={() => selectSort(s)}
                     className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs text-left transition cursor-pointer ${
                       sort === s
-                        ? "bg-violet-50 text-violet-950 font-bold"
-                        : "text-[#484252] hover:bg-violet-50/60"
+                        ? "bg-[#eee9e2] text-[#241e14] font-bold"
+                        : "text-[#5f574d] hover:bg-[#eee9e2]/60 hover:text-[#241e14]"
                     }`}
                   >
                     <span>{sortLabels[s]}</span>
-                    {sort === s && <Check size={14} className="text-violet-700" />}
+                    {sort === s && <Check size={14} className="text-[#241e14]" />}
                   </button>
                 ))}
               </div>
@@ -433,7 +433,7 @@ export function MarketplaceFilterDock({
           {/* Action Filter Button */}
           <button
             type="submit"
-            className="h-11 inline-flex items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-r from-violet-950 via-purple-900 to-indigo-950 px-4 text-xs font-bold text-white shadow-md shadow-violet-950/20 hover:opacity-95 transition cursor-pointer"
+            className="h-11 inline-flex items-center justify-center gap-1.5 rounded-2xl bg-[#241e14] hover:bg-[#382f20] px-4 text-xs font-bold text-white shadow-md shadow-[#241e14]/20 transition cursor-pointer"
           >
             <SlidersHorizontal size={14} />
             <span className="hidden sm:inline">Filter</span>
