@@ -87,10 +87,10 @@ export function CollegeTrustShowcase({
             </div>
             <div className="space-y-0.5">
               <h3 className="text-xs font-bold text-white sm:text-sm">
-                Escrow Payments & 95% UPI Payout
+                Direct WhatsApp & UPI Payments
               </h3>
               <p className="text-xs leading-5 text-violet-200/70">
-                Razorpay holds buyer funds securely until item inspection. 95% net payout transfers straight to seller&apos;s UPI upon OTP verification.
+                Zero-fee direct peer transfers via WhatsApp and UPI (Google Pay, PhonePe, Paytm) or cash on campus pickup.
               </p>
             </div>
           </div>
@@ -109,8 +109,8 @@ export function CollegeTrustShowcase({
             <p className="text-[10px] text-violet-300">Hostel Zones</p>
           </div>
           <div className="rounded-xl bg-white/5 p-2.5">
-            <p className="font-mono text-base font-bold text-emerald-300 sm:text-lg">5%</p>
-            <p className="text-[10px] text-violet-300">Platform Fee</p>
+            <p className="font-mono text-base font-bold text-emerald-300 sm:text-lg">0%</p>
+            <p className="text-[10px] text-violet-300">Fee on Campus</p>
           </div>
         </div>
 
