@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 
@@ -25,7 +26,17 @@ export type MemberProfile = {
 export async function getCurrentMember() {
   if (!isSupabaseConfigured()) redirect("/setup");
 
+  // Fast-path: Check cookies first before doing any remote network calls
+  const cookieStore = await cookies();
+  const hasAuthCookie = cookieStore
+    .getAll()
+    .some((c) => c.name.startsWith("sb-") && c.name.includes("-auth-token"));
+
   const supabase = await createClient();
+  if (!hasAuthCookie) {
+    return { supabase, userId: null, profile: null };
+  }
+
   let userId: string | null = null;
 
   const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();

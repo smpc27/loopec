@@ -45,7 +45,14 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  // getUser() refreshes the auth token via setAll cookies on incoming requests
-  await supabase.auth.getUser();
+  // Only refresh auth token via network request if an auth cookie is actually present
+  const hasAuthCookie = request.cookies
+    .getAll()
+    .some((c) => c.name.startsWith("sb-") && c.name.includes("-auth-token"));
+
+  if (hasAuthCookie) {
+    await supabase.auth.getUser();
+  }
+
   return response;
 }
