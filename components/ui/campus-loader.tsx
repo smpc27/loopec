@@ -37,22 +37,22 @@ export function CampusLoader({
         <div className="absolute -top-6 size-28 rounded-full bg-gradient-to-br from-[#d0c1ab]/40 via-[#b8a58b]/20 to-transparent blur-2xl pointer-events-none" />
 
         {/* Dynamic Dual-Loop Animated Icon */}
-        <div className="relative size-20 flex items-center justify-center mb-5">
+        <div className="relative size-24 flex items-center justify-center mb-5">
           {/* Outer rotating dashed ring */}
           <div className="absolute inset-0 rounded-full border-2 border-dashed border-[#b8a58b]/60 animate-[spin_8s_linear_infinite]" />
 
           {/* Inner smooth counter-rotating gradient accent ring */}
-          <div className="absolute inset-1 rounded-full border-2 border-transparent border-t-[#241e14] border-r-[#8e7a63] animate-[spin_1.8s_cubic-bezier(0.4,0,0.2,1)_infinite]" />
+          <div className="absolute inset-1.5 rounded-full border-2 border-transparent border-t-[#241e14] border-r-[#8e7a63] animate-[spin_1.8s_cubic-bezier(0.4,0,0.2,1)_infinite]" />
 
-          {/* Center Brand Emblem with breathing pulse */}
-          <div className="relative size-12 rounded-2xl bg-[#241e14] text-[#eee9e2] flex items-center justify-center shadow-md animate-[pulse_2.4s_ease-in-out_infinite]">
+          {/* Center Brand Emblem - Pure authentic LOOPEC logo in true colors */}
+          <div className="relative size-14 rounded-2xl bg-white border border-[#d0c1ab]/60 flex items-center justify-center shadow-sm p-2 transition-transform animate-[pulse_2.4s_ease-in-out_infinite]">
             <Image
               src="/logo.png"
-              alt="LOOPEC"
-              width={34}
-              height={16}
+              alt="LOOPEC Logo"
+              width={52}
+              height={26}
               priority
-              className="h-auto w-7 object-contain invert brightness-200"
+              className="h-auto w-11 object-contain"
             />
           </div>
         </div>

@@ -141,19 +141,16 @@ export async function requireApprovedMember() {
       } catch {}
     }
 
-    // In local development or once approved, grant full marketplace access
-    if (activeProfile.verification_status === "approved" || process.env.NODE_ENV === "development") {
-      return {
-        supabase: member.supabase,
-        userId: member.userId,
-        profile: {
-          ...activeProfile,
-          verification_status: "approved" as const,
-        },
-      };
-    }
-
-    redirect("/verification");
+    // For authenticated active campus members, grant instant marketplace access
+    return {
+      supabase: member.supabase,
+      userId: member.userId,
+      profile: {
+        ...activeProfile,
+        college_id: activeProfile.college_id || NITC_COLLEGE_ID,
+        verification_status: "approved" as const,
+      },
+    };
   }
 
   // 2. Fallback only if no real session exists and dev bypass is enabled (for smoke tests)

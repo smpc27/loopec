@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import { createStorageAdminClient } from "@/lib/supabase/admin";
@@ -13,6 +13,18 @@ const signUpSchema = z.object({
   password: z.string().min(12).max(128),
   collegeId: z.uuid(),
 });
+
+async function getRuntimeOrigin() {
+  try {
+    const h = await headers();
+    const host = h.get("x-forwarded-host") || h.get("host");
+    const proto = h.get("x-forwarded-proto") || (host?.includes("localhost") ? "http" : "https");
+    if (host) {
+      return `${proto}://${host}`;
+    }
+  } catch {}
+  return siteOrigin();
+}
 
 function siteOrigin() {
   const configuredOrigin = process.env.NEXT_PUBLIC_SITE_URL;
@@ -93,13 +105,14 @@ export async function signInWithGoogle(formData?: FormData) {
   if (!isSupabaseConfigured()) redirect("/setup");
   const supabase = await createClient();
   const next = formData?.get("next") ? String(formData.get("next")) : "/marketplace";
+  const origin = await getRuntimeOrigin();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${siteOrigin()}/auth/callback?next=${encodeURIComponent(next)}`,
+      redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`,
       queryParams: {
         access_type: "offline",
-        hd: "nitc.ac.in",
+        prompt: "select_account",
       },
     },
   });
@@ -149,8 +162,8 @@ export async function signIn(formData: FormData) {
   if (profile?.suspended_at || profile?.verification_status === "suspended") {
     redirect("/auth/suspended");
   }
-  if (profile?.verification_status === "approved") redirect(safeNext(String(formData.get("next") ?? "")));
-  redirect("/verification");
+
+  redirect(safeNext(String(formData.get("next") ?? "")));
 }
 
 export async function signOut() {

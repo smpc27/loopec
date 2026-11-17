@@ -56,11 +56,16 @@ export const instant = false;
 export default async function Home({
   searchParams,
 }: {
-  searchParams?: Promise<{ code?: string | string[]; next?: string | string[] }>;
+  searchParams?: Promise<{ code?: string | string[]; next?: string | string[]; error?: string | string[] }>;
 }) {
   const params = searchParams ? await searchParams : {};
   const code = Array.isArray(params.code) ? params.code[0] : params.code;
   const next = Array.isArray(params.next) ? params.next[0] : params.next;
+  const oauthError = Array.isArray(params.error) ? params.error[0] : params.error;
+
+  if (oauthError) {
+    redirect("/auth/sign-in?error=sign_in");
+  }
 
   if (code) {
     const q = new URLSearchParams();
