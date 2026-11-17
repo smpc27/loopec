@@ -17,6 +17,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrandMark } from "@/components/brand-mark";
+import { SiteHeader } from "@/components/navigation/site-header";
+import { getCurrentMember } from "@/lib/auth/member";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 const principles = [
   {
@@ -65,36 +68,15 @@ export default async function Home({
     redirect(`/auth/callback?${q.toString()}`);
   }
 
+  const member = isSupabaseConfigured() ? await getCurrentMember().catch(() => null) : null;
+
   return (
     <>
-      <header className="site-header">
-        <div className="site-header-inner">
-          <Link className="brand" href="/" aria-label="LOOPEC home">
-            <BrandMark />
-            <span className="brand-wordmark">LOOPEC</span>
-            <span className="brand-divider" aria-hidden="true" />
-            <span className="brand-caption">Campus marketplace</span>
-          </Link>
-
-          <nav className="desktop-nav" aria-label="Main navigation">
-            <Link href="/marketplace">Marketplace</Link>
-            <a href="#how-it-works">How it works</a>
-            <a href="#community">Our community</a>
-            <Link href="/auth/sign-in">Sign in</Link>
-          </nav>
-
-          <div className="flex items-center gap-2">
-            <Button asChild variant="secondary" size="sm" className="hidden sm:inline-flex rounded-full border-violet-200 text-xs font-semibold text-violet-900 hover:bg-violet-50">
-              <Link href="/auth/sign-in">Sign in</Link>
-            </Button>
-            <Button asChild size="sm" className="header-action">
-              <Link href="/auth/sign-up">
-                Join your campus <MoveUpRight aria-hidden="true" size={15} />
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </header>
+      <SiteHeader
+        variant={member?.profile ? "app" : "marketing"}
+        profile={member?.profile}
+        campusName="NIT Calicut"
+      />
 
       <main>
         <section className="hero-section page-shell">

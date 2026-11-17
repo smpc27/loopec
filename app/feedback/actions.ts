@@ -46,14 +46,8 @@ export async function submitPlatformFeedback(formData: FormData) {
     // Ignore schema cache or missing table error; we will notify admins directly
   }
 
-  // 2. Notify college admin(s) via public.notifications
+  // 2. Notify college admin(s) and owner via public.notifications and direct message
   try {
-    const { data: adminProfiles } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("college_id", profile.college_id ?? "00000000-0000-0000-0000-000000000000")
-      .in("role", ["college_admin", "super_admin"]);
-
     const categoryTitle =
       category === "feature_request"
         ? "💡 Feature Suggestion"
@@ -67,8 +61,38 @@ export async function submitPlatformFeedback(formData: FormData) {
 
     const senderName = anonymous ? "An anonymous peer" : `${profile.full_name} (@${profile.handle})`;
 
-    if (adminProfiles && adminProfiles.length > 0) {
-      const adminNotifications = adminProfiles.map((admin) => ({
+    // Locate all admins and the platform owner (smsandep27)
+    const [{ data: adminProfiles }, { data: ownerProfiles }, { data: allProfiles }] = await Promise.all([
+      adminClient
+        .from("profiles")
+        .select("id, full_name, handle, role, college_id")
+        .in("role", ["college_admin", "super_admin"]),
+      adminClient
+        .from("profiles")
+        .select("id, full_name, handle, role, college_id")
+        .or("handle.ilike.%smsandep%,full_name.ilike.%sandeep%,full_name.ilike.%sandep%"),
+      adminClient
+        .from("profiles")
+        .select("id, full_name, handle, role, college_id")
+        .order("created_at", { ascending: true })
+        .limit(3),
+    ]);
+
+    const targetAdmins = new Map<string, { id: string; college_id?: string | null; full_name?: string }>();
+    if (adminProfiles) for (const a of adminProfiles) targetAdmins.set(a.id, a);
+    if (ownerProfiles) for (const o of ownerProfiles) targetAdmins.set(o.id, o);
+    if (targetAdmins.size === 0 && allProfiles) {
+      for (const p of allProfiles) targetAdmins.set(p.id, p);
+    }
+
+    const feedbackMsgBody = `💬 [Campus Feedback: ${categoryTitle} (${rating}/5 ⭐)]\n\n📌 Subject: ${subject}\n\n${message}\n\n${
+      anonymous ? "👤 From: Anonymous Student" : `👤 From: ${profile.full_name} (@${profile.handle})`
+    }`;
+
+    // Loop through target recipients to deliver alerts and direct messages
+    for (const admin of targetAdmins.values()) {
+      // A. Alert notification
+      await adminClient.from("notifications").insert({
         user_id: admin.id,
         kind: "system" as const,
         title: `${categoryTitle} (${rating}/5)`,
@@ -81,12 +105,115 @@ export async function submitPlatformFeedback(formData: FormData) {
           sender_id: anonymous ? null : userId,
           college_id: profile.college_id,
         },
-      }));
+      });
 
-      await adminClient.from("notifications").insert(adminNotifications);
+      // B. Direct message into conversations and messages
+      let conversationId: string | null = null;
+      const targetPartnerId = admin.id !== userId ? admin.id : null;
+
+      if (targetPartnerId) {
+        // Query existing direct conversation thread between submitter and admin
+        const { data: existingConv } = await adminClient
+          .from("conversations")
+          .select("id")
+          .or(
+            `and(buyer_id.eq.${userId},seller_id.eq.${targetPartnerId}),and(buyer_id.eq.${targetPartnerId},seller_id.eq.${userId})`
+          )
+          .is("product_id", null)
+          .is("order_id", null)
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (existingConv) {
+          conversationId = existingConv.id;
+          await adminClient
+            .from("conversations")
+            .update({ updated_at: new Date().toISOString() })
+            .eq("id", conversationId);
+        } else {
+          const { data: newConv } = await adminClient
+            .from("conversations")
+            .insert({
+              college_id: profile.college_id ?? admin.college_id ?? "35b88dad-65f3-4cd6-b44d-c7d2fda7711a",
+              buyer_id: userId,
+              seller_id: targetPartnerId,
+              product_id: null,
+              order_id: null,
+              updated_at: new Date().toISOString(),
+            })
+            .select("id")
+            .single();
+
+          if (newConv) conversationId = newConv.id;
+        }
+
+        if (conversationId) {
+          await adminClient.from("messages").insert({
+            conversation_id: conversationId,
+            sender_id: userId,
+            body: feedbackMsgBody,
+          });
+
+          // Send new message alert with link to conversation
+          await adminClient.from("notifications").insert({
+            user_id: targetPartnerId,
+            kind: "new_message" as const,
+            title: `Feedback from ${senderName}`,
+            body: `"${subject}" — ${message.slice(0, 150)}`,
+            payload: {
+              conversation_id: conversationId,
+              category,
+              rating,
+              subject,
+            },
+          });
+        }
+      } else {
+        // When owner tests submitting feedback with their own account, find another peer profile
+        // so conversation constraint (buyer_id <> seller_id) is satisfied and message shows in /messages
+        const otherPeer = allProfiles?.find((p) => p.id !== userId);
+        if (otherPeer) {
+          const { data: existingSelfConv } = await adminClient
+            .from("conversations")
+            .select("id")
+            .or(
+              `and(buyer_id.eq.${otherPeer.id},seller_id.eq.${userId}),and(buyer_id.eq.${userId},seller_id.eq.${otherPeer.id})`
+            )
+            .is("product_id", null)
+            .is("order_id", null)
+            .limit(1)
+            .maybeSingle();
+
+          let selfConvId = existingSelfConv?.id;
+          if (!selfConvId) {
+            const { data: createdSelfConv } = await adminClient
+              .from("conversations")
+              .insert({
+                college_id: profile.college_id ?? "35b88dad-65f3-4cd6-b44d-c7d2fda7711a",
+                buyer_id: otherPeer.id,
+                seller_id: userId,
+                product_id: null,
+                order_id: null,
+                updated_at: new Date().toISOString(),
+              })
+              .select("id")
+              .single();
+            if (createdSelfConv) selfConvId = createdSelfConv.id;
+          }
+
+          if (selfConvId) {
+            await adminClient.from("messages").insert({
+              conversation_id: selfConvId,
+              sender_id: otherPeer.id,
+              body: `💬 [Self-Test Feedback: ${categoryTitle} (${rating}/5 ⭐)]\n\n📌 Subject: ${subject}\n\n${message}`,
+            });
+          }
+        }
+      }
     }
 
-    // 3. Send confirmation notification to user
+    // 3. Send confirmation notification to submitter
     await adminClient.from("notifications").insert({
       user_id: userId,
       kind: "system" as const,
@@ -99,7 +226,7 @@ export async function submitPlatformFeedback(formData: FormData) {
       },
     });
   } catch {
-    // notifications fallback complete
+    // messaging & notifications fallback complete
   }
 
   redirect("/feedback?success=1");

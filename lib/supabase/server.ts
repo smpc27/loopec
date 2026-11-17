@@ -14,7 +14,13 @@ export async function createClient() {
       setAll(cookiesToSet) {
         try {
           for (const { name, value, options } of cookiesToSet) {
-            cookieStore.set(name, value, options);
+            cookieStore.set(name, value, {
+              ...options,
+              // 30 days persistent token max-age
+              maxAge: options?.maxAge ?? 60 * 60 * 24 * 30,
+              sameSite: "lax",
+              path: "/",
+            });
           }
         } catch {
           // Server Components cannot write cookies. The request proxy refreshes sessions.

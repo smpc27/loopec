@@ -5,6 +5,7 @@ import { ArrowLeft, BadgeCheck, Bookmark, Gift, MessageCircle, PackageOpen, Refr
 import { ProductCard, type MarketplaceProduct } from "@/components/marketplace/product-card";
 import { requireApprovedMember } from "@/lib/auth/member";
 import { addToCart, buyNow, reportListing, startConversation, toggleWishlist } from "@/app/marketplace/actions";
+import { SiteHeader } from "@/components/navigation/site-header";
 
 export const instant = false;
 
@@ -111,7 +112,11 @@ export default async function ProductDetailsPage({ params, searchParams }: PageP
 
   return (
     <main className="min-h-screen bg-transparent">
-      <header className="border-b border-white/60 bg-white/70 backdrop-blur-xl sticky top-0 z-40 shadow-[0_4px_30px_rgba(0,0,0,0.03)]"><div className="mx-auto flex min-h-[72px] max-w-7xl items-center justify-between px-5 sm:px-8"><Link href="/marketplace" className="text-sm font-extrabold tracking-[.14em] text-[#302546]">LOOPEC <span className="ml-2 font-normal tracking-normal text-[#8b8590]">Marketplace</span></Link><Link href="/cart" className="text-xs font-semibold text-violet-800 hover:text-violet-950">View cart</Link></div></header>
+      {/* Global Responsive Site Header */}
+      <SiteHeader
+        profile={profile}
+        sectionTitle="Marketplace"
+      />
       <section className="mx-auto max-w-7xl px-5 py-7 sm:px-8 sm:py-10">
         <Link className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/65 backdrop-blur-md px-3.5 py-1.5 text-xs font-semibold text-[#5c5466] hover:bg-white hover:text-violet-900 shadow-sm transition" href="/marketplace"><ArrowLeft size={14} /> Back to marketplace</Link>
         {error ? <p role="alert" className="mt-4 rounded-xl border border-amber-200/80 bg-amber-50/80 backdrop-blur-md px-4 py-3 text-sm text-amber-950 shadow-sm">{error === "stock" ? "There is not enough stock for another item." : error === "rate_limit" ? "You’ve made several reports in a short time. Please wait before submitting another." : "This listing is not available for that action."}</p> : null}

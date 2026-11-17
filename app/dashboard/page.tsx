@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, BadgeCheck, Bell, Box, CirclePlus, MessageCircle, PackageCheck, Store, TrendingUp, UserRound } from "lucide-react";
 import { requireApprovedMember } from "@/lib/auth/member";
-import { signOut } from "@/app/auth/actions";
+import { SiteHeader } from "@/components/navigation/site-header";
 
 export const instant = false;
 
@@ -36,8 +36,12 @@ export default async function DashboardPage() {
   const needsReview = listings.filter((listing) => listing.status === "pending").length;
 
   return (
-    <main className="min-h-screen bg-[#f7f6f4]">
-      <header className="border-b border-[#e8e5e2] bg-white/85"><div className="mx-auto flex min-h-[72px] max-w-7xl items-center justify-between px-5 sm:px-8"><Link href="/dashboard" className="text-sm font-extrabold tracking-[.14em] text-[#302546]">LOOPEC <span className="ml-2 font-normal tracking-normal text-[#8b8590]">Seller studio</span></Link><nav className="flex items-center gap-4"><Link href="/marketplace" className="text-xs font-semibold text-violet-800">Marketplace</Link><Link href="/profile" className="text-xs font-semibold text-[#6f6876]">Profile</Link><form action={signOut}><button type="submit" className="text-xs font-semibold text-[#77717e]">Sign out</button></form></nav></div></header>
+    <main className="min-h-screen bg-transparent">
+      {/* Global Responsive Site Header */}
+      <SiteHeader
+        profile={profile}
+        sectionTitle="Seller Studio"
+      />
       <section className="mx-auto max-w-7xl px-5 py-9 sm:px-8 sm:py-12">
         <div className="flex flex-wrap items-end justify-between gap-5"><div><p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.14em] text-violet-700"><Store size={14} /> Seller studio</p><h1 className="mt-2 font-serif text-4xl tracking-[-.05em] text-[#28232f]">Good morning, {profile.full_name.split(" ")[0]}.</h1><p className="mt-2 text-sm text-[#77717e]">Your campus listings and exchanges, in one place.</p></div><Link className="inline-flex min-h-11 items-center gap-2 rounded-full bg-violet-950 px-5 text-sm font-semibold text-white hover:bg-violet-900" href="/listings/new"><CirclePlus size={15} /> Create a listing</Link></div>
         <div className="mt-7 grid grid-cols-2 gap-3 lg:grid-cols-4">

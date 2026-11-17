@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { requireApprovedMember } from "@/lib/auth/member";
 import { submitPlatformFeedback } from "@/app/feedback/actions";
 import { Button } from "@/components/ui/button";
+import { SiteHeader } from "@/components/navigation/site-header";
 
 export const instant = false;
 
@@ -16,46 +17,47 @@ export default async function FeedbackPage({
   const params = await searchParams;
   const isSuccess = params.success === "1";
   const error = params.error;
-  const { profile } = await requireApprovedMember();
+  const { profile, supabase, userId } = await requireApprovedMember();
+
+  const [{ count: unreadAlerts }, { count: unreadMessages }] = await Promise.all([
+    supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", userId).is("read_at", null),
+    supabase.from("messages").select("id", { count: "exact", head: true }).neq("sender_id", userId).is("read_at", null),
+  ]);
 
   return (
     <main className="min-h-screen bg-transparent">
-      {/* Header - Frosted Glass Bar */}
-      <header className="sticky top-0 z-40 border-b border-white/60 bg-white/70 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.03)]">
-        <div className="mx-auto flex min-h-[72px] max-w-5xl items-center justify-between px-5 sm:px-8">
-          <Link href="/marketplace" className="text-sm font-extrabold tracking-[.14em] text-[#302546]">
-            LOOPEC <span className="ml-2 font-normal tracking-normal text-[#8b8590]">Campus Feedback</span>
-          </Link>
-          <Link href="/marketplace" className="text-xs font-semibold text-violet-800 hover:text-violet-950 transition">
-            Return to marketplace
-          </Link>
-        </div>
-      </header>
+      {/* Global Responsive Site Header */}
+      <SiteHeader
+        profile={profile}
+        unreadAlertsCount={unreadAlerts ?? 0}
+        unreadMessagesCount={unreadMessages ?? 0}
+        sectionTitle="Campus Feedback"
+      />
 
-      <section className="mx-auto max-w-4xl px-5 py-8 sm:px-8 sm:py-12">
-        <Link className="inline-flex items-center gap-2 text-xs font-semibold text-[#77717e] hover:text-violet-900" href="/marketplace">
+      <section className="mx-auto max-w-4xl px-4 py-8 sm:px-8 sm:py-12">
+        <Link className="inline-flex items-center gap-2 text-xs font-semibold text-[#736b60] hover:text-[#241e14] transition" href="/marketplace">
           <ArrowLeft size={14} /> Back to marketplace
         </Link>
 
         <div className="mt-6 flex flex-wrap items-start justify-between gap-6">
           <div>
-            <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.16em] text-violet-700">
-              <ShieldCheck size={14} /> National Institute of Technology Calicut
+            <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.16em] text-[#8e7a63]">
+              <ShieldCheck size={14} className="text-[#241e14]" /> National Institute of Technology Calicut
             </p>
-            <h1 className="mt-3 font-serif text-3xl sm:text-4xl tracking-tight text-[#28232f]">
+            <h1 className="mt-3 font-serif text-3xl sm:text-4xl tracking-tight text-[#241e14]">
               Campus Feedback & Suggestions
             </h1>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-[#6c6576]">
+            <p className="mt-2 max-w-xl text-sm leading-6 text-[#736b60]">
               LOOPEC is built for NIT Calicut peers. Share ideas for new features, trade categories, senior giveaway drives, or report bugs.
             </p>
           </div>
-          <div className="rounded-2xl border border-violet-200/80 bg-violet-50/70 backdrop-blur-md p-4 text-xs text-violet-950 max-w-xs shadow-sm">
-            <p className="font-bold flex items-center gap-1.5">
-              <Sparkles size={14} className="text-violet-700" />
-              Community Driven
+          <div className="rounded-2xl border border-[#d0c1ab]/50 bg-white/80 backdrop-blur-md p-4 text-xs text-[#241e14] max-w-xs shadow-sm">
+            <p className="font-bold flex items-center gap-1.5 text-[#241e14]">
+              <Sparkles size={14} className="text-[#8e7a63]" />
+              Direct Administrator Delivery
             </p>
-            <p className="mt-1 text-violet-800 leading-relaxed">
-              Every suggestion is reviewed by campus peers & admins to make hostel exchanges faster, safer, and 100% free.
+            <p className="mt-1 text-[#736b60] leading-relaxed">
+              Every submission is delivered directly as a message & notification to campus admins (@smsandep27).
             </p>
           </div>
         </div>
@@ -123,7 +125,7 @@ export default async function FeedbackPage({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#4c4556]">Overall Experience Rating *</label>
+                <label className="block text-xs font-bold text-[#241e14]">Overall Experience Rating *</label>
                 <div className="mt-2 grid grid-cols-5 gap-2">
                   {[
                     { val: "5", label: "5 · Excellent" },
@@ -134,7 +136,7 @@ export default async function FeedbackPage({
                   ].map((item, idx) => (
                     <label
                       key={item.val}
-                      className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-white/80 bg-white/60 backdrop-blur-sm p-2 text-center transition hover:border-violet-300 hover:bg-white/90 has-[:checked]:border-violet-600 has-[:checked]:bg-violet-50/90 shadow-sm"
+                      className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-[#d0c1ab]/50 bg-white/70 backdrop-blur-sm p-2 text-center transition hover:border-[#241e14] hover:bg-white has-[:checked]:border-[#241e14] has-[:checked]:bg-[#eee9e2] shadow-sm"
                     >
                       <input
                         type="radio"
@@ -144,26 +146,26 @@ export default async function FeedbackPage({
                         className="sr-only"
                       />
                       <Star size={16} className="text-amber-500 fill-amber-400" />
-                      <span className="mt-1 text-[11px] font-semibold text-[#30283c]">{item.val} ★</span>
+                      <span className="mt-1 text-[11px] font-semibold text-[#241e14]">{item.val} ★</span>
                     </label>
                   ))}
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#4c4556]">Subject / Summary *</label>
+                <label className="block text-xs font-bold text-[#241e14]">Subject / Summary *</label>
                 <input
                   name="subject"
                   required
                   minLength={3}
                   maxLength={160}
                   placeholder="e.g. Add hostel block delivery meetup spots"
-                  className="mt-2 min-h-11 w-full rounded-xl border border-violet-100/80 bg-white/70 backdrop-blur-sm px-3.5 text-sm outline-none focus:bg-white focus:border-violet-600 focus:ring-4 focus:ring-violet-100 shadow-inner"
+                  className="mt-2 min-h-11 w-full rounded-xl border border-[#d0c1ab]/50 bg-white/70 backdrop-blur-sm px-3.5 text-sm text-[#241e14] outline-none focus:bg-white focus:border-[#241e14] focus:ring-4 focus:ring-[#d0c1ab]/30 shadow-inner"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#4c4556]">Detailed Feedback / Suggestions *</label>
+                <label className="block text-xs font-bold text-[#241e14]">Detailed Feedback / Suggestions *</label>
                 <textarea
                   name="message"
                   required
@@ -171,18 +173,18 @@ export default async function FeedbackPage({
                   maxLength={3000}
                   rows={5}
                   placeholder="Tell us what you love, what felt confusing, or what feature would make campus exchanges better for you."
-                  className="mt-2 w-full rounded-xl border border-violet-100/80 bg-white/70 backdrop-blur-sm p-3.5 text-sm outline-none focus:bg-white focus:border-violet-600 focus:ring-4 focus:ring-violet-100 resize-y shadow-inner"
+                  className="mt-2 w-full rounded-xl border border-[#d0c1ab]/50 bg-white/70 backdrop-blur-sm p-3.5 text-sm text-[#241e14] outline-none focus:bg-white focus:border-[#241e14] focus:ring-4 focus:ring-[#d0c1ab]/30 resize-y shadow-inner"
                 />
               </div>
 
-              <div className="rounded-xl border border-white/80 bg-white/50 backdrop-blur-sm p-3.5">
+              <div className="rounded-xl border border-[#d0c1ab]/40 bg-white/50 backdrop-blur-sm p-3.5">
                 <label className="flex items-center gap-2.5 cursor-pointer">
                   <input
                     type="checkbox"
                     name="anonymous"
-                    className="h-4 w-4 rounded border-gray-300 text-violet-700 focus:ring-violet-500"
+                    className="h-4 w-4 rounded border-[#d0c1ab] text-[#241e14] focus:ring-[#241e14]"
                   />
-                  <span className="text-xs text-[#524b5c]">
+                  <span className="text-xs text-[#5f574d]">
                     Submit anonymously (do not attach my name or handle to this feedback)
                   </span>
                 </label>
@@ -196,22 +198,22 @@ export default async function FeedbackPage({
 
           {/* Side Info Cards - Frosted Glass */}
           <div className="space-y-4">
-            <div className="rounded-[28px] border border-indigo-200/80 bg-indigo-50/70 backdrop-blur-xl p-6 shadow-sm">
-              <h3 className="text-sm font-bold text-indigo-950 flex items-center gap-2">
-                <HeartHandshake size={16} className="text-indigo-700" />
+            <div className="rounded-[28px] border border-[#d0c1ab]/60 bg-white/80 backdrop-blur-xl p-6 shadow-sm">
+              <h3 className="text-sm font-bold text-[#241e14] flex items-center gap-2">
+                <HeartHandshake size={16} className="text-[#8e7a63]" />
                 Recent Feature Updates
               </h3>
-              <ul className="mt-3 space-y-2.5 text-xs text-indigo-900 leading-relaxed">
+              <ul className="mt-3 space-y-2.5 text-xs text-[#5f574d] leading-relaxed">
                 <li className="flex items-start gap-2">
-                  <span className="font-bold text-indigo-700">✓</span>
+                  <span className="font-bold text-[#241e14]">✓</span>
                   <span><strong>Trade & Barter:</strong> Swap textbooks, drafters, or calculators without cash.</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="font-bold text-indigo-700">✓</span>
+                  <span className="font-bold text-[#241e14]">✓</span>
                   <span><strong>Free Senior Giveaways:</strong> Graduating seniors donate items directly to juniors at ₹0.</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="font-bold text-indigo-700">✓</span>
+                  <span className="font-bold text-[#241e14]">✓</span>
                   <span><strong>Direct WhatsApp & UPI:</strong> Connect and coordinate directly on campus with 0% platform fee.</span>
                 </li>
               </ul>

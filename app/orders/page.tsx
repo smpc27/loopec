@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, BadgeCheck, PackageCheck, ShoppingBag } from "lucide-react";
 import { requireApprovedMember } from "@/lib/auth/member";
 import { authMessage } from "@/lib/auth/messages";
-import { signOut } from "@/app/auth/actions";
+import { SiteHeader } from "@/components/navigation/site-header";
 
 export const instant = false;
 
@@ -13,7 +13,7 @@ const currency = new Intl.NumberFormat("en-IN", { style: "currency", currency: "
 export default async function OrdersPage({ searchParams }: PageProps<"/orders">) {
   const params = await searchParams;
   const errorCode = Array.isArray(params.error) ? params.error[0] : params.error;
-  const { supabase, userId } = await requireApprovedMember();
+  const { supabase, userId, profile } = await requireApprovedMember();
   const { data: orderData } = await supabase.from("orders").select("id, buyer_id, seller_id, status, total_amount, currency, created_at, pickup_location_id").or(`buyer_id.eq.${userId},seller_id.eq.${userId}`).order("created_at", { ascending: false }).limit(100);
   const orders = (orderData ?? []) as Order[];
   const orderIds = orders.map((order) => order.id);
@@ -32,8 +32,12 @@ export default async function OrdersPage({ searchParams }: PageProps<"/orders">)
   const errorMessage = errorCode ? authMessage(errorCode) : null;
 
   return (
-    <main className="min-h-screen bg-[#f7f6f4]">
-      <header className="border-b border-[#e8e5e2] bg-white/85"><div className="mx-auto flex min-h-[72px] max-w-6xl items-center justify-between px-5 sm:px-8"><Link href="/marketplace" className="text-sm font-extrabold tracking-[.14em] text-[#302546]">LOOPEC <span className="ml-2 font-normal tracking-normal text-[#8b8590]">Orders</span></Link><form action={signOut}><button type="submit" className="text-xs font-semibold text-[#77717e]">Sign out</button></form></div></header>
+    <main className="min-h-screen bg-transparent">
+      {/* Global Responsive Site Header */}
+      <SiteHeader
+        profile={profile}
+        sectionTitle="Orders"
+      />
       <section className="mx-auto max-w-5xl px-5 py-9 sm:px-8 sm:py-12">
         <Link href="/marketplace" className="inline-flex items-center gap-2 text-xs font-semibold text-[#77717e] hover:text-violet-900"><ArrowLeft size={14} /> Marketplace</Link>
         <div className="mt-5 flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[.14em] text-violet-700">Your campus exchanges</p><h1 className="mt-2 font-serif text-4xl tracking-[-.05em] text-[#28232f]">Orders</h1><p className="mt-2 text-sm text-[#77717e]">Track the items you’re buying and selling.</p></div><Link href="/messages" className="text-xs font-semibold text-violet-800 hover:text-violet-950">Open messages</Link></div>

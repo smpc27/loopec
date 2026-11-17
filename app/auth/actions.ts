@@ -99,7 +99,6 @@ export async function signInWithGoogle(formData?: FormData) {
       redirectTo: `${siteOrigin()}/auth/callback?next=${encodeURIComponent(next)}`,
       queryParams: {
         access_type: "offline",
-        prompt: "select_account",
         hd: "nitc.ac.in",
       },
     },

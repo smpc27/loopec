@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { ArrowRight, Menu as MenuIcon, Search, ShieldCheck } from "lucide-react";
+import { ArrowRight, Search, ShieldCheck } from "lucide-react";
 import { connection } from "next/server";
 import { ProductCard, type MarketplaceProduct } from "@/components/marketplace/product-card";
 import { MarketplaceFilterDock } from "@/components/marketplace/marketplace-filter-dock";
 import { requireApprovedMember } from "@/lib/auth/member";
-import { signOut } from "@/app/auth/actions";
+import { SiteHeader } from "@/components/navigation/site-header";
 
 export const instant = false;
 
@@ -113,12 +113,13 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
   const previewMode = process.env.NODE_ENV === "development" && process.env.LOOPEC_DEV_BYPASS_AUTH === "true";
   const { supabase, userId, profile } = await requireApprovedMember();
 
-  const [{ data: categoriesData }, { data: pickupData }, { count: unreadCount }] = await Promise.all([
+  const [{ data: categoriesData }, { data: pickupData }, { count: unreadCount }, { count: unreadMessages }] = await Promise.all([
     previewMode ? Promise.resolve({ data: previewCategories }) : supabase.from("categories").select("id, name, slug").eq("is_active", true).order("sort_order"),
     previewMode ? Promise.resolve({ data: [{ name: "NIT Calicut" }] }) : profile.college_id
       ? supabase.from("pickup_locations").select("id, name").eq("college_id", profile.college_id).eq("is_active", true).order("sort_order").limit(1)
       : Promise.resolve({ data: [] }),
     previewMode ? Promise.resolve({ count: 0 }) : supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", userId).is("read_at", null),
+    previewMode ? Promise.resolve({ count: 0 }) : supabase.from("messages").select("id", { count: "exact", head: true }).neq("sender_id", userId).is("read_at", null),
   ]);
   const categories = (categoriesData ?? []) as Category[];
 
@@ -192,41 +193,13 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
   return (
     <main className="min-h-screen bg-transparent">
       {previewMode ? <span className="sr-only">Developer preview</span> : null}
-      <header className="sticky top-0 z-40 border-b border-[#d0c1ab]/40 bg-white/75 backdrop-blur-xl shadow-[0_4px_30px_rgba(36,30,20,0.03)]">
-        <div className="mx-auto flex min-h-[74px] max-w-7xl items-center justify-between gap-3 px-5 sm:px-8">
-          <Link href="/marketplace" className="text-sm font-extrabold tracking-[.14em] text-[#241e14]">LOOPEC <span className="ml-2 hidden font-normal tracking-normal text-[#736b60] sm:inline">Marketplace</span></Link>
-          <nav className="flex items-center gap-2 text-sm">
-            <div className="hidden items-center gap-1 lg:flex">
-              <Link className="rounded-full px-3 py-2 text-[#5f574d] hover:bg-[#eee9e2] hover:text-[#241e14] transition" href="/orders">Orders</Link>
-              <Link className="rounded-full px-3 py-2 text-[#5f574d] hover:bg-[#eee9e2] hover:text-[#241e14] transition" href="/messages">Messages</Link>
-              <Link className="rounded-full px-3 py-2 text-[#5f574d] hover:bg-[#eee9e2] hover:text-[#241e14] transition" href="/notifications">Alerts{unreadCount ? ` · ${unreadCount}` : ""}</Link>
-              <Link className="rounded-full px-3 py-2 text-[#5f574d] hover:bg-[#eee9e2] hover:text-[#241e14] transition" href="/wishlist">Wishlist</Link>
-              <Link className="rounded-full px-3 py-2 text-[#5f574d] hover:bg-[#eee9e2] hover:text-[#241e14] transition" href="/feedback">Feedback</Link>
-              <Link className="rounded-full px-3 py-2 text-[#5f574d] hover:bg-[#eee9e2] hover:text-[#241e14] transition" href="/dashboard">Studio</Link>
-              <Link className="rounded-full px-3 py-2 text-[#5f574d] hover:bg-[#eee9e2] hover:text-[#241e14] transition" href="/profile">Profile</Link>
-              {profile.role === "college_admin" || profile.role === "super_admin" ? <Link className="rounded-full px-3 py-2 text-[#5f574d] hover:bg-[#eee9e2] hover:text-[#241e14] transition" href="/admin">Admin</Link> : null}
-            </div>
-            <details className="relative lg:hidden">
-              <summary className="inline-flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-full border border-[#d0c1ab]/60 bg-white/75 backdrop-blur-md px-3 text-xs font-semibold text-[#241e14] outline-none hover:border-[#241e14] focus-visible:ring-4 focus-visible:ring-[#d0c1ab]/30 shadow-sm">
-                <MenuIcon size={15} aria-hidden="true" /> Menu
-              </summary>
-              <div className="absolute right-0 top-12 z-50 grid w-56 gap-1 rounded-2xl border border-white/90 bg-white/95 backdrop-blur-2xl p-2 shadow-[0_18px_50px_-25px_rgba(36,30,20,.25)]">
-                <Link className="rounded-xl px-3 py-2.5 text-sm text-[#241e14] hover:bg-[#eee9e2]" href="/orders">Orders</Link>
-                <Link className="rounded-xl px-3 py-2.5 text-sm text-[#241e14] hover:bg-[#eee9e2]" href="/messages">Messages</Link>
-                <Link className="rounded-xl px-3 py-2.5 text-sm text-[#241e14] hover:bg-[#eee9e2]" href="/notifications">Alerts{unreadCount ? ` · ${unreadCount}` : ""}</Link>
-                <Link className="rounded-xl px-3 py-2.5 text-sm text-[#241e14] hover:bg-[#eee9e2]" href="/wishlist">Wishlist</Link>
-                <Link className="rounded-xl px-3 py-2.5 text-sm text-[#241e14] hover:bg-[#eee9e2]" href="/feedback">Campus Feedback</Link>
-                <Link className="rounded-xl px-3 py-2.5 text-sm text-[#241e14] hover:bg-[#eee9e2]" href="/dashboard">Seller studio</Link>
-                <Link className="rounded-xl px-3 py-2.5 text-sm text-[#241e14] hover:bg-[#eee9e2]" href="/profile">Profile</Link>
-                {profile.role === "college_admin" || profile.role === "super_admin" ? <Link className="rounded-xl px-3 py-2.5 text-sm text-[#241e14] hover:bg-[#eee9e2]" href="/admin">Admin</Link> : null}
-                <form action={signOut} className="border-t border-[#d0c1ab]/30 pt-1"><button className="w-full rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-[#736b60] hover:bg-[#eee9e2] hover:text-[#241e14]" type="submit">Sign out</button></form>
-              </div>
-            </details>
-            <Link aria-label="List an item" className="inline-flex min-h-10 items-center rounded-full bg-[#241e14] hover:bg-[#382f20] px-4 text-xs font-semibold text-white shadow-md shadow-[#241e14]/20 transition" href="/listings/new"><span className="hidden sm:inline">List an item</span><span className="sm:hidden">Sell</span><span className="ml-1">+</span></Link>
-            <form action={signOut}><button className="hidden min-h-10 rounded-full px-3 text-xs font-semibold text-[#736b60] hover:text-[#241e14] lg:inline-flex" type="submit">Sign out</button></form>
-          </nav>
-        </div>
-      </header>
+      {/* Global Responsive Site Header with Mobile/Tablet Drawer */}
+      <SiteHeader
+        profile={profile}
+        unreadAlertsCount={unreadCount ?? 0}
+        unreadMessagesCount={unreadMessages ?? 0}
+        campusName={pickupName ?? "NIT Calicut"}
+      />
 
       <section className="mx-auto max-w-7xl px-5 pb-16 pt-10 sm:px-8 sm:pt-14">
         <div className="flex flex-wrap items-end justify-between gap-5">
