@@ -76,7 +76,7 @@ export default async function OrderDetailsPage({ params, searchParams }: PagePro
   return (
     <main className="min-h-screen bg-[#f7f6f4]">
       <header className="border-b border-[#e8e5e2] bg-white/85">
-        <div className="mx-auto flex min-h-[72px] max-w-5xl items-center justify-between px-5 sm:px-8">
+        <div className="mx-auto flex min-h-[60px] sm:min-h-[64px] max-w-5xl items-center justify-between px-4 sm:px-6">
           <Link href="/marketplace" className="text-sm font-extrabold tracking-[.14em] text-[#302546]">LOOPEC</Link>
           <div className="flex items-center gap-4">
             <Link href="/orders" className="text-xs font-semibold text-violet-800">All orders</Link>

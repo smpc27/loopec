@@ -34,7 +34,7 @@ export default async function FeedbackPage({
         sectionTitle="Campus Feedback"
       />
 
-      <section className="mx-auto max-w-4xl px-4 py-8 sm:px-8 sm:py-12">
+      <section className="mx-auto max-w-4xl px-4 py-5 sm:px-6 sm:py-8">
         <Link className="inline-flex items-center gap-2 text-xs font-semibold text-[#736b60] hover:text-[#241e14] transition" href="/marketplace">
           <ArrowLeft size={14} /> Back to marketplace
         </Link>

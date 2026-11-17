@@ -140,7 +140,7 @@ export function SiteHeader({
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-[#d0c1ab]/40 bg-white/80 backdrop-blur-xl shadow-[0_4px_30px_rgba(36,30,20,0.03)] transition-all">
-      <div className="mx-auto flex min-h-[72px] max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex min-h-[60px] sm:min-h-[64px] max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
         {/* Brand / Logo */}
         <div className="flex items-center gap-3">
           <Link

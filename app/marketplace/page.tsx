@@ -204,18 +204,18 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
         campusName={pickupName ?? "NIT Calicut"}
       />
 
-      <section className="mx-auto max-w-7xl px-5 pb-16 pt-10 sm:px-8 sm:pt-14">
-        <div className="flex flex-wrap items-end justify-between gap-5">
+      <section className="mx-auto max-w-7xl px-4 pb-12 pt-5 sm:px-6 sm:pt-7 lg:px-8">
+        <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.16em] text-[#8e7a63]"><ShieldCheck size={14} className="text-[#241e14]" /> Verified campus exchange</p>
-            <h1 className="mt-3 font-serif text-4xl tracking-[-.055em] text-[#241e14] sm:text-5xl">Find it in your loop.</h1>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-[#736b60]">Browse items shared by verified members of your college community.</p>
+            <h1 className="mt-2 font-serif text-3xl tracking-[-.05em] text-[#241e14] sm:text-5xl">Find it in your loop.</h1>
+            <p className="mt-1.5 max-w-xl text-sm leading-6 text-[#736b60]">Browse items shared by verified members of your college community.</p>
           </div>
-          {pickupName ? <p className="rounded-full border border-white/80 bg-white/75 backdrop-blur-md px-4 py-2.5 text-xs text-[#241e14] shadow-sm">Campus pickup · <b className="text-[#241e14] font-bold">{pickupName}</b></p> : null}
+          {pickupName ? <p className="rounded-full border border-white/80 bg-white/75 backdrop-blur-md px-4 py-2 text-xs text-[#241e14] shadow-sm">Campus pickup · <b className="text-[#241e14] font-bold">{pickupName}</b></p> : null}
         </div>
 
         {/* Ultra-Modern Glass Category Chips, Filter Tabs & Search Dock */}
-        <div className="mt-7 relative z-30">
+        <div className="mt-5 relative z-30">
           <MarketplaceFilterDock
             categories={categories}
             initialSearch={search}
@@ -227,7 +227,7 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
           />
         </div>
 
-        <div className="mt-7 flex flex-wrap items-center justify-between gap-3">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-[#77717e]">{selectedCategory ? <><b className="text-[#403a47]">{selectedCategory.name}</b><span className="mx-2">·</span></> : null}{search ? <>Results for <b className="text-[#403a47]">“{search}”</b><span className="mx-2">·</span></> : null}{cards.length} {cards.length === 1 ? "item" : "items"}</p>
           <span className="text-[11px] font-medium text-[#928b96]">Verified listings · private to your campus</span>
         </div>

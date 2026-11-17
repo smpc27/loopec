@@ -117,7 +117,7 @@ export default async function ProductDetailsPage({ params, searchParams }: PageP
         profile={profile}
         sectionTitle="Marketplace"
       />
-      <section className="mx-auto max-w-7xl px-5 py-7 sm:px-8 sm:py-10">
+      <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-7">
         <Link className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/65 backdrop-blur-md px-3.5 py-1.5 text-xs font-semibold text-[#5c5466] hover:bg-white hover:text-violet-900 shadow-sm transition" href="/marketplace"><ArrowLeft size={14} /> Back to marketplace</Link>
         {error ? <p role="alert" className="mt-4 rounded-xl border border-amber-200/80 bg-amber-50/80 backdrop-blur-md px-4 py-3 text-sm text-amber-950 shadow-sm">{error === "stock" ? "There is not enough stock for another item." : error === "rate_limit" ? "You’ve made several reports in a short time. Please wait before submitting another." : "This listing is not available for that action."}</p> : null}
         {search.reported ? <p className="mt-4 rounded-xl border border-emerald-200/80 bg-emerald-50/80 backdrop-blur-md px-4 py-3 text-sm text-emerald-800 shadow-sm">Thank you. Your report was sent to a college administrator for review.</p> : null}

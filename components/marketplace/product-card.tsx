@@ -53,36 +53,36 @@ export function ProductCard({
         ) : (
           <div className="grid h-full place-items-center text-[#d0c1ab]"><PackageOpen size={34} strokeWidth={1.3} /></div>
         )}
-        <span className="absolute left-3 top-3 rounded-full border border-white/80 bg-white/85 px-3 py-1.5 text-[10px] font-bold text-[#241e14] shadow-sm backdrop-blur-md">{conditionLabel[product.item_condition]}</span>
+        <span className="absolute left-3 top-3 rounded-full border border-white/80 bg-white/85 px-2.5 py-1 text-[11px] font-bold text-[#241e14] shadow-sm backdrop-blur-md">{conditionLabel[product.item_condition]}</span>
         {isGiveaway ? (
-          <span className="absolute right-3 top-3 rounded-full border border-emerald-400/30 bg-emerald-700/95 px-3 py-1.5 text-[10px] font-bold text-white shadow-md backdrop-blur-md">
+          <span className="absolute right-3 top-3 rounded-full border border-emerald-400/30 bg-emerald-700/95 px-2.5 py-1 text-[11px] font-bold text-white shadow-md backdrop-blur-md">
             🎁 FREE
           </span>
         ) : isTrade ? (
-          <span className="absolute right-3 top-3 rounded-full border border-[#d0c1ab]/40 bg-[#241e14]/95 px-3 py-1.5 text-[10px] font-bold text-[#eee9e2] shadow-md backdrop-blur-md">
+          <span className="absolute right-3 top-3 rounded-full border border-[#d0c1ab]/40 bg-[#241e14]/95 px-2.5 py-1 text-[11px] font-bold text-[#eee9e2] shadow-md backdrop-blur-md">
             🔄 TRADE
           </span>
         ) : product.is_featured ? (
-          <span className="absolute right-3 top-3 rounded-full border border-white/20 bg-[#241e14]/95 px-3 py-1.5 text-[10px] font-semibold text-white shadow-md backdrop-blur-md">Featured</span>
+          <span className="absolute right-3 top-3 rounded-full border border-white/20 bg-[#241e14]/95 px-2.5 py-1 text-[11px] font-bold text-white shadow-md backdrop-blur-md">Featured</span>
         ) : null}
       </div>
-      <div className="p-4.5">
+      <div className="p-3.5 sm:p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="truncate text-[10px] font-bold uppercase tracking-[.11em] text-[#8e7a63]">{product.categoryName}</p>
-            {previewMode ? <span className="mt-1.5 line-clamp-2 block min-h-[44px] text-[15px] font-semibold leading-[1.45] text-[#241e14]">{product.name}</span> : <Link href={`/marketplace/${product.id}`} className="mt-1.5 line-clamp-2 block min-h-[44px] text-[15px] font-semibold leading-[1.45] text-[#241e14] transition hover:text-[#8e7a63]">{product.name}</Link>}
+            <p className="truncate text-[11px] font-bold uppercase tracking-[.11em] text-[#8e7a63]">{product.categoryName}</p>
+            {previewMode ? <span className="mt-1 line-clamp-2 block min-h-[40px] text-sm sm:text-[15px] font-semibold leading-[1.4] text-[#241e14]">{product.name}</span> : <Link href={`/marketplace/${product.id}`} className="mt-1 line-clamp-2 block min-h-[40px] text-sm sm:text-[15px] font-semibold leading-[1.4] text-[#241e14] transition hover:text-[#8e7a63]">{product.name}</Link>}
           </div>
           {product.seller_id !== currentUserId && !previewMode ? (
             <form action={toggleWishlist}>
               <input type="hidden" name="product_id" value={product.id} />
               <input type="hidden" name="return_to" value={returnTo} />
-              <button className={`grid size-9 shrink-0 place-items-center rounded-full border transition-all ${saved ? "border-[#d0c1ab] bg-[#eee9e2] text-[#241e14] shadow-sm" : "border-white/80 bg-white/70 backdrop-blur-md text-[#736b60] hover:bg-white hover:text-[#241e14] shadow-sm"}`} type="submit" aria-label={saved ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`} title={saved ? "Saved to wishlist" : "Save to wishlist"}>
-                <Bookmark size={16} fill={saved ? "currentColor" : "none"} />
+              <button className={`grid size-8.5 shrink-0 place-items-center rounded-full border transition-all ${saved ? "border-[#d0c1ab] bg-[#eee9e2] text-[#241e14] shadow-sm" : "border-white/80 bg-white/70 backdrop-blur-md text-[#736b60] hover:bg-white hover:text-[#241e14] shadow-sm"}`} type="submit" aria-label={saved ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`} title={saved ? "Saved to wishlist" : "Save to wishlist"}>
+                <Bookmark size={15} fill={saved ? "currentColor" : "none"} />
               </button>
             </form>
           ) : null}
         </div>
-        <div className="mt-4 flex items-end justify-between gap-3 border-t border-[#d0c1ab]/30 pt-3.5">
+        <div className="mt-3 flex items-end justify-between gap-3 border-t border-[#d0c1ab]/30 pt-3">
           <div>
             {isGiveaway ? (
               <p className="text-lg font-bold tracking-tight text-emerald-800">FREE</p>
@@ -90,15 +90,15 @@ export function ProductCard({
               <div>
                 <p className="text-base font-bold tracking-tight text-[#241e14]">Trade / Barter</p>
                 {Number(product.price) > 0 ? (
-                  <span className="text-[11px] text-[#736b60]">Valued ~ {currency.format(Number(product.price))}</span>
+                  <span className="text-xs text-[#736b60]">Valued ~ {currency.format(Number(product.price))}</span>
                 ) : null}
               </div>
             ) : (
               <p className="text-lg font-bold tracking-tight text-[#241e14]">{currency.format(Number(product.price))}</p>
             )}
-            {showSeller ? previewMode ? <span className="mt-1 block max-w-[160px] truncate text-[11px] text-[#736b60]">{product.sellerName}</span> : <Link href={`/members/${product.sellerHandle}`} className="mt-1 block max-w-[160px] truncate text-[11px] text-[#736b60] hover:text-[#241e14]">{product.sellerName}</Link> : null}
+            {showSeller ? previewMode ? <span className="mt-1 block max-w-[160px] truncate text-xs font-medium text-[#736b60]">{product.sellerName}</span> : <Link href={`/members/${product.sellerHandle}`} className="mt-1 block max-w-[160px] truncate text-xs font-medium text-[#736b60] hover:text-[#241e14]">{product.sellerName}</Link> : null}
           </div>
-          <span className="text-[10px] text-[#8e8579]">{product.quantity} available</span>
+          <span className="text-[11px] text-[#8e8579]">{product.quantity} available</span>
         </div>
       </div>
     </article>

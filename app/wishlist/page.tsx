@@ -48,7 +48,7 @@ export default async function WishlistPage() {
         profile={profile}
         sectionTitle="Wishlist"
       />
-      <section className="mx-auto max-w-7xl px-5 py-9 sm:px-8 sm:py-12">
+      <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-8">
         <Link href="/marketplace" className="inline-flex items-center gap-2 text-xs font-semibold text-[#77717e] hover:text-violet-900"><ArrowLeft size={14} /> Marketplace</Link>
         <div className="mt-5"><p className="text-[10px] font-bold uppercase tracking-[.14em] text-violet-700">Saved for later</p><h1 className="mt-2 font-serif text-4xl tracking-[-.05em] text-[#28232f]">Your wishlist</h1></div>
         {cards.length ? <div className="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{cards.map((product) => <ProductCard key={product.id} product={product} saved returnTo="/wishlist" currentUserId={userId} />)}</div> : (

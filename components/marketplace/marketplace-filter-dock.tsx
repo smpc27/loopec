@@ -156,15 +156,15 @@ export function MarketplaceFilterDock({
   };
 
   return (
-    <div className="relative z-30 space-y-4">
+    <div className="relative z-30 space-y-3">
       {/* 1. VISUAL CATEGORY PILLS BAR (AIRBNB / APPLE STYLE) */}
-      <div className="overflow-x-auto pb-1 scrollbar-none -mx-2 px-2">
-        <div className="flex items-center gap-2 sm:gap-2.5 min-w-max">
+      <div className="overflow-x-auto pb-0.5 scrollbar-none -mx-2 px-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-max">
           {/* All Categories Chip */}
           <button
             type="button"
             onClick={() => selectCategory("")}
-            className={`flex items-center gap-2 rounded-2xl px-4 py-2.5 text-xs font-bold transition-all duration-200 cursor-pointer ${
+            className={`flex items-center gap-2 rounded-2xl px-3.5 py-2 text-xs font-bold transition-all duration-200 cursor-pointer ${
               !selectedCategory
                 ? "bg-[#241e14] text-white shadow-md shadow-[#241e14]/20 ring-2 ring-[#d0c1ab]"
                 : "border border-white/80 bg-white/75 backdrop-blur-md text-[#241e14]/80 hover:bg-white hover:border-[#d0c1ab] shadow-sm"
@@ -184,7 +184,7 @@ export function MarketplaceFilterDock({
                 key={cat.id}
                 type="button"
                 onClick={() => selectCategory(cat.id)}
-                className={`flex items-center gap-2 rounded-2xl px-4 py-2.5 text-xs font-bold transition-all duration-200 cursor-pointer ${
+                className={`flex items-center gap-2 rounded-2xl px-3.5 py-2 text-xs font-bold transition-all duration-200 cursor-pointer ${
                   isSelected
                     ? "bg-[#241e14] text-white shadow-md shadow-[#241e14]/20 ring-2 ring-[#d0c1ab]"
                     : "border border-white/80 bg-white/75 backdrop-blur-md text-[#241e14]/80 hover:bg-white hover:border-[#d0c1ab] shadow-sm"
@@ -199,12 +199,12 @@ export function MarketplaceFilterDock({
       </div>
 
       {/* 2. LISTING TYPE TABS (All Items / For Sale / Trade / Free Giveaways) */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 pt-0.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           <button
             type="button"
             onClick={() => selectType("all")}
-            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
               listingType === "all"
                 ? "bg-[#241e14] text-white shadow-md shadow-[#241e14]/20 ring-1 ring-[#d0c1ab]"
                 : "border border-white/80 bg-white/75 backdrop-blur-md text-[#241e14]/80 hover:bg-white hover:border-[#d0c1ab] shadow-sm"
@@ -216,7 +216,7 @@ export function MarketplaceFilterDock({
           <button
             type="button"
             onClick={() => selectType("sale")}
-            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
               listingType === "sale"
                 ? "bg-[#241e14] text-white shadow-md shadow-[#241e14]/20 ring-1 ring-[#d0c1ab]"
                 : "border border-white/80 bg-white/75 backdrop-blur-md text-[#241e14]/80 hover:bg-white hover:border-[#d0c1ab] shadow-sm"
@@ -229,7 +229,7 @@ export function MarketplaceFilterDock({
           <button
             type="button"
             onClick={() => selectType("trade")}
-            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
               listingType === "trade"
                 ? "bg-[#241e14] text-white shadow-md shadow-[#241e14]/20 ring-1 ring-[#d0c1ab]"
                 : "border border-white/80 bg-white/75 backdrop-blur-md text-[#241e14]/80 hover:bg-white hover:border-[#d0c1ab] shadow-sm"
@@ -242,7 +242,7 @@ export function MarketplaceFilterDock({
           <button
             type="button"
             onClick={() => selectType("giveaway")}
-            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
               listingType === "giveaway"
                 ? "bg-[#241e14] text-white shadow-md shadow-[#241e14]/20 ring-1 ring-[#d0c1ab]"
                 : "border border-white/80 bg-white/75 backdrop-blur-md text-[#241e14]/80 hover:bg-white hover:border-[#d0c1ab] shadow-sm"

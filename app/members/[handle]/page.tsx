@@ -42,8 +42,8 @@ export default async function MemberPage({ params }: PageProps<"/members/[handle
 
   return (
     <main className="min-h-screen bg-[#f7f6f4]">
-      <header className="border-b border-[#e8e5e2] bg-white/85"><div className="mx-auto flex min-h-[72px] max-w-7xl items-center justify-between px-5 sm:px-8"><Link href="/marketplace" className="text-sm font-extrabold tracking-[.14em] text-[#302546]">LOOPEC <span className="ml-2 font-normal tracking-normal text-[#8b8590]">Member</span></Link><Link href="/messages" className="text-xs font-semibold text-violet-800">Messages</Link></div></header>
-      <section className="mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-12">
+      <header className="border-b border-[#e8e5e2] bg-white/85"><div className="mx-auto flex min-h-[60px] sm:min-h-[64px] max-w-7xl items-center justify-between px-4 sm:px-6"><Link href="/marketplace" className="text-sm font-extrabold tracking-[.14em] text-[#302546]">LOOPEC <span className="ml-2 font-normal tracking-normal text-[#8b8590]">Member</span></Link><Link href="/messages" className="text-xs font-semibold text-violet-800">Messages</Link></div></header>
+      <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-8">
         <Link href="/marketplace" className="inline-flex items-center gap-2 text-xs font-semibold text-[#77717e] hover:text-violet-900"><ArrowLeft size={14} /> Marketplace</Link>
         <article className="mt-6 rounded-[28px] border border-[#e8e5e2] bg-white p-6 sm:p-9">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center">

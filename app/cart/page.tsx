@@ -54,8 +54,8 @@ export default async function CartPage({ searchParams }: PageProps<"/cart">) {
 
   return (
     <main className="min-h-screen bg-[#f7f6f4]">
-      <header className="border-b border-[#e8e5e2] bg-white/85"><div className="mx-auto flex min-h-[72px] max-w-6xl items-center justify-between px-5 sm:px-8"><Link href="/marketplace" className="text-sm font-extrabold tracking-[.14em] text-[#302546]">LOOPEC <span className="ml-2 font-normal tracking-normal text-[#8b8590]">Your cart</span></Link><form action={signOut}><button className="text-xs font-semibold text-[#77717e] hover:text-violet-900" type="submit">Sign out</button></form></div></header>
-      <section className="mx-auto max-w-6xl px-5 py-9 sm:px-8 sm:py-12">
+      <header className="border-b border-[#e8e5e2] bg-white/85"><div className="mx-auto flex min-h-[60px] sm:min-h-[64px] max-w-6xl items-center justify-between px-4 sm:px-6"><Link href="/marketplace" className="text-sm font-extrabold tracking-[.14em] text-[#302546]">LOOPEC <span className="ml-2 font-normal tracking-normal text-[#8b8590]">Your cart</span></Link><form action={signOut}><button className="text-xs font-semibold text-[#77717e] hover:text-violet-900" type="submit">Sign out</button></form></div></header>
+      <section className="mx-auto max-w-6xl px-4 py-5 sm:px-6 sm:py-8">
         <Link href="/marketplace" className="inline-flex items-center gap-2 text-xs font-semibold text-[#77717e] hover:text-violet-900"><ArrowLeft size={14} /> Keep browsing</Link>
         <div className="mt-5 flex items-end justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[.14em] text-violet-700">Campus finds</p><h1 className="mt-2 font-serif text-4xl tracking-[-.05em] text-[#28232f]">Your cart</h1></div><span className="text-sm text-[#817a87]">{lines.length} {lines.length === 1 ? "item" : "items"}</span></div>
         <div className="mt-7 grid gap-6 lg:grid-cols-[minmax(0,1fr)_330px]">

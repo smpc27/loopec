@@ -38,7 +38,7 @@ export default async function NotificationsPage() {
         unreadAlertsCount={unread}
         sectionTitle="Alerts"
       />
-      <section className="mx-auto max-w-3xl px-5 py-9 sm:px-8 sm:py-12">
+      <section className="mx-auto max-w-3xl px-4 py-5 sm:px-6 sm:py-8">
         <Link href="/marketplace" className="inline-flex items-center gap-2 text-xs font-semibold text-[#736b60] hover:text-[#241e14] transition"><ArrowLeft size={14} /> Marketplace</Link>
         <div className="mt-5 flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[.14em] text-[#8e7a63]">Campus updates</p><h1 className="mt-2 font-serif text-4xl tracking-[-.05em] text-[#241e14]">Notifications</h1><p className="mt-2 text-sm text-[#736b60]">Private updates about your listings, orders and messages.</p></div><div className="flex items-center gap-2"><Link href="/notifications" className="grid size-10 place-items-center rounded-full border border-[#d0c1ab]/60 bg-white text-[#736b60] hover:text-[#241e14]" aria-label="Refresh notifications"><RefreshCw size={15} /></Link>{unread ? <form action={markAllNotificationsRead}><button className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#d0c1ab] bg-white px-4 text-xs font-semibold text-[#241e14] hover:bg-[#eee9e2] shadow-sm transition" type="submit"><CheckCheck size={14} /> Mark all read</button></form> : null}</div></div>
         <div className="mt-7 overflow-hidden rounded-[24px] border border-[#d0c1ab]/50 bg-white/80 backdrop-blur-xl shadow-sm">

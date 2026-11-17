@@ -41,6 +41,11 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className="h-full antialiased">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=Instrument+Serif:ital@0;1&display=swap" />
+      </head>
       <body className="min-h-full pb-16 md:pb-0 relative text-[#241e14] bg-[#eee9e2] selection:bg-[#d0c1ab] selection:text-[#241e14]">
         {/* Ambient Atmospheric Luminous Glass Blobs in warm palette */}
         <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none" aria-hidden="true">

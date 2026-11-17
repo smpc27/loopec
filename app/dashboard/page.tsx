@@ -42,7 +42,7 @@ export default async function DashboardPage() {
         profile={profile}
         sectionTitle="Seller Studio"
       />
-      <section className="mx-auto max-w-7xl px-5 py-9 sm:px-8 sm:py-12">
+      <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-8">
         <div className="flex flex-wrap items-end justify-between gap-5"><div><p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.14em] text-violet-700"><Store size={14} /> Seller studio</p><h1 className="mt-2 font-serif text-4xl tracking-[-.05em] text-[#28232f]">Good morning, {profile.full_name.split(" ")[0]}.</h1><p className="mt-2 text-sm text-[#77717e]">Your campus listings and exchanges, in one place.</p></div><Link className="inline-flex min-h-11 items-center gap-2 rounded-full bg-violet-950 px-5 text-sm font-semibold text-white hover:bg-violet-900" href="/listings/new"><CirclePlus size={15} /> Create a listing</Link></div>
         <div className="mt-7 grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[

@@ -55,7 +55,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/orders">)
         profile={profile}
         sectionTitle="Orders"
       />
-      <section className="mx-auto max-w-5xl px-5 py-9 sm:px-8 sm:py-12">
+      <section className="mx-auto max-w-5xl px-4 py-5 sm:px-6 sm:py-8">
         <Link href="/marketplace" className="inline-flex items-center gap-2 text-xs font-semibold text-[#736b60] hover:text-[#241e14]"><ArrowLeft size={14} /> Marketplace</Link>
         <div className="mt-5 flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[.14em] text-[#8e7a63]">Your campus exchanges</p><h1 className="mt-2 font-serif text-4xl tracking-[-.05em] text-[#241e14]">Orders</h1><p className="mt-2 text-sm text-[#736b60]">Track the items you’re buying and selling.</p></div><Link href="/messages" className="text-xs font-semibold text-[#241e14] hover:underline">Open messages</Link></div>
         <div className="mt-6 space-y-4">{errorMessage ? <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">{errorMessage}</p> : null}{params.placed ? <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Your order request was sent. You can coordinate with the seller in Messages.</p> : null}

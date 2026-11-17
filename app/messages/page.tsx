@@ -53,7 +53,7 @@ export default async function MessagesPage({ searchParams }: PageProps<"/message
         unreadMessagesCount={totalUnreadMessages}
         sectionTitle="Messages"
       />
-      <section className="mx-auto max-w-3xl px-5 py-9 sm:px-8 sm:py-12">
+      <section className="mx-auto max-w-3xl px-4 py-5 sm:px-6 sm:py-8">
         <Link href="/marketplace" className="inline-flex items-center gap-2 text-xs font-semibold text-[#736b60] hover:text-[#241e14]"><ArrowLeft size={14} /> Marketplace</Link>
         <div className="mt-6 flex items-end justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[.14em] text-[#8e7a63]">Member conversations</p><h1 className="mt-2 font-serif text-4xl tracking-[-.05em] text-[#241e14]">Messages</h1></div><Link href="/messages" className="grid size-10 place-items-center rounded-full border border-[#d0c1ab]/60 bg-white text-[#736b60] hover:text-[#241e14]" aria-label="Refresh messages"><RefreshCw size={15} /></Link></div>
         {error ? <p role="alert" className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">We couldn’t send that message. Try again.</p> : null}

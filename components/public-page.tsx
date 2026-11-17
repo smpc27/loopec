@@ -16,7 +16,7 @@ export function PublicPage({
   return (
     <main className="min-h-screen bg-[#f7f6f4] text-[#302b37]">
       <header className="border-b border-[#e8e5e2] bg-white/90">
-        <div className="mx-auto flex min-h-[72px] max-w-6xl items-center justify-between px-5 sm:px-8">
+        <div className="mx-auto flex min-h-[60px] sm:min-h-[64px] max-w-6xl items-center justify-between px-4 sm:px-6">
           <Link className="inline-flex items-center gap-2.5" href="/" aria-label="LOOPEC home">
             <BrandMark compact />
             <span className="text-sm font-extrabold tracking-[.14em] text-[#302546]">LOOPEC</span>
@@ -28,7 +28,7 @@ export function PublicPage({
           </nav>
         </div>
       </header>
-      <article className="mx-auto max-w-4xl px-5 py-12 sm:px-8 sm:py-16">
+      <article className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-10">
         <p className="text-[10px] font-bold uppercase tracking-[.15em] text-violet-700">{eyebrow}</p>
         <h1 className="mt-3 font-serif text-4xl tracking-[-.05em] text-[#28232f] sm:text-5xl">{title}</h1>
         <p className="mt-4 max-w-2xl text-sm leading-7 text-[#716b77]">{description}</p>
