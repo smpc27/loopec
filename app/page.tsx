@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Suspense } from "react";
 import {
   ArrowDownRight,
   ArrowRight,
@@ -52,13 +51,14 @@ const guardrails = [
   { icon: Handshake, label: "Campus pickup" },
 ];
 
-async function AuthCodeRedirect({
+export const instant = false;
+
+export default async function Home({
   searchParams,
 }: {
   searchParams?: Promise<{ code?: string | string[]; next?: string | string[] }>;
 }) {
-  if (!searchParams) return null;
-  const params = await searchParams;
+  const params = searchParams ? await searchParams : {};
   const code = Array.isArray(params.code) ? params.code[0] : params.code;
   const next = Array.isArray(params.next) ? params.next[0] : params.next;
 
@@ -70,22 +70,10 @@ async function AuthCodeRedirect({
     redirect(`/auth/callback?${q.toString()}`);
   }
 
-  return null;
-}
-
-export default async function Home({
-  searchParams,
-}: {
-  searchParams?: Promise<{ code?: string | string[]; next?: string | string[] }>;
-}) {
   const member = isSupabaseConfigured() ? await getCurrentMember().catch(() => null) : null;
 
   return (
     <>
-      <Suspense fallback={null}>
-        <AuthCodeRedirect searchParams={searchParams} />
-      </Suspense>
-
       <SiteHeader
         variant={member?.profile ? "app" : "marketing"}
         profile={member?.profile}
