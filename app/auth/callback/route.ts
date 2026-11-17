@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import type { EmailOtpType } from "@supabase/supabase-js";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import { createStorageAdminClient } from "@/lib/supabase/admin";
@@ -10,25 +11,60 @@ function safeNext(value: string | null) {
     : "/marketplace";
 }
 
+function getTargetOrigin(request: NextRequest) {
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
+  if (forwardedHost) {
+    return `${forwardedProto}://${forwardedHost}`;
+  }
+  return request.nextUrl.origin;
+}
+
 export async function GET(request: NextRequest) {
-  if (!isSupabaseConfigured()) return NextResponse.redirect(new URL("/setup", request.url));
-  const { searchParams, origin } = request.nextUrl;
+  const targetOrigin = getTargetOrigin(request);
+  if (!isSupabaseConfigured()) return NextResponse.redirect(new URL("/setup", targetOrigin));
+  
+  const { searchParams } = request.nextUrl;
 
   // Handle any OAuth provider errors gracefully
   const oauthError = searchParams.get("error");
   if (oauthError) {
     console.error("LOOPEC_OAUTH_CALLBACK_ERROR:", oauthError, searchParams.get("error_description"));
-    return NextResponse.redirect(new URL("/auth/sign-in?error=sign_in", origin));
+    return NextResponse.redirect(new URL("/auth/sign-in?error=sign_in", targetOrigin));
   }
 
   const code = searchParams.get("code");
-  if (!code) return NextResponse.redirect(new URL("/auth/sign-in?error=expired", origin));
+  const tokenHash = searchParams.get("token_hash");
+  const type = searchParams.get("type") as EmailOtpType | null;
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
-  if (error) {
-    console.error("LOOPEC_EXCHANGE_CODE_ERROR:", error.message);
-    return NextResponse.redirect(new URL("/auth/sign-in?error=expired", origin));
+
+  // Exchange auth code or verify email confirmation token_hash
+  if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) {
+      console.warn("LOOPEC_EXCHANGE_CODE_NOTE:", error.message);
+      // If code was already consumed or has expired, check if session is already active
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData?.user) {
+        return NextResponse.redirect(new URL("/auth/sign-in?error=expired", targetOrigin));
+      }
+    }
+  } else if (tokenHash && type) {
+    const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
+    if (error) {
+      console.warn("LOOPEC_VERIFY_OTP_NOTE:", error.message);
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData?.user) {
+        return NextResponse.redirect(new URL("/auth/sign-in?error=expired", targetOrigin));
+      }
+    }
+  } else {
+    // Neither code nor token_hash: check if already signed in
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) {
+      return NextResponse.redirect(new URL("/auth/sign-in?error=expired", targetOrigin));
+    }
   }
 
   // Ensure member profile exists with approved instant access
@@ -68,5 +104,6 @@ export async function GET(request: NextRequest) {
     // Non-fatal: session is active, getCurrentMember provides fallback
   }
 
-  return NextResponse.redirect(new URL(safeNext(searchParams.get("next")), origin));
+  const nextParam = searchParams.get("next");
+  return NextResponse.redirect(new URL(safeNext(nextParam), targetOrigin));
 }

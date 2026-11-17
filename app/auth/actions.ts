@@ -79,12 +79,13 @@ export async function signUp(formData: FormData) {
     redirect("/auth/sign-up?error=domain");
   }
 
+  const origin = await getRuntimeOrigin();
   const { data: authData, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: { full_name: fullName },
-      emailRedirectTo: `${siteOrigin()}/auth/callback?next=%2Fverification`,
+      emailRedirectTo: `${origin}/auth/callback?next=%2Fmarketplace`,
     },
   });
   if (error) {
@@ -179,9 +180,10 @@ export async function requestPasswordReset(formData: FormData) {
   const parsed = z.email().safeParse(String(formData.get("email") ?? "").trim().toLowerCase());
   if (!parsed.success) redirect("/auth/forgot-password?error=invalid");
 
+  const origin = await getRuntimeOrigin();
   const supabase = await createClient();
   await supabase.auth.resetPasswordForEmail(parsed.data, {
-    redirectTo: `${siteOrigin()}/auth/callback?next=%2Fauth%2Freset-password`,
+    redirectTo: `${origin}/auth/callback?next=%2Fauth%2Freset-password`,
   });
   // Keep the result the same whether the address belongs to an account or not.
   redirect("/auth/forgot-password?sent=1");
@@ -192,12 +194,13 @@ export async function resendConfirmation(formData: FormData) {
   const parsed = z.email().safeParse(String(formData.get("email") ?? "").trim().toLowerCase());
   if (!parsed.success) redirect("/auth/check-email?error=invalid");
 
+  const origin = await getRuntimeOrigin();
   const supabase = await createClient();
   const { error } = await supabase.auth.resend({
     type: "signup",
     email: parsed.data,
     options: {
-      emailRedirectTo: `${siteOrigin()}/auth/callback?next=%2Fverification`,
+      emailRedirectTo: `${origin}/auth/callback?next=%2Fmarketplace`,
     },
   });
   if (error) redirect("/auth/check-email?error=email_send");
