@@ -49,7 +49,26 @@ export function SiteHeader({
 }: SiteHeaderProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [alertsCount, setAlertsCount] = useState(unreadAlertsCount);
+  const [messagesCount, setMessagesCount] = useState(unreadMessagesCount);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Background fetch of unread badges so page rendering is never blocked
+  useEffect(() => {
+    if (!profile) return;
+    let isMounted = true;
+    fetch("/api/badges")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!isMounted || !data) return;
+        if (typeof data.unreadAlerts === "number") setAlertsCount(data.unreadAlerts);
+        if (typeof data.unreadMessages === "number") setMessagesCount(data.unreadMessages);
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, [profile, pathname]);
 
   // Close mobile menu whenever pathname changes
   useEffect(() => {
@@ -96,13 +115,13 @@ export function SiteHeader({
       label: "Messages",
       href: "/messages",
       icon: MessageSquare,
-      badge: unreadMessagesCount > 0 ? unreadMessagesCount : undefined,
+      badge: messagesCount > 0 ? messagesCount : undefined,
     },
     {
       label: "Alerts",
       href: "/notifications",
       icon: Bell,
-      badge: unreadAlertsCount > 0 ? unreadAlertsCount : undefined,
+      badge: alertsCount > 0 ? alertsCount : undefined,
     },
     { label: "Wishlist", href: "/wishlist", icon: Heart },
     { label: "Feedback", href: "/feedback", icon: Lightbulb },

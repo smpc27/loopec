@@ -113,13 +113,12 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
   const previewMode = process.env.NODE_ENV === "development" && process.env.LOOPEC_DEV_BYPASS_AUTH === "true";
   const { supabase, userId, profile } = await requireApprovedMember();
 
-  const [{ data: categoriesData }, { data: pickupData }, { count: unreadCount }, { count: unreadMessages }] = await Promise.all([
+  const [{ data: categoriesData }, { data: pickupData }, { count: unreadCount }] = await Promise.all([
     previewMode ? Promise.resolve({ data: previewCategories }) : supabase.from("categories").select("id, name, slug").eq("is_active", true).order("sort_order"),
     previewMode ? Promise.resolve({ data: [{ name: "NIT Calicut" }] }) : profile.college_id
       ? supabase.from("pickup_locations").select("id, name").eq("college_id", profile.college_id).eq("is_active", true).order("sort_order").limit(1)
       : Promise.resolve({ data: [] }),
     previewMode ? Promise.resolve({ count: 0 }) : supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", userId).is("read_at", null),
-    previewMode ? Promise.resolve({ count: 0 }) : supabase.from("messages").select("id", { count: "exact", head: true }).neq("sender_id", userId).is("read_at", null),
   ]);
   const categories = (categoriesData ?? []) as Category[];
 
@@ -170,11 +169,16 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
   for (const image of images) if (!firstImageByProduct.has(image.product_id)) firstImageByProduct.set(image.product_id, image.storage_path);
   const pathByProduct = products.map((product) => firstImageByProduct.get(product.id)).filter((path): path is string => Boolean(path));
   const imageUrls = new Map<string, string>();
-  const urlResults = await Promise.all(pathByProduct.map(async (path) => {
-    const { data } = await supabase.storage.from("product-images").createSignedUrl(path, 15 * 60);
-    return [path, data?.signedUrl ?? ""] as const;
-  }));
-  for (const [path, url] of urlResults) if (url) imageUrls.set(path, url);
+  if (pathByProduct.length > 0) {
+    const { data: signedUrls } = await supabase.storage
+      .from("product-images")
+      .createSignedUrls(pathByProduct, 15 * 60);
+    if (signedUrls) {
+      for (const item of signedUrls) {
+        if (item.signedUrl && item.path) imageUrls.set(item.path, item.signedUrl);
+      }
+    }
+  }
 
   const cards: MarketplaceProduct[] = products.map((product) => {
     const seller = sellerById.get(product.seller_id);
@@ -197,7 +201,6 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
       <SiteHeader
         profile={profile}
         unreadAlertsCount={unreadCount ?? 0}
-        unreadMessagesCount={unreadMessages ?? 0}
         campusName={pickupName ?? "NIT Calicut"}
       />
 

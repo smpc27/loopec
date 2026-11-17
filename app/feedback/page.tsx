@@ -19,10 +19,11 @@ export default async function FeedbackPage({
   const error = params.error;
   const { profile, supabase, userId } = await requireApprovedMember();
 
-  const [{ count: unreadAlerts }, { count: unreadMessages }] = await Promise.all([
-    supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", userId).is("read_at", null),
-    supabase.from("messages").select("id", { count: "exact", head: true }).neq("sender_id", userId).is("read_at", null),
-  ]);
+  const { count: unreadAlerts } = await supabase
+    .from("notifications")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .is("read_at", null);
 
   return (
     <main className="min-h-screen bg-transparent">
@@ -30,7 +31,6 @@ export default async function FeedbackPage({
       <SiteHeader
         profile={profile}
         unreadAlertsCount={unreadAlerts ?? 0}
-        unreadMessagesCount={unreadMessages ?? 0}
         sectionTitle="Campus Feedback"
       />
 

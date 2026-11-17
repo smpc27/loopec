@@ -23,7 +23,7 @@ export default async function MessagesPage({ searchParams }: PageProps<"/message
     .select("id, buyer_id, seller_id, product_id, order_id, updated_at")
     .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
     .order("updated_at", { ascending: false })
-    .limit(100);
+    .limit(30);
   const conversations = (conversationData ?? []) as ConversationRow[];
   const conversationIds = conversations.map((conversation) => conversation.id);
   const userIds = [...new Set(conversations.map((conversation) => conversation.buyer_id === userId ? conversation.seller_id : conversation.buyer_id))];
@@ -32,7 +32,7 @@ export default async function MessagesPage({ searchParams }: PageProps<"/message
     userIds.length ? supabase.from("profiles").select("id, full_name, handle").in("id", userIds) : Promise.resolve({ data: [] }),
     productIds.length ? supabase.from("products").select("id, name").in("id", productIds) : Promise.resolve({ data: [] }),
     conversationIds.length ? supabase.from("messages").select("conversation_id").in("conversation_id", conversationIds).neq("sender_id", userId).is("read_at", null) : Promise.resolve({ data: [] }),
-    conversationIds.length ? supabase.from("messages").select("conversation_id, body, sender_id, created_at").in("conversation_id", conversationIds).order("created_at", { ascending: false }) : Promise.resolve({ data: [] }),
+    conversationIds.length ? supabase.from("messages").select("conversation_id, body, sender_id, created_at").in("conversation_id", conversationIds).order("created_at", { ascending: false }).limit(50) : Promise.resolve({ data: [] }),
     supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", userId).is("read_at", null),
   ]);
   const profiles = new Map(((profileData ?? []) as { id: string; full_name: string; handle: string }[]).map((item) => [item.id, item]));
