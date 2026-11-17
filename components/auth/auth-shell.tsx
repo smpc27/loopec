@@ -23,7 +23,7 @@ export function AuthShell({
   return (
     <main className="min-h-screen bg-transparent px-5 py-6 sm:px-8 sm:py-10">
       {/* Top Header - Glass Bar */}
-      <div className="mx-auto flex max-w-6xl items-center justify-between rounded-full border border-white/80 bg-white/75 backdrop-blur-xl px-5 py-3 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+      <div className="mx-auto flex max-w-6xl items-center justify-between rounded-full border border-[#d0c1ab]/50 bg-white/85 backdrop-blur-xl px-5 py-3 shadow-xs">
         <Link className="flex items-center gap-2.5" href="/" aria-label="LOOPEC home">
           <BrandMark />
           <span className="text-sm font-extrabold tracking-[.14em] text-[#241e14]">LOOPEC</span>
@@ -31,7 +31,7 @@ export function AuthShell({
 
         <div className="flex items-center gap-3">
           {campusBadge ? (
-            <div className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-[#d0c1ab]/60 bg-[#eee9e2]/80 backdrop-blur-md px-3 py-1 text-xs font-semibold text-[#241e14] shadow-sm">
+            <div className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-[#d0c1ab]/60 bg-[#eee9e2]/80 backdrop-blur-md px-3 py-1 text-xs font-semibold text-[#241e14] shadow-xs">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse" />
               <GraduationCap className="h-3.5 w-3.5 text-[#241e14]" />
               <span>{campusBadge}</span>
@@ -56,24 +56,24 @@ export function AuthShell({
 
             {/* Right: Authentication Card - Frosted Glass Container */}
             <div className="lg:col-span-7 flex flex-col justify-center">
-              <section className="w-full rounded-[32px] border border-white/80 bg-white/75 backdrop-blur-2xl p-6 shadow-[0_25px_70px_-25px_rgba(40,20,65,0.12),_inset_0_1px_2px_rgba(255,255,255,0.95)] sm:p-10">
+              <section className="w-full rounded-[32px] border border-[#d0c1ab]/50 bg-white/90 backdrop-blur-2xl p-6 shadow-sm sm:p-10">
                 <div className="flex items-center justify-between">
-                  <p className="text-[11px] font-bold uppercase tracking-[.15em] text-violet-700">
+                  <p className="text-[11px] font-bold uppercase tracking-[.15em] text-[#8e7a63]">
                     {eyebrow}
                   </p>
-                  <span className="text-[11px] font-semibold text-violet-700 bg-violet-50/80 backdrop-blur-sm px-2.5 py-0.5 rounded-full border border-violet-200/70">
+                  <span className="text-[11px] font-semibold text-[#241e14] bg-[#eee9e2] px-2.5 py-0.5 rounded-full border border-[#d0c1ab]">
                     Campus ID Required
                   </span>
                 </div>
-                <h1 className="mt-3 font-serif text-3xl sm:text-4xl tracking-[-.045em] text-[#28232f]">
+                <h1 className="mt-3 font-serif text-3xl sm:text-4xl tracking-tight text-[#241e14]">
                   {title}
                 </h1>
-                <p className="mt-2.5 text-sm leading-6 text-[#77717e]">{description}</p>
+                <p className="mt-2 text-sm leading-6 text-[#736b60]">{description}</p>
                 <div className="mt-7">{children}</div>
               </section>
 
               {footer ? (
-                <div className="mt-6 text-center text-sm text-[#77717e]">{footer}</div>
+                <div className="mt-6 text-center text-sm text-[#736b60]">{footer}</div>
               ) : null}
             </div>
           </div>
@@ -81,22 +81,22 @@ export function AuthShell({
       ) : (
         /* Classic Centered Layout for Secondary Auth Pages - Frosted Glass */
         <div className="mx-auto max-w-[520px]">
-          <section className="mt-12 rounded-[32px] border border-white/80 bg-white/75 backdrop-blur-2xl p-6 shadow-[0_25px_70px_-25px_rgba(40,20,65,0.12),_inset_0_1px_2px_rgba(255,255,255,0.95)] sm:mt-16 sm:p-10">
-            <p className="text-[11px] font-bold uppercase tracking-[.15em] text-violet-700">
+          <section className="mt-12 rounded-[32px] border border-[#d0c1ab]/50 bg-white/90 backdrop-blur-2xl p-6 shadow-sm sm:mt-16 sm:p-10">
+            <p className="text-[11px] font-bold uppercase tracking-[.15em] text-[#8e7a63]">
               {eyebrow}
             </p>
-            <h1 className="mt-3 font-serif text-4xl tracking-[-.045em] text-[#28232f]">{title}</h1>
-            <p className="mt-3 text-sm leading-6 text-[#77717e]">{description}</p>
-            <div className="mt-8">{children}</div>
+            <h1 className="mt-3 font-serif text-3xl sm:text-4xl tracking-tight text-[#241e14]">{title}</h1>
+            <p className="mt-2 text-sm leading-6 text-[#736b60]">{description}</p>
+            <div className="mt-7">{children}</div>
           </section>
 
           {footer ? (
-            <div className="mt-6 text-center text-sm text-[#77717e]">{footer}</div>
+            <div className="mt-6 text-center text-sm text-[#736b60]">{footer}</div>
           ) : null}
         </div>
       )}
 
-      <p className="mt-12 text-center text-xs text-[#918b96]">
+      <p className="mt-12 text-center text-xs text-[#736b60]">
         A private marketplace exclusively for the National Institute of Technology Calicut community.
       </p>
     </main>
@@ -115,6 +115,6 @@ export function FormNotice({ children }: { children: ReactNode }) {
 }
 
 export const inputClassName =
-  "mt-2 min-h-12 w-full rounded-xl border border-violet-200/80 bg-white/70 backdrop-blur-md px-3.5 text-sm text-[#28232f] outline-none transition placeholder:text-[#a09aa6] focus:bg-white/95 focus:border-violet-600 focus:ring-4 focus:ring-violet-500/15 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)]";
+  "mt-2 min-h-12 w-full rounded-xl border border-[#d0c1ab] bg-white/90 px-3.5 text-sm text-[#241e14] outline-none transition placeholder:text-[#8e7a63]/60 focus:bg-white focus:border-[#241e14] focus:ring-4 focus:ring-[#d0c1ab]/30 shadow-xs";
 
-export const labelClassName = "block text-sm font-semibold text-[#383240]";
+export const labelClassName = "block text-sm font-semibold text-[#241e14]";

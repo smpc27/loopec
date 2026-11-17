@@ -125,14 +125,14 @@ export function OtpVerificationForm({ initialEmail }: OtpVerificationFormProps) 
   return (
     <div className="space-y-6">
       {/* College Email Identity Card */}
-      <div className="rounded-2xl border border-violet-100 bg-violet-50/60 p-4">
+      <div className="rounded-2xl border border-[#d0c1ab]/50 bg-[#eee9e2]/60 p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="grid h-8 w-8 place-items-center rounded-xl bg-violet-600/10 text-violet-700">
+            <div className="grid h-8 w-8 place-items-center rounded-xl bg-white text-[#241e14]">
               <Mail className="h-4 w-4" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-violet-950">
+              <p className="text-xs font-semibold text-[#241e14]">
                 NITC Webmail Inbox
               </p>
               {isEditingEmail ? (
@@ -142,18 +142,18 @@ export function OtpVerificationForm({ initialEmail }: OtpVerificationFormProps) 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="rollno@nitc.ac.in"
-                    className="h-8 rounded-lg border border-violet-300 bg-white px-2.5 text-xs text-gray-900 outline-none focus:ring-2 focus:ring-violet-400"
+                    className="h-8 rounded-lg border border-[#d0c1ab] bg-white px-2.5 text-xs text-[#241e14] outline-none focus:ring-2 focus:ring-[#d0c1ab]"
                   />
                   <button
                     type="button"
                     onClick={() => setIsEditingEmail(false)}
-                    className="text-xs font-semibold text-violet-800 hover:text-violet-950"
+                    className="text-xs font-semibold text-[#241e14] underline hover:text-[#8e7a63]"
                   >
                     Done
                   </button>
                 </div>
               ) : (
-                <p className="font-mono text-xs font-medium text-violet-900">
+                <p className="font-mono text-xs font-medium text-[#241e14]">
                   {email || "your.email@nitc.ac.in"}
                 </p>
               )}
@@ -164,7 +164,7 @@ export function OtpVerificationForm({ initialEmail }: OtpVerificationFormProps) 
             <button
               type="button"
               onClick={() => setIsEditingEmail(true)}
-              className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-violet-700 hover:bg-violet-100/60"
+              className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-[#8e7a63] hover:bg-white/60"
             >
               <Edit2 className="h-3 w-3" />
               <span>Change</span>
@@ -179,7 +179,7 @@ export function OtpVerificationForm({ initialEmail }: OtpVerificationFormProps) 
         <input type="hidden" name="token" value={otpCode} />
 
         <div>
-          <label className="block text-center text-xs font-bold uppercase tracking-wider text-gray-600 mb-3">
+          <label className="block text-center text-xs font-bold uppercase tracking-wider text-[#736b60] mb-3">
             Enter 6-Digit Verification Code
           </label>
 
@@ -203,15 +203,15 @@ export function OtpVerificationForm({ initialEmail }: OtpVerificationFormProps) 
                 onKeyDown={(e) => handleKeyDown(index, e)}
                 className={`h-13 w-11 sm:h-16 sm:w-13 rounded-2xl border text-center font-mono text-2xl font-bold shadow-xs transition-all duration-150 outline-none ${
                   digit
-                    ? "border-violet-600 bg-violet-50/30 text-violet-950 ring-2 ring-violet-200"
-                    : "border-gray-200 bg-white text-gray-900 hover:border-gray-300 focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
+                    ? "border-[#241e14] bg-white text-[#241e14] ring-2 ring-[#d0c1ab]"
+                    : "border-[#d0c1ab] bg-white text-[#241e14] hover:border-[#8e7a63] focus:border-[#241e14] focus:ring-4 focus:ring-[#d0c1ab]/30"
                 }`}
                 aria-label={`Digit ${index + 1}`}
               />
             ))}
           </div>
 
-          <p className="mt-3 text-center text-xs text-gray-500">
+          <p className="mt-3 text-center text-xs text-[#736b60]">
             Check your NITC inbox or spam folder for the 6-digit code.
           </p>
         </div>
@@ -221,12 +221,12 @@ export function OtpVerificationForm({ initialEmail }: OtpVerificationFormProps) 
       </form>
 
       {/* Resend OTP Section */}
-      <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-4 text-center">
+      <div className="rounded-xl border border-[#d0c1ab]/50 bg-white/70 p-4 text-center">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-          <span className="text-gray-600">Didn&apos;t receive the code?</span>
+          <span className="text-[#736b60]">Didn&apos;t receive the code?</span>
 
           {resendCooldown > 0 ? (
-            <span className="font-mono text-violet-700 bg-violet-50 px-2.5 py-1 rounded-lg border border-violet-200">
+            <span className="font-mono text-[#241e14] bg-[#eee9e2] px-2.5 py-1 rounded-lg border border-[#d0c1ab]">
               Resend in {resendCooldown}s
             </span>
           ) : (
@@ -234,7 +234,7 @@ export function OtpVerificationForm({ initialEmail }: OtpVerificationFormProps) 
               type="button"
               onClick={handleResend}
               disabled={isResending}
-              className="inline-flex items-center gap-1.5 font-semibold text-violet-800 hover:text-violet-950 hover:underline disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 font-semibold text-[#241e14] underline hover:text-[#8e7a63] disabled:opacity-50"
             >
               <RotateCw className={`h-3.5 w-3.5 ${isResending ? "animate-spin" : ""}`} />
               <span>Resend 6-Digit OTP</span>

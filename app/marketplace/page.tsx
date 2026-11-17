@@ -228,25 +228,25 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
         </div>
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-[#77717e]">{selectedCategory ? <><b className="text-[#403a47]">{selectedCategory.name}</b><span className="mx-2">·</span></> : null}{search ? <>Results for <b className="text-[#403a47]">“{search}”</b><span className="mx-2">·</span></> : null}{cards.length} {cards.length === 1 ? "item" : "items"}</p>
-          <span className="text-[11px] font-medium text-[#928b96]">Verified listings · private to your campus</span>
+          <p className="text-sm text-[#736b60]">{selectedCategory ? <><b className="text-[#241e14]">{selectedCategory.name}</b><span className="mx-2">·</span></> : null}{search ? <>Results for <b className="text-[#241e14]">“{search}”</b><span className="mx-2">·</span></> : null}{cards.length} {cards.length === 1 ? "item" : "items"}</p>
+          <span className="text-[11px] font-semibold text-[#8e7a63]">Verified listings · private to your campus</span>
         </div>
         {productsError ? (
           <div role="alert" className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-950">
             <p className="font-semibold">Marketplace data could not be loaded.</p>
             <p className="mt-1">{marketplaceDataHelp(productsError.code)}</p>
-            <Link className="mt-3 inline-flex font-semibold text-violet-900 underline underline-offset-4" href="/setup#data-api">Open the Supabase connection steps</Link>
+            <Link className="mt-3 inline-flex font-semibold text-[#241e14] underline underline-offset-4" href="/setup#data-api">Open the Supabase connection steps</Link>
           </div>
         ) : cards.length ? (
           <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {cards.map((product) => <ProductCard key={product.id} product={product} saved={saved.has(product.id)} returnTo="/marketplace" currentUserId={userId} previewMode={previewMode} />)}
           </div>
         ) : (
-          <div className="mt-5 rounded-[28px] border border-dashed border-[#d9d2e0] bg-white px-6 py-16 text-center">
-            <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-[#f6f3fa] text-violet-800"><Search size={21} /></span>
-            <h2 className="mt-4 font-serif text-2xl text-[#28232f]">No listings match just yet.</h2>
-            <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#77717e]">Try another search or check back when your campus community adds more items.</p>
-            <Link className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-violet-800 hover:text-violet-950" href="/listings/new">Have something to share? List an item <ArrowRight size={15} /></Link>
+          <div className="mt-5 rounded-[28px] border border-dashed border-[#d0c1ab] bg-white/80 px-6 py-16 text-center shadow-xs">
+            <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-[#eee9e2] text-[#241e14]"><Search size={21} /></span>
+            <h2 className="mt-4 font-serif text-2xl text-[#241e14]">No listings match just yet.</h2>
+            <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#736b60]">Try another search or check back when your campus community adds more items.</p>
+            <Link className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#241e14] underline underline-offset-4 hover:text-[#8e7a63]" href="/listings/new">Have something to share? List an item <ArrowRight size={15} /></Link>
           </div>
         )}
       </section>

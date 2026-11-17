@@ -3,6 +3,7 @@ import { ArrowLeft, BadgeCheck, Star } from "lucide-react";
 import { notFound } from "next/navigation";
 import { ProductCard, type MarketplaceProduct } from "@/components/marketplace/product-card";
 import { requireApprovedMember } from "@/lib/auth/member";
+import { SiteHeader } from "@/components/navigation/site-header";
 
 export const instant = false;
 
@@ -41,19 +42,59 @@ export default async function MemberPage({ params }: PageProps<"/members/[handle
   const role = member.role === "faculty" ? "Faculty" : member.role === "staff" ? "College staff" : "Student";
 
   return (
-    <main className="min-h-screen bg-[#f7f6f4]">
-      <header className="border-b border-[#e8e5e2] bg-white/85"><div className="mx-auto flex min-h-[60px] sm:min-h-[64px] max-w-7xl items-center justify-between px-4 sm:px-6"><Link href="/marketplace" className="text-sm font-extrabold tracking-[.14em] text-[#302546]">LOOPEC <span className="ml-2 font-normal tracking-normal text-[#8b8590]">Member</span></Link><Link href="/messages" className="text-xs font-semibold text-violet-800">Messages</Link></div></header>
+    <main className="min-h-screen bg-transparent">
+      {/* Global Responsive Site Header */}
+      <SiteHeader
+        profile={profile}
+        sectionTitle="Member Profile"
+      />
       <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-8">
-        <Link href="/marketplace" className="inline-flex items-center gap-2 text-xs font-semibold text-[#77717e] hover:text-violet-900"><ArrowLeft size={14} /> Marketplace</Link>
-        <article className="mt-6 rounded-[28px] border border-[#e8e5e2] bg-white p-6 sm:p-9">
+        <Link href="/marketplace" className="inline-flex items-center gap-2 rounded-full border border-[#d0c1ab]/50 bg-white/80 px-3.5 py-1.5 text-xs font-semibold text-[#5f574d] hover:bg-white hover:text-[#241e14] shadow-xs transition">
+          <ArrowLeft size={14} /> Marketplace
+        </Link>
+        <article className="mt-6 rounded-[28px] border border-[#d0c1ab]/50 bg-white/90 p-6 shadow-xs sm:p-9">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-            <div className="grid size-20 shrink-0 place-items-center rounded-[26px] bg-violet-50 font-serif text-4xl text-violet-800">{member.full_name.slice(0, 1).toUpperCase()}</div>
-            <div className="min-w-0 flex-1"><p className="text-[10px] font-bold uppercase tracking-[.14em] text-violet-700">Verified campus member</p><h1 className="mt-2 flex flex-wrap items-center gap-2 font-serif text-4xl tracking-[-.05em] text-[#28232f]">{member.full_name}<BadgeCheck className="text-violet-700" size={22} /></h1><p className="mt-2 text-sm text-[#77717e]">{role} · @{member.handle}</p>{member.bio ? <p className="mt-4 max-w-2xl text-sm leading-6 text-[#716b77]">{member.bio}</p> : null}</div>
-            <div className="flex items-center gap-3 rounded-2xl bg-[#f8f7f8] px-4 py-3"><Star size={17} className="fill-violet-200 text-violet-700" /><span><b className="block text-sm text-[#383240]">{avg ? `${avg.toFixed(1)} / 5` : "New seller"}</b><small className="text-xs text-[#85808a]">{ratings.length ? `${ratings.length} reviews` : "No reviews yet"}</small></span></div>
+            <div className="grid size-20 shrink-0 place-items-center rounded-[26px] bg-[#eee9e2] font-serif text-4xl text-[#241e14] border border-[#d0c1ab]/40">
+              {member.full_name.slice(0, 1).toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-bold uppercase tracking-[.14em] text-[#8e7a63]">Verified campus member</p>
+              <h1 className="mt-2 flex flex-wrap items-center gap-2 font-serif text-3xl sm:text-4xl tracking-tight text-[#241e14]">
+                {member.full_name}
+                <BadgeCheck className="text-[#8e7a63]" size={22} />
+              </h1>
+              <p className="mt-1.5 text-sm text-[#736b60]">{role} · @{member.handle}</p>
+              {member.bio ? <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f574d]">{member.bio}</p> : null}
+            </div>
+            <div className="flex items-center gap-3 rounded-2xl border border-[#d0c1ab]/40 bg-[#eee9e2]/60 px-4 py-3">
+              <Star size={17} className="fill-[#d0c1ab] text-[#8e7a63]" />
+              <span>
+                <b className="block text-sm text-[#241e14]">{avg ? `${avg.toFixed(1)} / 5` : "New seller"}</b>
+                <small className="text-[11px] text-[#736b60]">{ratings.length ? `${ratings.length} reviews` : "No reviews yet"}</small>
+              </span>
+            </div>
           </div>
         </article>
-        <div className="mt-10 flex items-end justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[.14em] text-violet-700">Marketplace</p><h2 className="mt-2 font-serif text-3xl tracking-[-.04em] text-[#28232f]">{member.id === userId ? "Your active listings" : `${member.full_name.split(" ")[0]}’s listings`}</h2></div><span className="text-xs text-[#8b8590]">{cards.length} available</span></div>
-        {cards.length ? <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{cards.map((item) => <ProductCard key={item.id} product={item} saved={saved.has(item.id)} currentUserId={userId} returnTo={`/members/${member.handle}`} />)}</div> : <p className="mt-5 rounded-2xl border border-dashed border-[#d9d2e0] bg-white px-5 py-12 text-center text-sm text-[#77717e]">No active listings at the moment.</p>}
+        <div className="mt-8 flex items-end justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[.14em] text-[#8e7a63]">Marketplace</p>
+            <h2 className="mt-1 font-serif text-3xl tracking-tight text-[#241e14]">
+              {member.id === userId ? "Your active listings" : `${member.full_name.split(" ")[0]}’s listings`}
+            </h2>
+          </div>
+          <span className="text-xs font-semibold text-[#8e7a63]">{cards.length} available</span>
+        </div>
+        {cards.length ? (
+          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {cards.map((item) => (
+              <ProductCard key={item.id} product={item} saved={saved.has(item.id)} currentUserId={userId} returnTo={`/members/${member.handle}`} />
+            ))}
+          </div>
+        ) : (
+          <p className="mt-5 rounded-2xl border border-dashed border-[#d0c1ab] bg-white/80 px-5 py-12 text-center text-sm text-[#736b60] shadow-xs">
+            No active listings at the moment.
+          </p>
+        )}
       </section>
     </main>
   );

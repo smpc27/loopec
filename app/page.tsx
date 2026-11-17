@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import {
   ArrowDownRight,
   ArrowRight,
@@ -51,12 +52,13 @@ const guardrails = [
   { icon: Handshake, label: "Campus pickup" },
 ];
 
-export default async function Home({
+async function AuthCodeRedirect({
   searchParams,
 }: {
   searchParams?: Promise<{ code?: string | string[]; next?: string | string[] }>;
 }) {
-  const params = searchParams ? await searchParams : {};
+  if (!searchParams) return null;
+  const params = await searchParams;
   const code = Array.isArray(params.code) ? params.code[0] : params.code;
   const next = Array.isArray(params.next) ? params.next[0] : params.next;
 
@@ -68,10 +70,22 @@ export default async function Home({
     redirect(`/auth/callback?${q.toString()}`);
   }
 
+  return null;
+}
+
+export default async function Home({
+  searchParams,
+}: {
+  searchParams?: Promise<{ code?: string | string[]; next?: string | string[] }>;
+}) {
   const member = isSupabaseConfigured() ? await getCurrentMember().catch(() => null) : null;
 
   return (
     <>
+      <Suspense fallback={null}>
+        <AuthCodeRedirect searchParams={searchParams} />
+      </Suspense>
+
       <SiteHeader
         variant={member?.profile ? "app" : "marketing"}
         profile={member?.profile}
@@ -102,7 +116,7 @@ export default async function Home({
                   Get started <ArrowRight aria-hidden="true" size={17} />
                 </Link>
               </Button>
-              <Button asChild variant="secondary" size="lg" className="rounded-full border-[#dcd7e3] bg-white text-[#383141] hover:border-violet-300 hover:text-violet-900">
+              <Button asChild variant="secondary" size="lg" className="rounded-full border-[#d0c1ab] bg-white text-[#241e14] hover:border-[#8e7a63] hover:bg-[#eee9e2]/50 shadow-xs">
                 <Link href="/marketplace">
                   Browse items <MoveUpRight aria-hidden="true" size={16} />
                 </Link>
@@ -247,10 +261,10 @@ export default async function Home({
           <span className="brand-wordmark">LOOPEC</span>
         </Link>
         <span className="footer-credit">A CiGaRa Technologies product · CiGaRa Group</span>
-        <nav className="flex gap-4 text-xs text-[#827b87]" aria-label="Policies">
-          <Link className="hover:text-violet-900" href="/about">About</Link>
-          <Link className="hover:text-violet-900" href="/terms">Terms</Link>
-          <Link className="hover:text-violet-900" href="/privacy">Privacy</Link>
+        <nav className="flex gap-4 text-xs font-semibold text-[#736b60]" aria-label="Policies">
+          <Link className="hover:text-[#241e14] transition" href="/about">About</Link>
+          <Link className="hover:text-[#241e14] transition" href="/terms">Terms</Link>
+          <Link className="hover:text-[#241e14] transition" href="/privacy">Privacy</Link>
         </nav>
         <span className="footer-copyright">© LOOPEC</span>
       </footer>

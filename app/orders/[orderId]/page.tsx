@@ -11,6 +11,7 @@ import { WhatsAppPayCard } from "@/components/payments/whatsapp-pay-card";
 import { CampusHandoverCard } from "@/components/orders/campus-handover-card";
 import { getOrderHandoverPin } from "@/lib/orders/handover";
 import { calculateCommission } from "@/lib/payments/commission";
+import { SiteHeader } from "@/components/navigation/site-header";
 
 export const instant = false;
 
@@ -74,25 +75,23 @@ export default async function OrderDetailsPage({ params, searchParams }: PagePro
   const commission = calculateCommission(order.total_amount, 5);
 
   return (
-    <main className="min-h-screen bg-[#f7f6f4]">
-      <header className="border-b border-[#e8e5e2] bg-white/85">
-        <div className="mx-auto flex min-h-[60px] sm:min-h-[64px] max-w-5xl items-center justify-between px-4 sm:px-6">
-          <Link href="/marketplace" className="text-sm font-extrabold tracking-[.14em] text-[#302546]">LOOPEC</Link>
-          <div className="flex items-center gap-4">
-            <Link href="/orders" className="text-xs font-semibold text-violet-800">All orders</Link>
-            <form action={signOut}><button type="submit" className="text-xs font-semibold text-[#77717e]">Sign out</button></form>
-          </div>
-        </div>
-      </header>
-      <section className="mx-auto max-w-4xl px-5 py-8 sm:px-8 sm:py-11">
-        <Link href="/orders" className="inline-flex items-center gap-2 text-xs font-semibold text-[#77717e] hover:text-violet-900"><ArrowLeft size={14} /> Orders</Link>
+    <main className="min-h-screen bg-transparent">
+      {/* Global Responsive Site Header */}
+      <SiteHeader
+        profile={profile}
+        sectionTitle="Order Details"
+      />
+      <section className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
+        <Link href="/orders" className="inline-flex items-center gap-2 rounded-full border border-[#d0c1ab]/50 bg-white/80 px-3.5 py-1.5 text-xs font-semibold text-[#5f574d] hover:bg-white hover:text-[#241e14] shadow-xs transition">
+          <ArrowLeft size={14} /> Orders
+        </Link>
         <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[.14em] text-violet-700">{buyerView ? "Buyer order" : "Seller order"}</p>
-            <h1 className="mt-2 font-serif text-4xl tracking-[-.05em] text-[#28232f]">{title}</h1>
-            <p className="mt-2 text-xs text-[#89828e]">Placed {new Date(order.created_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</p>
+            <p className="text-[11px] font-bold uppercase tracking-[.14em] text-[#8e7a63]">{buyerView ? "Buyer order" : "Seller order"}</p>
+            <h1 className="mt-2 font-serif text-3xl sm:text-4xl tracking-tight text-[#241e14]">{title}</h1>
+            <p className="mt-1.5 text-xs text-[#736b60]">Placed {new Date(order.created_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</p>
           </div>
-          <span className={`rounded-full px-3 py-2 text-xs font-semibold ${isPaid ? "bg-emerald-50 text-emerald-800" : ["rejected", "cancelled", "refunded"].includes(order.status) ? "bg-[#efedef] text-[#625b68]" : "bg-violet-50 text-violet-800"}`}>
+          <span className={`rounded-full px-3 py-1.5 text-xs font-semibold ${isPaid ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : ["rejected", "cancelled", "refunded"].includes(order.status) ? "bg-[#eee9e2] text-[#736b60] border border-[#d0c1ab]" : "bg-[#eee9e2] text-[#241e14] border border-[#d0c1ab]"}`}>
             {title}
           </span>
         </div>
@@ -141,70 +140,70 @@ export default async function OrderDetailsPage({ params, searchParams }: PagePro
           ) : null}
 
           {/* Order Items & 5% Platform Fee Transparency */}
-          <article className="rounded-[22px] border border-[#e8e5e2] bg-white p-5 sm:p-6">
-            <h2 className="text-sm font-semibold text-[#383240]">Order items</h2>
+          <article className="rounded-[24px] border border-[#d0c1ab]/50 bg-white/90 p-5 shadow-xs sm:p-6">
+            <h2 className="text-sm font-bold text-[#241e14]">Order items</h2>
             <div className="mt-4 space-y-3">
               {items.map((item) => (
-                <div className="flex items-center gap-3 border-t border-[#f0edf0] pt-3 first:border-0 first:pt-0" key={item.id}>
-                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-violet-50 text-violet-800">{buyerView ? "↗" : "↙"}</span>
+                <div className="flex items-center gap-3 border-t border-[#eee9e2] pt-3 first:border-0 first:pt-0" key={item.id}>
+                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#eee9e2] text-[#241e14]">{buyerView ? "↗" : "↙"}</span>
                   <span className="min-w-0 flex-1">
-                    <b className="block truncate text-sm text-[#3c3643]">{item.product_name}</b>
-                    <small className="mt-1 block text-xs text-[#89828e]">{currency.format(Number(item.unit_price))} × {item.quantity}</small>
+                    <b className="block truncate text-sm text-[#241e14]">{item.product_name}</b>
+                    <small className="mt-0.5 block text-xs text-[#736b60]">{currency.format(Number(item.unit_price))} × {item.quantity}</small>
                   </span>
-                  <b className="text-sm text-[#3c3643]">{currency.format(Number(item.line_total))}</b>
+                  <b className="text-sm font-semibold text-[#241e14]">{currency.format(Number(item.line_total))}</b>
                 </div>
               ))}
             </div>
 
-            <div className="mt-5 border-t border-[#eeeaf0] pt-4 space-y-2 text-xs text-[#77717e]">
+            <div className="mt-5 border-t border-[#eee9e2] pt-4 space-y-2 text-xs text-[#736b60]">
               <div className="flex justify-between">
                 <span>Items Subtotal</span>
-                <b className="text-[#302b37]">{currency.format(Number(order.total_amount))}</b>
+                <b className="text-[#241e14]">{currency.format(Number(order.total_amount))}</b>
               </div>
               <div className="flex justify-between">
                 <span>LOOPEC Platform Commission (5%)</span>
-                <b className="text-violet-800">{commission.formatted.commissionAmount}</b>
+                <b className="text-[#8e7a63] font-semibold">{commission.formatted.commissionAmount}</b>
               </div>
               <div className="flex justify-between">
                 <span>Seller Net Proceeds (95%)</span>
-                <b className="text-[#4b4353]">{commission.formatted.sellerNetAmount}</b>
+                <b className="text-[#241e14] font-semibold">{commission.formatted.sellerNetAmount}</b>
               </div>
-              <div className="border-t border-[#f0edf0] pt-2 flex justify-between text-sm">
-                <span className="font-semibold text-[#302b37]">Total Amount</span>
-                <b className="font-bold text-[#302b37]">{currency.format(Number(order.total_amount))}</b>
+              <div className="border-t border-[#eee9e2] pt-2 flex justify-between text-sm">
+                <span className="font-bold text-[#241e14]">Total Amount</span>
+                <b className="font-bold text-[#241e14]">{currency.format(Number(order.total_amount))}</b>
               </div>
             </div>
           </article>
 
           {/* Campus Pickup Location */}
           {pickup ? (
-            <article className="rounded-[22px] border border-[#e8e5e2] bg-white p-5 sm:p-6">
-              <h2 className="flex items-center gap-2 text-sm font-semibold text-[#383240]"><MapPin size={16} className="text-violet-800" /> Campus pickup</h2>
-              <p className="mt-3 text-sm font-semibold text-[#3d3744]">{pickup.name}</p>
-              <p className="mt-1 text-sm text-[#77717e]">{pickup.address}</p>
-              {pickup.instructions ? <p className="mt-2 text-xs leading-5 text-[#89828e]">{pickup.instructions}</p> : null}
-              <div className="mt-4 flex items-center gap-2 rounded-xl bg-violet-50 px-4 py-3 text-xs leading-5 text-violet-950">
-                <Clock3 size={15} className="shrink-0" /> Coordinate an exact meeting time with {person?.full_name ?? (buyerView ? "the seller" : "the buyer")} in Messages.
+            <article className="rounded-[24px] border border-[#d0c1ab]/50 bg-white/90 p-5 shadow-xs sm:p-6">
+              <h2 className="flex items-center gap-2 text-sm font-bold text-[#241e14]"><MapPin size={16} className="text-[#8e7a63]" /> Campus pickup</h2>
+              <p className="mt-3 text-sm font-semibold text-[#241e14]">{pickup.name}</p>
+              <p className="mt-1 text-sm text-[#736b60]">{pickup.address}</p>
+              {pickup.instructions ? <p className="mt-2 text-xs leading-5 text-[#736b60]">{pickup.instructions}</p> : null}
+              <div className="mt-4 flex items-center gap-2 rounded-xl bg-[#eee9e2]/60 border border-[#d0c1ab]/40 px-4 py-3 text-xs leading-5 text-[#241e14]">
+                <Clock3 size={15} className="shrink-0 text-[#8e7a63]" /> Coordinate an exact meeting time with {person?.full_name ?? (buyerView ? "the seller" : "the buyer")} in Messages.
               </div>
             </article>
           ) : null}
 
           {/* Optional Manual UPI Transfer (Expandable) */}
           {!isPaid && (
-            <details className="rounded-[22px] border border-[#e8e5e2] bg-white p-5 text-xs text-[#77717e]">
-              <summary className="cursor-pointer font-semibold text-[#383240] hover:text-violet-900">
+            <details className="rounded-[24px] border border-[#d0c1ab]/50 bg-white/90 p-5 text-xs text-[#736b60] shadow-xs">
+              <summary className="cursor-pointer font-bold text-[#241e14] hover:text-[#8e7a63]">
                 Prefer manual UPI bank transfer reference?
               </summary>
-              <div className="mt-3 space-y-3 border-t border-[#eeeaf0] pt-3">
+              <div className="mt-3 space-y-3 border-t border-[#eee9e2] pt-3">
                 <p>If you transferred funds directly to the seller via your bank app, enter the transaction reference number below for admin verification.</p>
                 {buyerView && ["accepted", "payment_pending"].includes(order.status) ? (
                   <form action={submitPaymentReference} className="mt-3 space-y-3">
                     <input type="hidden" name="order_id" value={order.id} />
-                    <label className="block text-xs font-semibold text-[#625b6b]">
+                    <label className="block text-xs font-semibold text-[#5f574d]">
                       UPI transaction reference
-                      <input className="mt-2 min-h-12 w-full rounded-xl border border-[#e4e0e8] px-3.5 text-sm outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-100" name="payment_reference" inputMode="text" autoComplete="off" pattern="[A-Za-z0-9-]{6,50}" minLength={6} maxLength={50} required placeholder="Reference from your UPI app" />
+                      <input className="mt-2 min-h-12 w-full rounded-xl border border-[#d0c1ab] bg-white px-3.5 text-sm outline-none focus:border-[#241e14] focus:ring-4 focus:ring-[#d0c1ab]/30 shadow-xs" name="payment_reference" inputMode="text" autoComplete="off" pattern="[A-Za-z0-9-]{6,50}" minLength={6} maxLength={50} required placeholder="Reference from your UPI app" />
                     </label>
-                    <button className="min-h-11 rounded-full bg-violet-950 px-5 text-sm font-semibold text-white hover:bg-violet-900" type="submit">Submit reference for review</button>
+                    <button className="min-h-11 rounded-full bg-[#241e14] px-5 text-sm font-semibold text-[#eee9e2] hover:bg-[#382f20] shadow-sm" type="submit">Submit reference for review</button>
                   </form>
                 ) : null}
               </div>
@@ -213,15 +212,15 @@ export default async function OrderDetailsPage({ params, searchParams }: PagePro
 
           {/* Message Link */}
           {conversation ? (
-            <Link className="flex items-center justify-between rounded-[22px] border border-[#e8e5e2] bg-white p-5 transition hover:border-violet-200" href={`/messages/${conversation.id}`}>
+            <Link className="flex items-center justify-between rounded-[24px] border border-[#d0c1ab]/50 bg-white/90 p-5 shadow-xs transition hover:border-[#8e7a63]" href={`/messages/${conversation.id}`}>
               <span className="flex items-center gap-3">
-                <span className="grid size-10 place-items-center rounded-xl bg-violet-50 text-violet-800"><MessageCircle size={18} /></span>
+                <span className="grid size-10 place-items-center rounded-xl bg-[#eee9e2] text-[#241e14]"><MessageCircle size={18} /></span>
                 <span>
-                  <b className="block text-sm text-[#383240]">Message {person?.full_name ?? "member"}</b>
-                  <small className="mt-1 block text-xs text-[#89828e]">Private coordination for this order</small>
+                  <b className="block text-sm text-[#241e14]">Message {person?.full_name ?? "member"}</b>
+                  <small className="mt-0.5 block text-xs text-[#736b60]">Private coordination for this order</small>
                 </span>
               </span>
-              <span className="text-xs font-semibold text-violet-800">Open messages</span>
+              <span className="text-xs font-semibold text-[#241e14] underline underline-offset-4 hover:text-[#8e7a63]">Open messages</span>
             </Link>
           ) : null}
 
@@ -242,10 +241,10 @@ export default async function OrderDetailsPage({ params, searchParams }: PagePro
 
           {/* Initial Pending Actions */}
           {order.status === "pending" ? (
-            <article className="flex flex-wrap items-center justify-between gap-3 rounded-[22px] border border-[#e8e5e2] bg-white p-5">
+            <article className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-[#d0c1ab]/50 bg-white/90 p-5 shadow-xs">
               <div>
-                <p className="text-sm font-semibold text-[#383240]">{buyerView ? "Waiting for seller response" : `Order from ${person?.full_name ?? "a member"}`}</p>
-                <p className="mt-1 text-xs text-[#89828e]">{buyerView ? "The seller will accept or decline this request." : "Review the items and then accept or decline the order."}</p>
+                <p className="text-sm font-bold text-[#241e14]">{buyerView ? "Waiting for seller response" : `Order from ${person?.full_name ?? "a member"}`}</p>
+                <p className="mt-1 text-xs text-[#736b60]">{buyerView ? "The seller will accept or decline this request." : "Review the items and then accept or decline the order."}</p>
               </div>
               <div className="flex gap-2">
                 {!buyerView ? (
@@ -253,7 +252,7 @@ export default async function OrderDetailsPage({ params, searchParams }: PagePro
                     <form action={updateOrderStatus}>
                       <input type="hidden" name="order_id" value={order.id} />
                       <input type="hidden" name="next_status" value="accepted" />
-                      <button className="min-h-10 rounded-full bg-violet-950 px-4 text-xs font-semibold text-white hover:bg-violet-900" type="submit">Accept</button>
+                      <button className="min-h-10 rounded-full bg-[#241e14] px-4 text-xs font-semibold text-[#eee9e2] hover:bg-[#382f20] shadow-sm" type="submit">Accept</button>
                     </form>
                     <form action={updateOrderStatus}>
                       <input type="hidden" name="order_id" value={order.id} />
@@ -266,7 +265,7 @@ export default async function OrderDetailsPage({ params, searchParams }: PagePro
                   <form action={updateOrderStatus}>
                     <input type="hidden" name="order_id" value={order.id} />
                     <input type="hidden" name="next_status" value="cancelled" />
-                    <button className="min-h-10 rounded-full border border-[#e4e0e8] px-4 text-xs font-semibold text-[#625b68] hover:bg-[#f7f5f8]" type="submit">Cancel request</button>
+                    <button className="min-h-10 rounded-full border border-[#d0c1ab] px-4 text-xs font-semibold text-[#5f574d] hover:bg-[#eee9e2]/50" type="submit">Cancel request</button>
                   </form>
                 ) : null}
               </div>
@@ -275,32 +274,32 @@ export default async function OrderDetailsPage({ params, searchParams }: PagePro
 
           {/* Seller Paid Action: Mark Ready for Pickup */}
           {order.status === "paid" && !buyerView ? (
-            <article className="rounded-[22px] border border-emerald-200 bg-emerald-50 p-5">
+            <article className="rounded-[24px] border border-emerald-300 bg-emerald-50/80 p-5 shadow-xs">
               <p className="text-sm font-semibold text-emerald-950">Payment verified & escrowed</p>
               <p className="mt-2 text-xs leading-5 text-emerald-900">Your net payout ({commission.formatted.sellerNetAmount}) is secured. Prepare the item and arrange pickup.</p>
               <form action={updateOrderStatus} className="mt-4">
                 <input type="hidden" name="order_id" value={order.id} />
                 <input type="hidden" name="next_status" value="ready_for_pickup" />
-                <button className="min-h-11 rounded-full bg-violet-950 px-5 text-sm font-semibold text-white" type="submit">Mark ready for campus pickup</button>
+                <button className="min-h-11 rounded-full bg-[#241e14] px-5 text-sm font-semibold text-[#eee9e2] hover:bg-[#382f20] shadow-sm" type="submit">Mark ready for campus pickup</button>
               </form>
             </article>
           ) : null}
 
           {/* Completed Rating */}
           {order.status === "completed" ? (
-            <article className="rounded-[22px] border border-[#e8e5e2] bg-white p-5 sm:p-6">
-              <h2 className="text-sm font-semibold text-[#383240]">Rate this campus exchange</h2>
+            <article className="rounded-[24px] border border-[#d0c1ab]/50 bg-white/90 p-5 shadow-xs sm:p-6">
+              <h2 className="text-sm font-bold text-[#241e14]">Rate this campus exchange</h2>
               {review ? (
                 <div className="mt-3">
-                  <p className="text-sm font-semibold text-violet-900">{review.rating} out of 5</p>
-                  {review.comment ? <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[#77717e]">{review.comment}</p> : null}
+                  <p className="text-sm font-semibold text-[#241e14]">{review.rating} out of 5</p>
+                  {review.comment ? <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[#736b60]">{review.comment}</p> : null}
                 </div>
               ) : (
                 <form action={submitOrderReview} className="mt-4 space-y-3">
                   <input type="hidden" name="order_id" value={order.id} />
-                  <label className="block text-xs font-semibold text-[#625b6b]">
+                  <label className="block text-xs font-semibold text-[#5f574d]">
                     Your rating
-                    <select className="mt-2 min-h-11 w-full rounded-xl border border-[#e4e0e8] bg-white px-3.5 text-sm outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-100" name="rating" defaultValue="5">
+                    <select className="mt-2 min-h-11 w-full rounded-xl border border-[#d0c1ab] bg-white px-3.5 text-sm outline-none focus:border-[#241e14] focus:ring-4 focus:ring-[#d0c1ab]/30 shadow-xs" name="rating" defaultValue="5">
                       <option value="5">5 · Excellent</option>
                       <option value="4">4 · Good</option>
                       <option value="3">3 · Okay</option>
@@ -308,11 +307,11 @@ export default async function OrderDetailsPage({ params, searchParams }: PagePro
                       <option value="1">1 · Poor</option>
                     </select>
                   </label>
-                  <label className="block text-xs font-semibold text-[#625b6b]">
+                  <label className="block text-xs font-semibold text-[#5f574d]">
                     Comment <span className="font-normal">(optional)</span>
-                    <textarea className="mt-2 min-h-20 w-full resize-y rounded-xl border border-[#e4e0e8] p-3 text-sm outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-100" name="comment" maxLength={1200} />
+                    <textarea className="mt-2 min-h-20 w-full resize-y rounded-xl border border-[#d0c1ab] bg-white p-3 text-sm outline-none focus:border-[#241e14] focus:ring-4 focus:ring-[#d0c1ab]/30 shadow-xs" name="comment" maxLength={1200} />
                   </label>
-                  <button className="min-h-10 rounded-full bg-violet-950 px-4 text-sm font-semibold text-white" type="submit">Submit review</button>
+                  <button className="min-h-10 rounded-full bg-[#241e14] px-4 text-sm font-semibold text-[#eee9e2] hover:bg-[#382f20] shadow-sm" type="submit">Submit review</button>
                 </form>
               )}
             </article>

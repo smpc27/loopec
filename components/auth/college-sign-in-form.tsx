@@ -20,19 +20,19 @@ export function CollegeSignInForm({
   return (
     <div className="space-y-6">
       {/* Campus Institution Tag */}
-      <div className="flex items-center justify-between rounded-xl bg-violet-50/80 px-3.5 py-2.5 text-xs text-violet-950 border border-violet-100">
+      <div className="flex items-center justify-between rounded-xl bg-[#eee9e2] px-3.5 py-2.5 text-xs text-[#241e14] border border-[#d0c1ab]/50">
         <span className="flex items-center gap-1.5 font-medium">
-          <GraduationCap className="h-4 w-4 text-violet-700" />
+          <GraduationCap className="h-4 w-4 text-[#241e14]" />
           <span>{collegeName}</span>
         </span>
-        <span className="font-bold text-violet-800">@{cleanDomain}</span>
+        <span className="font-bold text-[#8e7a63]">@{cleanDomain}</span>
       </div>
 
       {/* Main 1-Click Google Sign-In Card */}
-      <div className="rounded-2xl border border-violet-100 bg-white p-6 shadow-sm space-y-5">
+      <div className="rounded-2xl border border-[#d0c1ab]/50 bg-white/95 p-6 shadow-xs space-y-5">
         <div className="text-center space-y-1.5">
-          <h2 className="text-lg font-bold text-gray-900">Sign in with your College ID</h2>
-          <p className="text-xs text-gray-500">
+          <h2 className="text-lg font-bold text-[#241e14]">Sign in with your College ID</h2>
+          <p className="text-xs text-[#736b60]">
             Sign in with your official NITC college email address to continue.
           </p>
         </div>

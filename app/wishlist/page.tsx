@@ -49,10 +49,10 @@ export default async function WishlistPage() {
         sectionTitle="Wishlist"
       />
       <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-8">
-        <Link href="/marketplace" className="inline-flex items-center gap-2 text-xs font-semibold text-[#77717e] hover:text-violet-900"><ArrowLeft size={14} /> Marketplace</Link>
-        <div className="mt-5"><p className="text-[10px] font-bold uppercase tracking-[.14em] text-violet-700">Saved for later</p><h1 className="mt-2 font-serif text-4xl tracking-[-.05em] text-[#28232f]">Your wishlist</h1></div>
-        {cards.length ? <div className="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{cards.map((product) => <ProductCard key={product.id} product={product} saved returnTo="/wishlist" currentUserId={userId} />)}</div> : (
-          <div className="mt-7 rounded-[26px] border border-dashed border-[#d9d2e0] bg-white px-6 py-16 text-center"><span className="mx-auto grid size-12 place-items-center rounded-2xl bg-[#f6f3fa] text-violet-800"><Bookmark size={22} /></span><h2 className="mt-4 font-serif text-2xl text-[#28232f]">Keep an eye on something.</h2><p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#77717e]">Save listings as you browse, and they’ll be gathered here for your next campus find.</p><Link className="mt-5 inline-flex min-h-11 items-center rounded-full bg-violet-950 px-5 text-sm font-semibold text-white" href="/marketplace">Browse listings</Link></div>
+        <Link href="/marketplace" className="inline-flex items-center gap-2 text-xs font-semibold text-[#736b60] hover:text-[#241e14] transition"><ArrowLeft size={14} /> Marketplace</Link>
+        <div className="mt-5"><p className="text-[10px] font-bold uppercase tracking-[.14em] text-[#8e7a63]">Saved for later</p><h1 className="mt-2 font-serif text-4xl tracking-[-.05em] text-[#241e14]">Your wishlist</h1></div>
+        {cards.length ? <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{cards.map((product) => <ProductCard key={product.id} product={product} saved returnTo="/wishlist" currentUserId={userId} />)}</div> : (
+          <div className="mt-6 rounded-[26px] border border-dashed border-[#d0c1ab] bg-white/80 px-6 py-16 text-center"><span className="mx-auto grid size-12 place-items-center rounded-2xl bg-[#eee9e2] text-[#241e14]"><Bookmark size={22} /></span><h2 className="mt-4 font-serif text-2xl text-[#241e14]">Keep an eye on something.</h2><p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#736b60]">Save listings as you browse, and they’ll be gathered here for your next campus find.</p><Link className="mt-5 inline-flex min-h-11 items-center rounded-full bg-[#241e14] hover:bg-[#382f20] px-5 text-sm font-semibold text-white shadow-sm transition" href="/marketplace">Browse listings</Link></div>
         )}
       </section>
     </main>

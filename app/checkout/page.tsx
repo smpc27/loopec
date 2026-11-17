@@ -93,49 +93,49 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/checkou
   const errorMessage = errorCode ? authMessage(errorCode) : null;
 
   return (
-    <main className="min-h-screen bg-[#f7f6f4]">
-      <header className="border-b border-[#e8e5e2] bg-white/85"><div className="mx-auto flex min-h-[60px] sm:min-h-[64px] max-w-6xl items-center justify-between px-4 sm:px-6"><Link href="/marketplace" className="text-sm font-extrabold tracking-[.14em] text-[#302546]">LOOPEC <span className="ml-2 font-normal tracking-normal text-[#8b8590]">Checkout</span></Link><form action={signOut}><button type="submit" className="text-xs font-semibold text-[#77717e]">Sign out</button></form></div></header>
+    <main className="min-h-screen bg-transparent">
+      <header className="border-b border-[#d0c1ab]/40 bg-white/80 backdrop-blur-xl"><div className="mx-auto flex min-h-[60px] sm:min-h-[64px] max-w-6xl items-center justify-between px-4 sm:px-6"><Link href="/marketplace" className="text-sm font-extrabold tracking-[.14em] text-[#241e14]">LOOPEC <span className="ml-2 font-normal tracking-normal text-[#736b60]">Checkout</span></Link><form action={signOut}><button type="submit" className="text-xs font-semibold text-[#736b60] hover:text-[#241e14]">Sign out</button></form></div></header>
       <section className="mx-auto max-w-6xl px-4 py-5 sm:px-6 sm:py-8">
-        <Link href="/cart" className="inline-flex items-center gap-2 text-xs font-semibold text-[#77717e] hover:text-violet-900"><ArrowLeft size={14} /> Back to cart</Link>
-        <div className="mt-5"><p className="text-[10px] font-bold uppercase tracking-[.14em] text-violet-700">Secure campus exchange</p><h1 className="mt-2 font-serif text-4xl tracking-[-.05em] text-[#28232f]">Confirm your pickup</h1><p className="mt-2 text-sm leading-6 text-[#77717e]">Your items are rechecked and reserved together when you place the order.</p></div>
-        <div className="mt-7 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <Link href="/cart" className="inline-flex items-center gap-2 text-xs font-semibold text-[#736b60] hover:text-[#241e14] transition"><ArrowLeft size={14} /> Back to cart</Link>
+        <div className="mt-5"><p className="text-[10px] font-bold uppercase tracking-[.14em] text-[#8e7a63]">Secure campus exchange</p><h1 className="mt-2 font-serif text-4xl tracking-[-.05em] text-[#241e14]">Confirm your pickup</h1><p className="mt-2 text-sm leading-6 text-[#736b60]">Your items are rechecked and reserved together when you place the order.</p></div>
+        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="space-y-4">
             {errorMessage ? <FormNotice>{errorMessage}</FormNotice> : null}
             {unavailable ? <FormNotice>One or more cart items changed or sold. Return to your cart and remove unavailable items before checkout.</FormNotice> : null}
-            <section className="rounded-[22px] border border-[#e8e5e2] bg-white p-5 sm:p-6"><h2 className="flex items-center gap-2 text-sm font-semibold text-[#383240]"><MapPin size={16} className="text-violet-800" /> Campus pickup point</h2>{pickupPoints.length ? <div className="mt-4 space-y-3">{pickupPoints.map((point, index) => <label className="flex cursor-pointer gap-3 rounded-2xl border border-[#e9e5ec] p-4 has-[:checked]:border-violet-400 has-[:checked]:bg-violet-50" key={point.id}><input className="mt-1 accent-violet-900" type="radio" name="pickup_location_id" form="place-order" value={point.id} required defaultChecked={index === 0} /><span><b className="block text-sm text-[#383240]">{point.name}</b><span className="mt-1 block text-xs leading-5 text-[#817a87]">{point.address}</span>{point.instructions ? <small className="mt-1 block text-xs text-[#918b96]">{point.instructions}</small> : null}</span></label>)}</div> : <p className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-sm leading-5 text-amber-950">No active pickup points are configured. Ask your college admin to add one before placing orders.</p>}</section>
-            <section className="rounded-[22px] border border-[#e8e5e2] bg-white p-5 sm:p-6"><h2 className="text-sm font-semibold text-[#383240]">Items by seller</h2><div className="mt-4 space-y-5">{[...groups.entries()].map(([sellerId, group]) => <div className="border-t border-[#f0edf0] pt-4 first:border-0 first:pt-0" key={sellerId}><p className="text-xs font-semibold text-violet-800">{sellers.get(sellerId) ?? "Verified member"} · {group.items.length} item{group.items.length === 1 ? "" : "s"}</p><div className="mt-3 space-y-3">{group.items.map(({ line, product }) => <div className="flex items-center gap-3" key={product.id}><span className="relative size-12 shrink-0 overflow-hidden rounded-xl bg-[#f0edf3]">{images.get(product.id) ? <Image src={images.get(product.id)!} alt={product.name} fill sizes="48px" unoptimized className="object-cover" /> : null}</span><span className="min-w-0 flex-1 truncate text-sm text-[#57505e]">{product.name} <span className="text-[#958e99]">× {line.quantity}</span></span><b className="text-sm text-[#383240]">{currency.format(Number(product.price) * line.quantity)}</b></div>)}</div><p className="mt-3 border-t border-[#f0edf0] pt-3 text-right text-xs text-[#817a87]">Order subtotal <b className="ml-2 text-[#383240]">{currency.format(group.total)}</b></p></div>)}</div></section>
+            <section className="rounded-[22px] border border-[#d0c1ab]/50 bg-white/80 backdrop-blur-xl p-5 sm:p-6 shadow-sm"><h2 className="flex items-center gap-2 text-sm font-semibold text-[#241e14]"><MapPin size={16} className="text-[#8e7a63]" /> Campus pickup point</h2>{pickupPoints.length ? <div className="mt-4 space-y-3">{pickupPoints.map((point, index) => <label className="flex cursor-pointer gap-3 rounded-2xl border border-[#d0c1ab]/50 p-4 has-[:checked]:border-[#241e14] has-[:checked]:bg-[#241e14]/5 transition" key={point.id}><input className="mt-1 accent-[#241e14]" type="radio" name="pickup_location_id" form="place-order" value={point.id} required defaultChecked={index === 0} /><span><b className="block text-sm text-[#241e14]">{point.name}</b><span className="mt-1 block text-xs leading-5 text-[#736b60]">{point.address}</span>{point.instructions ? <small className="mt-1 block text-xs text-[#8e8579]">{point.instructions}</small> : null}</span></label>)}</div> : <p className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-sm leading-5 text-amber-950">No active pickup points are configured. Ask your college admin to add one before placing orders.</p>}</section>
+            <section className="rounded-[22px] border border-[#d0c1ab]/50 bg-white/80 backdrop-blur-xl p-5 sm:p-6 shadow-sm"><h2 className="text-sm font-semibold text-[#241e14]">Items by seller</h2><div className="mt-4 space-y-5">{[...groups.entries()].map(([sellerId, group]) => <div className="border-t border-[#d0c1ab]/30 pt-4 first:border-0 first:pt-0" key={sellerId}><p className="text-xs font-semibold text-[#241e14]">{sellers.get(sellerId) ?? "Verified member"} · {group.items.length} item{group.items.length === 1 ? "" : "s"}</p><div className="mt-3 space-y-3">{group.items.map(({ line, product }) => <div className="flex items-center gap-3" key={product.id}><span className="relative size-12 shrink-0 overflow-hidden rounded-xl bg-[#eee9e2]">{images.get(product.id) ? <Image src={images.get(product.id)!} alt={product.name} fill sizes="48px" unoptimized className="object-cover" /> : null}</span><span className="min-w-0 flex-1 truncate text-sm text-[#5f574d]">{product.name} <span className="text-[#8e8579]">× {line.quantity}</span></span><b className="text-sm text-[#241e14]">{currency.format(Number(product.price) * line.quantity)}</b></div>)}</div><p className="mt-3 border-t border-[#d0c1ab]/30 pt-3 text-right text-xs text-[#736b60]">Order subtotal <b className="ml-2 text-[#241e14]">{currency.format(group.total)}</b></p></div>)}</div></section>
           </div>
-          <aside className="h-fit rounded-[22px] border border-[#e8e5e2] bg-white p-5 sm:p-6">
-            <h2 className="text-lg font-semibold text-[#302b37]">Payment & Pickup</h2>
-            <div className="mt-4 flex gap-3 rounded-2xl bg-emerald-50 p-4 border border-emerald-200/80">
+          <aside className="h-fit rounded-[22px] border border-[#d0c1ab]/50 bg-white/80 backdrop-blur-xl p-5 sm:p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-[#241e14]">Payment & Pickup</h2>
+            <div className="mt-4 flex gap-3 rounded-2xl bg-emerald-50/80 p-4 border border-emerald-200">
               <MessageCircle className="mt-0.5 shrink-0 text-emerald-700" size={18} />
               <p className="text-xs leading-5 text-emerald-950">
                 <b>Direct WhatsApp & UPI Pay.</b> Connect with the seller directly on WhatsApp, pay via GPay, PhonePe, or Cash on campus pickup. Zero payment gateway fees!
               </p>
             </div>
             
-            <div className="mt-4 rounded-xl border border-[#eeeaf0] bg-[#faf9fa] p-3.5 space-y-2 text-xs text-[#71687d]">
+            <div className="mt-4 rounded-xl border border-[#d0c1ab]/50 bg-[#eee9e2]/60 p-3.5 space-y-2 text-xs text-[#736b60]">
               <div className="flex justify-between">
                 <span>Items Subtotal</span>
-                <b className="text-[#302546]">{commission.formatted.subtotal}</b>
+                <b className="text-[#241e14]">{commission.formatted.subtotal}</b>
               </div>
               <div className="flex justify-between">
                 <span>Platform Commission (5%)</span>
-                <b className="text-violet-800">{commission.formatted.commissionAmount}</b>
+                <b className="text-[#8e7a63]">{commission.formatted.commissionAmount}</b>
               </div>
               <div className="flex justify-between">
                 <span>Seller Net Handover</span>
-                <span className="text-[#554d5e]">{commission.formatted.sellerNetAmount}</span>
+                <span className="text-[#5f574d]">{commission.formatted.sellerNetAmount}</span>
               </div>
-              <div className="border-t border-[#eae5ee] pt-2 flex justify-between text-sm font-bold text-[#302546]">
+              <div className="border-t border-[#d0c1ab]/40 pt-2 flex justify-between text-sm font-bold text-[#241e14]">
                 <span>Total Amount</span>
                 <span>{commission.formatted.totalAmount}</span>
               </div>
             </div>
 
-            <p className="mt-4 text-xs leading-5 text-[#85808a]">{buyNowProductId ? "This checkout covers the selected item only. It will not change your saved cart." : "This checkout creates a separate order for each seller. Your cart is cleared after the orders are placed."}</p>
-            <form id="place-order" action={createOrders} className="mt-5"><input type="hidden" name="idempotency_key" value={crypto.randomUUID()} />{buyNowProductId ? <input type="hidden" name="product_id" value={buyNowProductId} /> : null}<button className="min-h-12 w-full rounded-full bg-violet-950 px-5 text-sm font-semibold text-white transition hover:bg-violet-900 disabled:pointer-events-none disabled:bg-violet-300" type="submit" disabled={!pickupPoints.length || unavailable}>{buyNowProductId ? "Buy now" : `Place order${groups.size > 1 ? "s" : ""}`}</button></form>
-            <Link className="mt-3 block text-center text-xs font-semibold text-violet-800 hover:text-violet-950" href="/cart">Review cart</Link>
+            <p className="mt-4 text-xs leading-5 text-[#736b60]">{buyNowProductId ? "This checkout covers the selected item only. It will not change your saved cart." : "This checkout creates a separate order for each seller. Your cart is cleared after the orders are placed."}</p>
+            <form id="place-order" action={createOrders} className="mt-5"><input type="hidden" name="idempotency_key" value={crypto.randomUUID()} />{buyNowProductId ? <input type="hidden" name="product_id" value={buyNowProductId} /> : null}<button className="min-h-12 w-full rounded-full bg-[#241e14] hover:bg-[#382f20] px-5 text-sm font-bold text-white shadow-md transition disabled:pointer-events-none disabled:bg-[#d0c1ab] cursor-pointer" type="submit" disabled={!pickupPoints.length || unavailable}>{buyNowProductId ? "Buy now" : `Place order${groups.size > 1 ? "s" : ""}`}</button></form>
+            <Link className="mt-3 block text-center text-xs font-semibold text-[#736b60] hover:text-[#241e14]" href="/cart">Review cart</Link>
           </aside>
         </div>
       </section>

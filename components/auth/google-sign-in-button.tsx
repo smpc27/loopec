@@ -26,12 +26,12 @@ export function GoogleSignInButton({
       type="button"
       onClick={handleGoogleSignIn}
       disabled={isPending}
-      className="group relative flex min-h-14 w-full items-center justify-center gap-3.5 rounded-2xl border-2 border-[#e8e4ec] bg-white px-5 py-4 text-base font-semibold text-[#28232f] shadow-sm transition-all duration-200 hover:border-violet-400 hover:bg-violet-50/30 hover:shadow-md focus:outline-none focus:ring-4 focus:ring-violet-200 disabled:opacity-60 cursor-pointer"
+      className="group relative flex min-h-14 w-full items-center justify-center gap-3.5 rounded-2xl border-2 border-[#d0c1ab]/60 bg-white px-5 py-4 text-base font-semibold text-[#241e14] shadow-xs transition-all duration-200 hover:border-[#8e7a63] hover:bg-[#eee9e2]/30 hover:shadow-sm focus:outline-none focus:ring-4 focus:ring-[#d0c1ab]/30 disabled:opacity-60 cursor-pointer"
     >
       {isPending ? (
         <>
-          <Loader2 className="h-5 w-5 animate-spin text-violet-700" />
-          <span className="text-violet-950 font-medium">Connecting to Google SSO...</span>
+          <Loader2 className="h-5 w-5 animate-spin text-[#241e14]" />
+          <span className="text-[#241e14] font-medium">Connecting to Google SSO...</span>
         </>
       ) : (
         <>
@@ -54,8 +54,8 @@ export function GoogleSignInButton({
               d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
             />
           </svg>
-          <span className="font-semibold text-slate-800 tracking-tight">{label}</span>
-          <span className="hidden sm:inline-flex rounded-md bg-violet-100/80 px-2 py-0.5 text-[11px] font-bold text-violet-800">
+          <span className="font-semibold text-[#241e14] tracking-tight">{label}</span>
+          <span className="hidden sm:inline-flex rounded-md bg-[#eee9e2] px-2 py-0.5 text-[11px] font-bold text-[#241e14] border border-[#d0c1ab]/50">
             @nitc.ac.in
           </span>
         </>
