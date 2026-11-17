@@ -1,5 +1,5 @@
-import { ThinkingLoader } from "@/components/ui/thinking-shimmer";
+import { CampusLoader } from "@/components/ui/campus-loader";
 
 export default function Loading() {
-  return <ThinkingLoader text="Thinking…" fullScreen />;
+  return <CampusLoader fullScreen />;
 }
