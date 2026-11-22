@@ -46,7 +46,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=Instrument+Serif:ital@0;1&display=swap" />
       </head>
-      <body className="min-h-full pb-16 md:pb-0 relative text-[#241e14] bg-[#eee9e2] selection:bg-[#d0c1ab] selection:text-[#241e14]">
+      <body className="min-h-full pb-24 md:pb-0 relative text-[#241e14] bg-[#eee9e2] selection:bg-[#d0c1ab] selection:text-[#241e14]">
         {/* Ambient Atmospheric Luminous Glass Blobs in warm palette */}
         <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none" aria-hidden="true">
           <div className="absolute -top-[20%] -left-[10%] w-[55vw] h-[55vw] rounded-full bg-gradient-to-br from-[#d0c1ab]/40 via-[#eee9e2]/60 to-transparent blur-[120px]" />

@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { Compass, Package, MessageSquare, User, Play, Pause } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 
-// Spring ODE evaluation for underdamped harmonic oscillator
+// Spring ODE evaluation for underdamped harmonic oscillator:
+// d²x/dt² + 2·gamma·dx/dt + omega²·x = 0
 function springF(omega: number, zeta: number, t: number, delta: number) {
   if (t <= 0) return { pos: 0, vel: 0 };
   const zetaClamped = Math.min(0.999, Math.max(0.01, zeta));
@@ -19,7 +20,7 @@ function springF(omega: number, zeta: number, t: number, delta: number) {
   const pos = delta * (1 - decay * (cosVal + (gamma / omegaD) * sinVal));
 
   // Velocity dx/dt:
-  // v(t) = delta * (omega^2 / omegaD) * decay * sin(omegaD * t)
+  // v(t) = delta * (omega² / omegaD) * decay * sin(omegaD * t)
   const vel = delta * ((omega * omega) / omegaD) * decay * sinVal;
 
   return { pos, vel };
@@ -43,47 +44,69 @@ export function FrostedTabBar({
   const router = useRouter();
   const pathname = usePathname();
 
-  // Mode: "auto" plays the exact 12-second SEL = [3, 1, 2, 0] seamless loop;
-  // "interactive" responds to user taps with the exact spring physics.
   const [mode, setMode] = useState<"auto" | "interactive">(initialMode);
   const [activeTab, setActiveTab] = useState<number>(defaultTab);
 
-  // Match active tab to current route when in interactive mode
-  useEffect(() => {
-    if (pathname.startsWith("/marketplace")) setActiveTab(0);
-    else if (pathname.startsWith("/orders")) setActiveTab(1);
-    else if (pathname.startsWith("/messages")) setActiveTab(2);
-    else if (pathname.startsWith("/profile") || pathname.startsWith("/dashboard")) setActiveTab(3);
-  }, [pathname]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [measuredWidth, setMeasuredWidth] = useState<number>(isBottomBar ? 380 : 470);
 
-  // Responsive scale for mobile devices (< 480px)
-  const [scale, setScale] = useState(1);
+  // Responsive width measurement for mobile bottom dock
   useEffect(() => {
-    const handleResize = () => {
+    if (!isBottomBar) {
+      setMeasuredWidth(470);
+      return;
+    }
+
+    const updateWidth = () => {
       if (typeof window !== "undefined") {
-        const screenWidth = window.innerWidth;
-        if (screenWidth < 490) {
-          setScale(Math.max(0.68, Math.min(1, (screenWidth - 20) / 470)));
-        } else {
-          setScale(1);
-        }
+        const screenW = window.innerWidth;
+        // Float dock fits inside screen with margins, capped at 420px
+        const targetW = Math.min(420, Math.max(300, screenW - 24));
+        setMeasuredWidth(targetW);
       }
     };
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
 
-  // Tab definitions: fixed centers on 470px stage
-  const tabPositions = [81, 184, 286, 389];
-  const tabs = [
-    { label: "Market", icon: Compass, href: "/marketplace" },
-    { label: "Orders", icon: Package, href: "/orders" },
-    { label: "Messages", icon: MessageSquare, href: "/messages" },
-    { label: "Profile", icon: User, href: "/profile" },
-  ];
+    updateWidth();
+    window.addEventListener("resize", updateWidth);
+    return () => window.removeEventListener("resize", updateWidth);
+  }, [isBottomBar]);
 
-  // Animation state refs for 60-120fps requestAnimationFrame loop
+  // Tab definitions
+  const tabs = useMemo(
+    () => [
+      { label: "Market", icon: Compass, href: "/marketplace" },
+      { label: "Orders", icon: Package, href: "/orders" },
+      { label: "Messages", icon: MessageSquare, href: "/messages" },
+      { label: "Profile", icon: User, href: "/profile" },
+    ],
+    []
+  );
+
+  // Compute 4 tab centers
+  // In 470px stage mode: tabPositions = [81, 184, 286, 389]
+  // In responsive mobile bottom bar mode: slots are evenly spaced across measuredWidth
+  const tabPositions = useMemo(() => {
+    if (!isBottomBar) {
+      return [81, 184, 286, 389];
+    }
+    const slotW = measuredWidth / 4;
+    return [
+      slotW * 0.5,
+      slotW * 1.5,
+      slotW * 2.5,
+      slotW * 3.5,
+    ];
+  }, [isBottomBar, measuredWidth]);
+
+  const pillBaseWidth = useMemo(() => {
+    if (!isBottomBar) return 86;
+    return Math.max(64, Math.min(92, measuredWidth / 4 - 8));
+  }, [isBottomBar, measuredWidth]);
+
+  const pillBaseHeight = isBottomBar ? 48 : 64;
+  const pillCenterY = isBottomBar ? 32 : 148;
+
+  // Animation state ref
   const animRef = useRef<{
     startTime: number;
     userTap: {
@@ -91,28 +114,59 @@ export function FrostedTabBar({
       toTab: number;
       tapTime: number;
     } | null;
+    isSettled: boolean;
   }>({
     startTime: 0,
     userTap: null,
+    isSettled: false,
   });
 
-  const [renderState, setRenderState] = useState({
-    leftX: 38,
-    rightX: 124,
-    width: 86,
-    height: 64,
-    centerY: 148,
-    sn: 0,
-    glassBlur: 1.5,
-    frostAlpha: 0,
-    activeTabState: defaultTab,
+  const [renderState, setRenderState] = useState(() => {
+    const initX = isBottomBar
+      ? (measuredWidth / 4) * 0.5
+      : 81;
+    const half = (isBottomBar ? Math.max(64, Math.min(92, measuredWidth / 4 - 8)) : 86) / 2;
+    return {
+      leftX: initX - half,
+      rightX: initX + half,
+      width: half * 2,
+      height: pillBaseHeight,
+      centerY: pillCenterY,
+      sn: 0,
+      glassBlur: 1.5,
+      frostAlpha: 0,
+      activeTabState: defaultTab,
+    };
   });
+
+  // Handle route change sync
+  useEffect(() => {
+    let nextTab = 0;
+    if (pathname.startsWith("/marketplace")) nextTab = 0;
+    else if (pathname.startsWith("/orders")) nextTab = 1;
+    else if (pathname.startsWith("/messages")) nextTab = 2;
+    else if (pathname.startsWith("/profile") || pathname.startsWith("/dashboard")) nextTab = 3;
+    else return;
+
+    if (nextTab !== activeTab) {
+      const prev = activeTab;
+      setActiveTab(nextTab);
+      animRef.current.userTap = {
+        fromTab: prev,
+        toTab: nextTab,
+        tapTime: performance.now(),
+      };
+      animRef.current.isSettled = false;
+    }
+  }, [pathname, activeTab]);
 
   const handleTabClick = useCallback(
     (index: number) => {
       if (mode === "auto") {
         setMode("interactive");
       }
+      if (index === activeTab) return;
+
       const prevTab = activeTab;
       setActiveTab(index);
       animRef.current.userTap = {
@@ -120,6 +174,8 @@ export function FrostedTabBar({
         toTab: index,
         tapTime: performance.now(),
       };
+      animRef.current.isSettled = false;
+
       if (onTabSelect) {
         onTabSelect(index);
       } else if (tabs[index]?.href) {
@@ -129,9 +185,11 @@ export function FrostedTabBar({
     [activeTab, mode, onTabSelect, router, tabs]
   );
 
+  // Animation Loop with Idle Sleep Optimization
   useEffect(() => {
     let frameId: number;
     animRef.current.startTime = performance.now();
+    animRef.current.isSettled = false;
 
     const loop = (now: number) => {
       let fromTab = 0;
@@ -139,9 +197,7 @@ export function FrostedTabBar({
       let dt = 0;
 
       if (mode === "auto") {
-        // T = seconds since video start (12s video)
         const T = ((now - animRef.current.startTime) / 1000) % 12;
-        // u = (T + 0.25) mod 4
         const u = (T + 0.25) % 4;
         const k = Math.floor(u);
         dt = u - k;
@@ -157,16 +213,18 @@ export function FrostedTabBar({
         } else {
           fromTab = activeTab;
           toTab = activeTab;
-          dt = 2.0; // Settled
+          dt = 2.0;
         }
       }
 
-      const fromX = tabPositions[fromTab];
-      const toX = tabPositions[toTab];
-      const fromLeft = fromX - 43;
-      const fromRight = fromX + 43;
-      const toLeft = toX - 43;
-      const toRight = toX + 43;
+      const fromX = tabPositions[fromTab] ?? tabPositions[0];
+      const toX = tabPositions[toTab] ?? tabPositions[0];
+      const halfPill = pillBaseWidth / 2;
+
+      const fromLeft = fromX - halfPill;
+      const fromRight = fromX + halfPill;
+      const toLeft = toX - halfPill;
+      const toRight = toX + halfPill;
 
       let rawLeft = toLeft;
       let rawRight = toRight;
@@ -191,28 +249,28 @@ export function FrostedTabBar({
         velRight = rSpring.vel;
       }
 
-      // Constraints:
-      // Left x = max(38, tab x(left position) − 43)
-      // Right x = min(432, tab x(right position) + 43)
-      const leftX = Math.max(38, rawLeft);
-      const rightX = Math.min(432, rawRight);
-      const w = Math.max(10, rightX - leftX);
+      // Constraints
+      const minLeft = isBottomBar ? 4 : 38;
+      const maxRight = isBottomBar ? measuredWidth - 4 : 432;
+      const leftX = Math.max(minLeft, rawLeft);
+      const rightX = Math.min(maxRight, rawRight);
+      const w = Math.max(20, rightX - leftX);
 
-      // s = clamp((w − 86)/86)
-      const s = Math.max(0, Math.min(1, (w - 86) / 86));
+      // Width stretch ratio: s = clamp((w - pillBaseWidth) / pillBaseWidth)
+      const s = Math.max(0, Math.min(1, (w - pillBaseWidth) / pillBaseWidth));
 
-      // height h = 64·(1 − 0.1s)
-      const h = 64 * (1 - 0.1 * s);
-      const centerY = 148;
+      // Height compression: h = pillBaseHeight · (1 - 0.1s)
+      const h = pillBaseHeight * (1 - 0.1 * s);
+      const centerY = pillCenterY;
 
-      // Speed sn = clamp(|average of the two velAt values| / 7)
+      // Speed sn = clamp(|avg velocity| / 7)
       const avgVel = Math.abs((velLeft + velRight) / 2);
       const sn = Math.max(0, Math.min(1, avgVel / 7));
 
-      // glass blur = 1.5 + 6.5·sn
+      // Glass blur = 1.5 + 6.5·sn
       const glassBlur = 1.5 + 6.5 * sn;
 
-      // frost fill: rgba(225,225,245, 0.14·sn)
+      // Frost fill alpha = 0.14·sn
       const frostAlpha = 0.14 * sn;
 
       setRenderState({
@@ -227,36 +285,216 @@ export function FrostedTabBar({
         activeTabState: toTab,
       });
 
+      // IDLE SLEEP CHECK:
+      // If interactive mode and dt > 1.2s, the spring is fully settled.
+      // Cancel RAF loop to eliminate continuous 60-120fps re-renders on mobile.
+      if (mode === "interactive" && dt >= 1.2) {
+        animRef.current.isSettled = true;
+        return;
+      }
+
       frameId = requestAnimationFrame(loop);
     };
 
     frameId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(frameId);
-  }, [mode, activeTab]);
+  }, [mode, activeTab, tabPositions, pillBaseWidth, pillBaseHeight, pillCenterY, measuredWidth, isBottomBar]);
 
+  // =========================================================================
+  // RENDER: MOBILE BOTTOM NAVIGATION BAR MODE (Clean, Compact, Floating Dock)
+  // =========================================================================
+  if (isBottomBar) {
+    return (
+      <nav
+        aria-label="Mobile Navigation"
+        className={`fixed bottom-3 sm:bottom-4 left-0 right-0 z-50 flex justify-center pointer-events-none px-3 select-none pb-[env(safe-area-inset-bottom,0px)] ${className}`}
+      >
+        <div
+          ref={containerRef}
+          style={{ width: `${measuredWidth}px` }}
+          className="relative h-[64px] rounded-full overflow-hidden pointer-events-auto bg-[#13131C]/90 backdrop-blur-2xl border border-white/[0.18] shadow-[0_16px_38px_-10px_rgba(0,0,0,0.65),0_0_0_1px_rgba(255,255,255,0.06),inset_0_1px_1px_rgba(255,255,255,0.25)] transition-all duration-300"
+        >
+          {/* Subtle Ambient Glow inside dock */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(143,132,255,0.18),transparent_70%)] pointer-events-none" />
+
+          {/* 1. LAYER ONE: Moving Frosted Glass Pill Lens (BEHIND Icons) */}
+          <div
+            className="absolute pointer-events-none will-change-transform"
+            style={{
+              left: `${renderState.leftX}px`,
+              top: `${renderState.centerY - renderState.height / 2}px`,
+              width: `${renderState.width}px`,
+              height: `${renderState.height}px`,
+              borderRadius: `${renderState.height / 2}px`,
+              backdropFilter: `blur(${renderState.glassBlur}px)`,
+              WebkitBackdropFilter: `blur(${renderState.glassBlur}px)`,
+              boxShadow: `
+                0 8px 20px -4px rgba(0,0,0,0.5),
+                0 0 1px 1px rgba(255,255,255,0.25) inset,
+                0 2px 4px 0 rgba(255,255,255,0.3) inset
+              `,
+              overflow: "hidden",
+            }}
+          >
+            {/* Horizontal Tint */}
+            <div
+              className="absolute inset-0"
+              style={{
+                background:
+                  "linear-gradient(90deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.22) 50%, rgba(255,255,255,0.08) 100%)",
+              }}
+            />
+            {/* Frost Fill (Speed-dependent: rgba(225,225,245, 0.14·sn)) */}
+            <div
+              className="absolute inset-0"
+              style={{
+                backgroundColor: `rgba(225, 225, 245, ${renderState.frostAlpha})`,
+                transition: "background-color 0.05s ease-out",
+              }}
+            />
+            {/* Vertical Gloss */}
+            <div
+              className="absolute inset-0"
+              style={{
+                background:
+                  "linear-gradient(180deg, rgba(255,255,255,0.40) 0%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0.00) 100%)",
+              }}
+            />
+            {/* Sheen Center */}
+            <div
+              className="absolute inset-0 pointer-events-none opacity-40"
+              style={{
+                background:
+                  "radial-gradient(circle at 50% 30%, rgba(255,255,255,0.45) 0%, transparent 60%)",
+              }}
+            />
+          </div>
+
+          {/* 2. LAYER TWO: Sharp, Crystal-Clear Icons & Text (ON TOP of Lens) */}
+          <div className="absolute inset-0 pointer-events-none flex">
+            {tabs.map((tab, idx) => {
+              const Icon = tab.icon;
+              const isSelected = renderState.activeTabState === idx;
+
+              return (
+                <div
+                  key={tab.label}
+                  className="flex-1 flex flex-col items-center justify-center transition-transform duration-200"
+                >
+                  <Icon
+                    size={20}
+                    strokeWidth={isSelected ? 2.4 : 1.9}
+                    className={`transition-all duration-200 ${
+                      isSelected
+                        ? "text-white scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.85)]"
+                        : "text-[#9491b2]/80 hover:text-white/80"
+                    }`}
+                  />
+                  <span
+                    className={`mt-1 text-[10px] font-semibold tracking-tight transition-all duration-200 ${
+                      isSelected
+                        ? "text-white font-bold opacity-100 drop-shadow-[0_0_6px_rgba(255,255,255,0.5)]"
+                        : "text-[#9491b2] opacity-70"
+                    }`}
+                  >
+                    {tab.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* 3. LAYER THREE: Perfectly Aligned Touch Targets */}
+          <div className="absolute inset-0 flex">
+            {tabs.map((tab, idx) => (
+              <button
+                key={`hitbox-${tab.label}`}
+                type="button"
+                onClick={() => handleTabClick(idx)}
+                className="flex-1 h-full cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 active:opacity-75"
+                aria-label={`Switch to ${tab.label}`}
+              />
+            ))}
+          </div>
+        </div>
+      </nav>
+    );
+  }
+
+  // =========================================================================
+  // RENDER: DESKTOP SHOWCASE STAGE MODE (470×222px Simulation on /tabbar)
+  // =========================================================================
   return (
-    <div
-      className={`relative select-none ${
-        isBottomBar
-          ? "fixed bottom-0 left-0 right-0 z-50 flex flex-col items-center pointer-events-none pb-safe"
-          : "inline-flex flex-col items-center"
-      } ${className}`}
-    >
+    <div className={`relative inline-flex flex-col items-center select-none ${className}`}>
       {/* 470×222px Stage */}
       <div
         className="relative w-[470px] h-[222px] max-w-full overflow-hidden rounded-t-[40px] pointer-events-auto shadow-2xl transition-all"
         style={{
           backgroundColor: "#13131C",
           clipPath: "inset(0 0 0 0 round 40px 40px 0 0)",
-          transform: scale !== 1 ? `scale(${scale})` : undefined,
-          transformOrigin: isBottomBar ? "bottom center" : "center center",
         }}
       >
-        {/* Subtle stage ambient illumination & guide line */}
+        {/* Stage ambient illumination & guide line */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(143,132,255,0.12),transparent_70%)] pointer-events-none" />
         <div className="absolute top-[148px] left-[38px] right-[38px] h-[1px] bg-white/[0.04] pointer-events-none" />
 
-        {/* Fixed Icons Layer (Centers at x = [81, 184, 286, 389], y = 148) */}
+        {/* 1. Frosted Glass Pill (Moving Lens) */}
+        <div
+          className="absolute pointer-events-none transition-none"
+          style={{
+            left: `${renderState.leftX}px`,
+            top: `${renderState.centerY - renderState.height / 2}px`,
+            width: `${renderState.width}px`,
+            height: `${renderState.height}px`,
+            borderRadius: `${renderState.height / 2}px`,
+            backdropFilter: `blur(${renderState.glassBlur}px)`,
+            WebkitBackdropFilter: `blur(${renderState.glassBlur}px)`,
+            boxShadow: `
+              0 10px 25px -5px rgba(0,0,0,0.6),
+              0 0 1px 1px rgba(255,255,255,0.2) inset,
+              0 2px 4px 0 rgba(255,255,255,0.3) inset
+            `,
+            overflow: "hidden",
+          }}
+        >
+          {/* Horizontal Tint */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.16) 50%, rgba(255,255,255,0.06) 100%)",
+            }}
+          />
+
+          {/* Frost fill: rgba(225,225,245, 0.14·sn) */}
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundColor: `rgba(225, 225, 245, ${renderState.frostAlpha})`,
+              transition: "background-color 0.05s ease-out",
+            }}
+          />
+
+          {/* Vertical Gloss */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.00) 100%)",
+            }}
+          />
+
+          {/* Sheen */}
+          <div
+            className="absolute inset-0 pointer-events-none opacity-40"
+            style={{
+              background:
+                "radial-gradient(circle at 50% 30%, rgba(255,255,255,0.4) 0%, transparent 60%)",
+            }}
+          />
+        </div>
+
+        {/* 2. Fixed Icons Layer (Centers at x = [81, 184, 286, 389], y = 148) */}
         <div className="absolute inset-0 pointer-events-none">
           {tabs.map((tab, idx) => {
             const Icon = tab.icon;
@@ -296,65 +534,7 @@ export function FrostedTabBar({
           })}
         </div>
 
-        {/* Frosted Glass Pill (Moving Lens) */}
-        <div
-          className="absolute pointer-events-none transition-none"
-          style={{
-            left: `${renderState.leftX}px`,
-            top: `${renderState.centerY - renderState.height / 2}px`,
-            width: `${renderState.width}px`,
-            height: `${renderState.height}px`,
-            borderRadius: `${renderState.height / 2}px`,
-            // Glass blur = 1.5 + 6.5·sn
-            backdropFilter: `blur(${renderState.glassBlur}px)`,
-            WebkitBackdropFilter: `blur(${renderState.glassBlur}px)`,
-            // Shadow
-            boxShadow: `
-              0 10px 25px -5px rgba(0,0,0,0.6),
-              0 0 1px 1px rgba(255,255,255,0.2) inset,
-              0 2px 4px 0 rgba(255,255,255,0.3) inset
-            `,
-            overflow: "hidden",
-          }}
-        >
-          {/* 1. Horizontal Tint */}
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                "linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.16) 50%, rgba(255,255,255,0.06) 100%)",
-            }}
-          />
-
-          {/* 2. Frost fill: right after horizontal tint and before vertical gloss: rgba(225,225,245, 0.14·sn) */}
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundColor: `rgba(225, 225, 245, ${renderState.frostAlpha})`,
-              transition: "background-color 0.05s ease-out",
-            }}
-          />
-
-          {/* 3. Vertical Gloss */}
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                "linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.00) 100%)",
-            }}
-          />
-
-          {/* Dynamic Lens Center Sheen */}
-          <div
-            className="absolute inset-0 pointer-events-none opacity-40"
-            style={{
-              background:
-                "radial-gradient(circle at 50% 30%, rgba(255,255,255,0.4) 0%, transparent 60%)",
-            }}
-          />
-        </div>
-
-        {/* Clickable Hitboxes for Tabs */}
+        {/* 3. Clickable Hitboxes for Tabs */}
         <div className="absolute inset-0 flex">
           {tabs.map((tab, idx) => (
             <button
