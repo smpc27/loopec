@@ -181,6 +181,22 @@ checks as (
         and roles && array['public', 'anon', 'authenticated']::name[]
     ),
     'no public, anon, or authenticated role can upload directly; server actions use the secret key'
+
+  union all
+  select
+    'Online payment confirmation RPC exists',
+    to_regprocedure('public.confirm_online_payment(uuid,text,text,text)') is not null,
+    'present after 20261111000000_online_payments.sql'
+
+  union all
+  select
+    'Platform feedbacks table exists with RLS',
+    coalesce((
+      select c.relrowsecurity
+      from pg_class c
+      where c.oid = to_regclass('public.platform_feedbacks')
+    ), false),
+    'present after 20261116000000_platform_feedback.sql with RLS enabled'
 )
 select
   check_name,

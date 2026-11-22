@@ -1,11 +1,13 @@
 -- ==============================================================================
--- LOOPEC PILOT: PENDING MIGRATIONS BATCH (Migrations 2 through 5)
+-- LOOPEC PILOT: CONSOLIDATED PENDING MIGRATIONS BATCH (Migrations 2 through 7)
 -- Apply in the Supabase SQL Editor as the project owner.
 -- This applies:
 --   1. 20261109000000_admin_pickup_locations.sql
 --   2. 20261109000001_realtime_messages.sql
 --   3. 20261109000002_action_rate_limits.sql
 --   4. 20261110044017_pilot_security_fixes.sql
+--   5. 20261111000000_online_payments.sql
+--   6. 20261116000000_platform_feedback.sql
 -- ==============================================================================
 
 begin;
@@ -515,5 +517,76 @@ $$;
 
 revoke all on function public.confirm_online_payment(uuid, text, text, text) from public, anon;
 grant execute on function public.confirm_online_payment(uuid, text, text, text) to authenticated;
+
+-- ------------------------------------------------------------------------------
+-- 6. PLATFORM FEEDBACKS & SUGGESTIONS (20261116000000)
+-- ------------------------------------------------------------------------------
+create table if not exists public.platform_feedbacks (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references public.profiles(id) on delete set null,
+  college_id uuid references public.colleges(id) on delete cascade,
+  category text not null check (category in ('feature_request', 'trade_barter', 'giveaway', 'bug', 'general')),
+  rating smallint not null check (rating between 1 and 5),
+  subject text not null check (char_length(subject) between 3 and 160),
+  message text not null check (char_length(message) between 10 and 3000),
+  is_anonymous boolean not null default false,
+  status text not null default 'open' check (status in ('open', 'reviewed', 'resolved')),
+  admin_notes text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists platform_feedbacks_college_idx on public.platform_feedbacks(college_id, created_at desc);
+create index if not exists platform_feedbacks_category_idx on public.platform_feedbacks(category, created_at desc);
+
+alter table public.platform_feedbacks enable row level security;
+
+drop policy if exists "Authenticated members can insert feedback" on public.platform_feedbacks;
+create policy "Authenticated members can insert feedback"
+  on public.platform_feedbacks for insert
+  to authenticated
+  with check (true);
+
+drop policy if exists "Admins can view feedback for their college" on public.platform_feedbacks;
+create policy "Admins can view feedback for their college"
+  on public.platform_feedbacks for select
+  to authenticated
+  using (
+    exists (
+      select 1 from public.profiles
+      where profiles.id = auth.uid()
+        and (profiles.role in ('college_admin', 'super_admin'))
+    )
+  );
+
+-- ------------------------------------------------------------------------------
+-- 7. SEED NIT CALICUT PICKUP LOCATIONS & ENSURE ACTIVE COLLEGE
+-- ------------------------------------------------------------------------------
+insert into public.colleges (id, name, slug, email_domains, is_active)
+values (
+  '35b88dad-65f3-4cd6-b44d-c7d2fda7711a',
+  'National Institute of Technology Calicut',
+  'nit-calicut',
+  array['nitc.ac.in'],
+  true
+)
+on conflict (slug) do update
+set name = excluded.name,
+    email_domains = excluded.email_domains,
+    is_active = true,
+    updated_at = now();
+
+insert into public.pickup_locations (id, college_id, name, address, instructions, sort_order, is_active)
+values
+  ('35b88dad-65f3-4cd6-b44d-c7d2fda7711b', '35b88dad-65f3-4cd6-b44d-c7d2fda7711a', 'Mega Mess 1 & 2 Courtyard', 'Central Dining Complex, NIT Calicut Campus', 'Meet outside main lobby entrance under the roof.', 10, true),
+  ('35b88dad-65f3-4cd6-b44d-c7d2fda7711c', '35b88dad-65f3-4cd6-b44d-c7d2fda7711a', 'Student Activity Centre (SAC)', 'Near Basketball Court, NIT Calicut Campus', 'Meet at the main reception steps.', 20, true),
+  ('35b88dad-65f3-4cd6-b44d-c7d2fda7711d', '35b88dad-65f3-4cd6-b44d-c7d2fda7711a', 'Central Library Entrance', 'Academic Complex, NIT Calicut Campus', 'Meet at the ground floor foyer near turnstiles.', 30, true),
+  ('35b88dad-65f3-4cd6-b44d-c7d2fda7711e', '35b88dad-65f3-4cd6-b44d-c7d2fda7711a', 'MBH (Mega Boys Hostel) Gate', 'Hostel Zone, NIT Calicut Campus', 'Meet at the security checkpoint gate.', 40, true),
+  ('35b88dad-65f3-4cd6-b44d-c7d2fda7711f', '35b88dad-65f3-4cd6-b44d-c7d2fda7711a', 'Ladies Hostel (LH) Gate', 'Ladies Hostel Complex, NIT Calicut Campus', 'Meet at visitor reception area.', 50, true)
+on conflict (id) do update
+set name = excluded.name,
+    address = excluded.address,
+    instructions = excluded.instructions,
+    is_active = true;
 
 commit;

@@ -6,7 +6,7 @@ begin;
 
 do $$
 declare
-  admin_email text := lower(trim('replace-with-confirmed-admin@nitc.ac.in'));
+  admin_email text := lower(trim('sandep_b261175ee@nitc.ac.in'));
   target_college_id uuid;
   college_domains text[];
   admin_user_id uuid;
@@ -19,9 +19,9 @@ begin
     raise exception 'Run this script from the Supabase SQL Editor as the project owner';
   end if;
 
-  if admin_email = 'replace-with-confirmed-admin@nitc.ac.in'
+  if admin_email = ''
      or admin_email !~* '^[^@]+@nitc[.]ac[.]in$' then
-    raise exception 'Replace admin_email with the confirmed NITC college-admin email';
+    raise exception 'Provide a confirmed NITC college-admin email ending in @nitc.ac.in';
   end if;
 
   select c.id, c.email_domains
