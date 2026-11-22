@@ -51,11 +51,8 @@ export function AuthShell({
         /* Split 2-Column College Authentication Layout */
         <div className="mx-auto mt-8 max-w-6xl lg:mt-12">
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10 items-stretch">
-            {/* Left: College Trust & Campus Showcase */}
-            <div className="lg:col-span-5 flex flex-col">{sidebar}</div>
-
-            {/* Right: Authentication Card - Frosted Glass Container */}
-            <div className="lg:col-span-7 flex flex-col justify-center">
+            {/* Right on Desktop, FIRST on Mobile: Authentication Card - Frosted Glass Container */}
+            <div className="order-1 lg:order-2 lg:col-span-7 flex flex-col justify-center">
               <section className="w-full rounded-[32px] border border-[#d0c1ab]/50 bg-white/90 backdrop-blur-2xl p-6 shadow-sm sm:p-10">
                 <div className="flex items-center justify-between">
                   <p className="text-[11px] font-bold uppercase tracking-[.15em] text-[#8e7a63]">
@@ -76,6 +73,9 @@ export function AuthShell({
                 <div className="mt-6 text-center text-sm text-[#736b60]">{footer}</div>
               ) : null}
             </div>
+
+            {/* Left on Desktop, SECOND on Mobile: College Trust & Campus Showcase */}
+            <div className="order-2 lg:order-1 lg:col-span-5 flex flex-col">{sidebar}</div>
           </div>
         </div>
       ) : (

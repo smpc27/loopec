@@ -18,7 +18,7 @@ export function CampusLoader({
     <div
       className={`flex flex-col items-center justify-center transition-all duration-300 ${
         fullScreen
-          ? "fixed inset-0 z-50 bg-[#eee9e2]/85 backdrop-blur-md"
+          ? "fixed inset-0 z-[100] bg-[#eee9e2]/95 backdrop-blur-md"
           : "w-full min-h-[300px] bg-transparent"
       }`}
       aria-live="polite"
@@ -26,7 +26,7 @@ export function CampusLoader({
     >
       {/* Top indeterminate slim progress line */}
       {fullScreen && (
-        <div className="fixed top-0 left-0 right-0 h-[3px] z-[60] overflow-hidden bg-[#d0c1ab]/30">
+        <div className="fixed top-0 left-0 right-0 h-[3px] z-[110] overflow-hidden bg-[#d0c1ab]/30">
           <div className="campus-loader-top-bar h-full w-1/3 rounded-full bg-gradient-to-r from-[#8e7a63] via-[#241e14] to-[#8e7a63]" />
         </div>
       )}
