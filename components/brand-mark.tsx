@@ -21,6 +21,7 @@ export function BrandMark({ compact = false, className = "" }: BrandMarkProps) {
         height={height}
         priority
         className="h-full w-auto object-contain"
+        style={{ width: "auto", height: "auto" }}
       />
     </span>
   );
