@@ -139,17 +139,17 @@ export function SiteHeader({
   ];
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-[#d0c1ab]/40 bg-white/80 backdrop-blur-xl shadow-[0_4px_30px_rgba(36,30,20,0.03)] transition-all">
-      <div className="mx-auto flex min-h-[60px] sm:min-h-[64px] max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-40 w-full border-b border-[#d0c1ab]/40 bg-white/85 backdrop-blur-xl shadow-[0_4px_30px_rgba(36,30,20,0.03)] transition-all pt-[env(safe-area-inset-top,0px)]">
+      <div className="mx-auto flex min-h-[56px] sm:min-h-[64px] max-w-7xl items-center justify-between gap-2.5 sm:gap-3 px-3.5 sm:px-6 lg:px-8">
         {/* Brand / Logo */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Link
             href={isAuthenticated ? "/marketplace" : "/"}
-            className="flex items-center gap-2.5 transition group focus:outline-none"
+            className="flex items-center gap-2 transition group focus:outline-none"
             aria-label="LOOPEC home"
           >
             <BrandMark compact />
-            <span className="text-base font-black tracking-[.14em] text-[#241e14] group-hover:text-[#3e3423] transition-colors">
+            <span className="text-base sm:text-base font-black tracking-[.14em] text-[#241e14] group-hover:text-[#3e3423] transition-colors">
               LOOPEC
             </span>
           </Link>
@@ -211,20 +211,22 @@ export function SiteHeader({
         )}
 
         {/* Right CTA Actions */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3">
           {variant === "marketing" && !isAuthenticated ? (
             <>
               <Link
                 href="/auth/sign-in"
-                className="hidden sm:inline-flex items-center justify-center rounded-full border border-[#d0c1ab] bg-white/70 px-4 py-2 text-xs font-bold text-[#241e14] hover:bg-[#eee9e2] transition shadow-sm"
+                className="inline-flex items-center justify-center rounded-full border border-[#d0c1ab] bg-white/80 px-3 py-1.5 sm:px-4 sm:py-2 text-xs font-bold text-[#241e14] hover:bg-[#eee9e2] transition shadow-xs active:scale-95"
               >
                 Sign in
               </Link>
               <Link
                 href="/auth/sign-up"
-                className="inline-flex items-center justify-center gap-1.5 rounded-full bg-[#241e14] px-4 py-2 text-xs font-bold text-white hover:bg-[#382f20] transition shadow-md shadow-[#241e14]/20"
+                className="inline-flex items-center justify-center gap-1 sm:gap-1.5 rounded-full bg-[#241e14] px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs font-bold text-white hover:bg-[#382f20] transition shadow-md shadow-[#241e14]/20 active:scale-95 whitespace-nowrap"
               >
-                Join campus <ArrowRight size={13} />
+                <span>Join</span>
+                <span className="hidden sm:inline">campus</span>
+                <ArrowRight size={13} />
               </Link>
             </>
           ) : (
@@ -233,7 +235,7 @@ export function SiteHeader({
               <Link
                 href="/listings/new"
                 aria-label="List an item to sell or giveaway"
-                className="inline-flex items-center gap-1.5 rounded-full bg-[#241e14] hover:bg-[#382f20] px-3.5 py-2 text-xs font-bold text-white shadow-md shadow-[#241e14]/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                className="inline-flex items-center gap-1.5 rounded-full bg-[#241e14] hover:bg-[#382f20] px-3.5 py-1.5 sm:py-2 text-xs font-bold text-white shadow-md shadow-[#241e14]/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
                 <Plus size={14} strokeWidth={2.5} />
                 <span className="hidden sm:inline">List an item</span>
@@ -258,7 +260,7 @@ export function SiteHeader({
             onClick={() => setMobileMenuOpen((prev) => !prev)}
             aria-expanded={mobileMenuOpen}
             aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
-            className="grid size-10 place-items-center rounded-full border border-[#d0c1ab]/60 bg-white/80 text-[#241e14] hover:bg-[#eee9e2] hover:border-[#241e14] lg:hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-[#241e14] shadow-sm transition"
+            className="grid size-9 sm:size-10 place-items-center rounded-full border border-[#d0c1ab]/60 bg-white/80 text-[#241e14] hover:bg-[#eee9e2] hover:border-[#241e14] lg:hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-[#241e14] shadow-sm transition active:scale-95"
           >
             {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
@@ -270,7 +272,7 @@ export function SiteHeader({
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 top-[73px] z-40 bg-black/30 backdrop-blur-sm lg:hidden transition-opacity animate-in fade-in"
+            className="fixed inset-0 top-[calc(56px+env(safe-area-inset-top,0px))] sm:top-[calc(64px+env(safe-area-inset-top,0px))] z-40 bg-black/30 backdrop-blur-sm lg:hidden transition-opacity animate-in fade-in"
             aria-hidden="true"
             onClick={() => setMobileMenuOpen(false)}
           />
@@ -278,7 +280,7 @@ export function SiteHeader({
           {/* Drawer Menu Container */}
           <div
             ref={menuRef}
-            className="fixed inset-x-0 top-[73px] z-50 max-h-[calc(100vh-80px)] overflow-y-auto border-b border-[#d0c1ab] bg-white/95 p-5 backdrop-blur-2xl shadow-2xl lg:hidden animate-in slide-in-from-top-4 duration-200"
+            className="fixed inset-x-0 top-[calc(56px+env(safe-area-inset-top,0px))] sm:top-[calc(64px+env(safe-area-inset-top,0px))] z-50 max-h-[calc(100vh-80px)] overflow-y-auto border-b border-[#d0c1ab] bg-white/95 p-5 backdrop-blur-2xl shadow-2xl lg:hidden animate-in slide-in-from-top-4 duration-200"
           >
             {/* Header / Member identity banner */}
             {isAuthenticated ? (
