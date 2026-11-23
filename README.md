@@ -16,7 +16,7 @@ Copy-Item .env.example .env.local
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). The landing page, setup guidance, and offline fallback work without Supabase credentials. Set the Supabase URL and publishable key for account sessions, the canonical site URL for auth callbacks, and the server-only secret key for secure file uploads.
+Open [https://loopec-2w2s-2jugu53s4-the-restarters.vercel.app](https://loopec-2w2s-2jugu53s4-the-restarters.vercel.app). The landing page, setup guidance, and offline fallback work without Supabase credentials. Set the Supabase URL and publishable key for account sessions, the canonical site URL for auth callbacks, and the server-only secret key for secure file uploads.
 
 For a local UI walkthrough before creating a member, `.env.local` may set `LOOPEC_DEV_BYPASS_AUTH=true`. This is honored only by `next dev`, shows clearly marked sample listings, and does not grant access to production or allow account actions. Remove the flag when you want to test real authentication.
 
