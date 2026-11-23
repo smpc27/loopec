@@ -60,7 +60,7 @@ export function FrostedTabBar({
     const updateWidth = () => {
       if (typeof window !== "undefined") {
         const screenW = window.innerWidth;
-        // Float dock fits inside screen with margins, capped at 420px
+        // Floating dock fits inside screen with margins, capped at 420px
         const targetW = Math.min(420, Math.max(300, screenW - 24));
         setMeasuredWidth(targetW);
       }
@@ -100,11 +100,11 @@ export function FrostedTabBar({
 
   const pillBaseWidth = useMemo(() => {
     if (!isBottomBar) return 86;
-    return Math.max(64, Math.min(92, measuredWidth / 4 - 8));
+    return Math.max(66, Math.min(94, measuredWidth / 4 - 8));
   }, [isBottomBar, measuredWidth]);
 
-  const pillBaseHeight = isBottomBar ? 48 : 64;
-  const pillCenterY = isBottomBar ? 32 : 148;
+  const pillBaseHeight = isBottomBar ? 50 : 64;
+  const pillCenterY = isBottomBar ? 33 : 148;
 
   // Animation state ref
   const animRef = useRef<{
@@ -125,7 +125,7 @@ export function FrostedTabBar({
     const initX = isBottomBar
       ? (measuredWidth / 4) * 0.5
       : 81;
-    const half = (isBottomBar ? Math.max(64, Math.min(92, measuredWidth / 4 - 8)) : 86) / 2;
+    const half = (isBottomBar ? Math.max(66, Math.min(94, measuredWidth / 4 - 8)) : 86) / 2;
     return {
       leftX: initX - half,
       rightX: initX + half,
@@ -301,7 +301,8 @@ export function FrostedTabBar({
   }, [mode, activeTab, tabPositions, pillBaseWidth, pillBaseHeight, pillCenterY, measuredWidth, isBottomBar]);
 
   // =========================================================================
-  // RENDER: MOBILE BOTTOM NAVIGATION BAR MODE (Clean, Compact, Floating Dock)
+  // RENDER: MOBILE BOTTOM NAVIGATION BAR MODE (Warm Luxury LOOPEC Glass Theme)
+  // Palette: Linen (#eee9e2), Espresso (#241e14), Sand (#d0c1ab), White Glass
   // =========================================================================
   if (isBottomBar) {
     return (
@@ -312,12 +313,12 @@ export function FrostedTabBar({
         <div
           ref={containerRef}
           style={{ width: `${measuredWidth}px` }}
-          className="relative h-[64px] rounded-full overflow-hidden pointer-events-auto bg-[#13131C]/90 backdrop-blur-2xl border border-white/[0.18] shadow-[0_16px_38px_-10px_rgba(0,0,0,0.65),0_0_0_1px_rgba(255,255,255,0.06),inset_0_1px_1px_rgba(255,255,255,0.25)] transition-all duration-300"
+          className="relative h-[66px] rounded-full overflow-hidden pointer-events-auto bg-white/85 backdrop-blur-2xl border border-[#d0c1ab]/70 shadow-[0_20px_45px_-12px_rgba(36,30,20,0.18),0_0_0_1px_rgba(255,255,255,0.85),inset_0_1px_2px_rgba(255,255,255,0.95)] transition-all duration-300"
         >
-          {/* Subtle Ambient Glow inside dock */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(143,132,255,0.18),transparent_70%)] pointer-events-none" />
+          {/* Subtle Ambient Sand Glow inside dock */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(208,193,171,0.30),transparent_70%)] pointer-events-none" />
 
-          {/* 1. LAYER ONE: Moving Frosted Glass Pill Lens (BEHIND Icons) */}
+          {/* 1. LAYER ONE: Moving Active Pill Lens (Deep Espresso & Warm Gold Glow) */}
           <div
             className="absolute pointer-events-none will-change-transform"
             style={{
@@ -326,51 +327,43 @@ export function FrostedTabBar({
               width: `${renderState.width}px`,
               height: `${renderState.height}px`,
               borderRadius: `${renderState.height / 2}px`,
-              backdropFilter: `blur(${renderState.glassBlur}px)`,
-              WebkitBackdropFilter: `blur(${renderState.glassBlur}px)`,
+              background: "linear-gradient(135deg, #241e14 0%, #352c1f 100%)",
+              border: "1px solid rgba(208, 193, 171, 0.65)",
               boxShadow: `
-                0 8px 20px -4px rgba(0,0,0,0.5),
-                0 0 1px 1px rgba(255,255,255,0.25) inset,
-                0 2px 4px 0 rgba(255,255,255,0.3) inset
+                0 8px 22px -4px rgba(36, 30, 20, 0.35),
+                0 0 0 1px rgba(36, 30, 20, 0.15),
+                inset 0 1px 1px 0 rgba(255, 255, 255, 0.3)
               `,
               overflow: "hidden",
             }}
           >
-            {/* Horizontal Tint */}
+            {/* Speed-dependent Sand Gold Sheen */}
             <div
               className="absolute inset-0"
               style={{
-                background:
-                  "linear-gradient(90deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.22) 50%, rgba(255,255,255,0.08) 100%)",
-              }}
-            />
-            {/* Frost Fill (Speed-dependent: rgba(225,225,245, 0.14·sn)) */}
-            <div
-              className="absolute inset-0"
-              style={{
-                backgroundColor: `rgba(225, 225, 245, ${renderState.frostAlpha})`,
+                backgroundColor: `rgba(208, 193, 171, ${renderState.frostAlpha * 1.5})`,
                 transition: "background-color 0.05s ease-out",
               }}
             />
-            {/* Vertical Gloss */}
+            {/* Top Vertical Light Gloss */}
             <div
               className="absolute inset-0"
               style={{
                 background:
-                  "linear-gradient(180deg, rgba(255,255,255,0.40) 0%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0.00) 100%)",
+                  "linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.05) 50%, transparent 100%)",
               }}
             />
-            {/* Sheen Center */}
+            {/* Center Radial Highlight */}
             <div
-              className="absolute inset-0 pointer-events-none opacity-40"
+              className="absolute inset-0 pointer-events-none opacity-30"
               style={{
                 background:
-                  "radial-gradient(circle at 50% 30%, rgba(255,255,255,0.45) 0%, transparent 60%)",
+                  "radial-gradient(circle at 50% 25%, rgba(255,255,255,0.5) 0%, transparent 60%)",
               }}
             />
           </div>
 
-          {/* 2. LAYER TWO: Sharp, Crystal-Clear Icons & Text (ON TOP of Lens) */}
+          {/* 2. LAYER TWO: Sharp, Themed Icons & Text (ON TOP of Lens) */}
           <div className="absolute inset-0 pointer-events-none flex">
             {tabs.map((tab, idx) => {
               const Icon = tab.icon;
@@ -386,19 +379,23 @@ export function FrostedTabBar({
                     strokeWidth={isSelected ? 2.4 : 1.9}
                     className={`transition-all duration-200 ${
                       isSelected
-                        ? "text-white scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.85)]"
-                        : "text-[#9491b2]/80 hover:text-white/80"
+                        ? "text-white scale-110 drop-shadow-[0_2px_6px_rgba(0,0,0,0.35)]"
+                        : "text-[#6e6659] hover:text-[#241e14]"
                     }`}
                   />
                   <span
-                    className={`mt-1 text-[10px] font-semibold tracking-tight transition-all duration-200 ${
+                    className={`mt-1 text-[10px] tracking-tight transition-all duration-200 ${
                       isSelected
-                        ? "text-white font-bold opacity-100 drop-shadow-[0_0_6px_rgba(255,255,255,0.5)]"
-                        : "text-[#9491b2] opacity-70"
+                        ? "text-white font-bold drop-shadow-[0_1px_3px_rgba(0,0,0,0.4)]"
+                        : "text-[#6e6659] font-medium"
                     }`}
                   >
                     {tab.label}
                   </span>
+                  {/* Subtle active accent indicator */}
+                  {isSelected && (
+                    <span className="mt-0.5 size-1 rounded-full bg-[#d0c1ab] shadow-xs" />
+                  )}
                 </div>
               );
             })}
@@ -411,7 +408,7 @@ export function FrostedTabBar({
                 key={`hitbox-${tab.label}`}
                 type="button"
                 onClick={() => handleTabClick(idx)}
-                className="flex-1 h-full cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 active:opacity-75"
+                className="flex-1 h-full cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#241e14]/40 active:opacity-75"
                 aria-label={`Switch to ${tab.label}`}
               />
             ))}
@@ -422,7 +419,7 @@ export function FrostedTabBar({
   }
 
   // =========================================================================
-  // RENDER: DESKTOP SHOWCASE STAGE MODE (470×222px Simulation on /tabbar)
+  // RENDER: DESKTOP SHOWCASE STAGE MODE (470×222px Warm LOOPEC Stage on /tabbar)
   // =========================================================================
   return (
     <div className={`relative inline-flex flex-col items-center select-none ${className}`}>
@@ -430,13 +427,13 @@ export function FrostedTabBar({
       <div
         className="relative w-[470px] h-[222px] max-w-full overflow-hidden rounded-t-[40px] pointer-events-auto shadow-2xl transition-all"
         style={{
-          backgroundColor: "#13131C",
+          backgroundColor: "#1e1912",
           clipPath: "inset(0 0 0 0 round 40px 40px 0 0)",
         }}
       >
-        {/* Stage ambient illumination & guide line */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(143,132,255,0.12),transparent_70%)] pointer-events-none" />
-        <div className="absolute top-[148px] left-[38px] right-[38px] h-[1px] bg-white/[0.04] pointer-events-none" />
+        {/* Stage ambient illumination & guide line in Sand Gold */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(208,193,171,0.18),transparent_70%)] pointer-events-none" />
+        <div className="absolute top-[148px] left-[38px] right-[38px] h-[1px] bg-[#d0c1ab]/15 pointer-events-none" />
 
         {/* 1. Frosted Glass Pill (Moving Lens) */}
         <div
@@ -447,12 +444,13 @@ export function FrostedTabBar({
             width: `${renderState.width}px`,
             height: `${renderState.height}px`,
             borderRadius: `${renderState.height / 2}px`,
+            background: "linear-gradient(135deg, rgba(208,193,171,0.25) 0%, rgba(208,193,171,0.10) 100%)",
             backdropFilter: `blur(${renderState.glassBlur}px)`,
             WebkitBackdropFilter: `blur(${renderState.glassBlur}px)`,
             boxShadow: `
               0 10px 25px -5px rgba(0,0,0,0.6),
-              0 0 1px 1px rgba(255,255,255,0.2) inset,
-              0 2px 4px 0 rgba(255,255,255,0.3) inset
+              0 0 1px 1px rgba(208,193,171,0.3) inset,
+              0 2px 4px 0 rgba(255,255,255,0.2) inset
             `,
             overflow: "hidden",
           }}
@@ -462,15 +460,15 @@ export function FrostedTabBar({
             className="absolute inset-0"
             style={{
               background:
-                "linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.16) 50%, rgba(255,255,255,0.06) 100%)",
+                "linear-gradient(90deg, rgba(208,193,171,0.08) 0%, rgba(208,193,171,0.20) 50%, rgba(208,193,171,0.08) 100%)",
             }}
           />
 
-          {/* Frost fill: rgba(225,225,245, 0.14·sn) */}
+          {/* Sand frost fill */}
           <div
             className="absolute inset-0"
             style={{
-              backgroundColor: `rgba(225, 225, 245, ${renderState.frostAlpha})`,
+              backgroundColor: `rgba(208, 193, 171, ${renderState.frostAlpha * 1.5})`,
               transition: "background-color 0.05s ease-out",
             }}
           />
@@ -480,7 +478,7 @@ export function FrostedTabBar({
             className="absolute inset-0"
             style={{
               background:
-                "linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.00) 100%)",
+                "linear-gradient(180deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.05) 50%, transparent 100%)",
             }}
           />
 
@@ -518,13 +516,13 @@ export function FrostedTabBar({
                   strokeWidth={isSelected ? 2.5 : 2}
                   className={`transition-all duration-200 ${
                     isSelected
-                      ? "text-white scale-110 drop-shadow-[0_0_12px_rgba(255,255,255,0.7)]"
-                      : "text-[#7a789c]/80 hover:text-white/90"
+                      ? "text-[#eee9e2] scale-110 drop-shadow-[0_0_12px_rgba(208,193,171,0.6)]"
+                      : "text-[#8e7a63] hover:text-[#eee9e2]"
                   }`}
                 />
                 <span
                   className={`mt-1 text-[10px] font-semibold tracking-tight transition-opacity ${
-                    isSelected ? "text-white opacity-100" : "text-[#7a789c] opacity-60"
+                    isSelected ? "text-[#eee9e2] opacity-100 font-bold" : "text-[#8e7a63] opacity-70"
                   }`}
                 >
                   {tab.label}
@@ -541,17 +539,17 @@ export function FrostedTabBar({
               key={`hitbox-${tab.label}`}
               type="button"
               onClick={() => handleTabClick(idx)}
-              className="flex-1 h-full cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+              className="flex-1 h-full cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d0c1ab]/40"
               aria-label={`Switch to ${tab.label}`}
             />
           ))}
         </div>
 
         {/* Stage Header Info / Controls */}
-        <div className="absolute top-4 left-6 right-6 flex items-center justify-between text-xs text-[#7a789c] pointer-events-none">
+        <div className="absolute top-4 left-6 right-6 flex items-center justify-between text-xs text-[#8e7a63] pointer-events-none">
           <div className="flex items-center gap-2">
-            <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="font-mono text-[11px] tracking-wide text-white/90">
+            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="font-mono text-[11px] tracking-wide text-[#eee9e2]">
               LOOPEC Frosted Tab Bar
             </span>
           </div>
@@ -560,7 +558,7 @@ export function FrostedTabBar({
             <button
               type="button"
               onClick={() => setMode(mode === "auto" ? "interactive" : "auto")}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white font-mono text-[10px] transition-colors"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/15 text-[#eee9e2] font-mono text-[10px] border border-[#d0c1ab]/20 transition-colors"
             >
               {mode === "auto" ? (
                 <>
@@ -576,7 +574,7 @@ export function FrostedTabBar({
         </div>
 
         {/* Speed & Blur Status Readout */}
-        <div className="absolute bottom-2 left-6 right-6 flex justify-between text-[9px] font-mono text-[#57557A] pointer-events-none">
+        <div className="absolute bottom-2 left-6 right-6 flex justify-between text-[9px] font-mono text-[#8e7a63] pointer-events-none">
           <span>sn: {renderState.sn.toFixed(3)}</span>
           <span>blur: {renderState.glassBlur.toFixed(2)}px</span>
           <span>w: {Math.round(renderState.width)}px</span>
