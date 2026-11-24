@@ -24,9 +24,8 @@ export function AuthShell({
     <main className="min-h-screen bg-transparent px-5 py-6 sm:px-8 sm:py-10">
       {/* Top Header - Glass Bar */}
       <div className="mx-auto flex max-w-6xl items-center justify-between rounded-full border border-[#d0c1ab]/50 bg-white/85 backdrop-blur-xl px-5 py-3 shadow-xs">
-        <Link className="flex items-center gap-2.5" href="/" aria-label="LOOPEC home">
+        <Link className="flex items-center" href="/" aria-label="LOOPEC home">
           <BrandMark />
-          <span className="text-sm font-extrabold tracking-[.14em] text-[#241e14]">LOOPEC</span>
         </Link>
 
         <div className="flex items-center gap-3">

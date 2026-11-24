@@ -140,18 +140,15 @@ export function SiteHeader({
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-[#d0c1ab]/40 bg-white/85 backdrop-blur-xl shadow-[0_4px_30px_rgba(36,30,20,0.03)] transition-all pt-[env(safe-area-inset-top,0px)]">
-      <div className="mx-auto flex min-h-[56px] sm:min-h-[64px] max-w-7xl items-center justify-between gap-2.5 sm:gap-3 px-3.5 sm:px-6 lg:px-8">
+      <div className="mx-auto flex min-h-[58px] sm:min-h-[64px] max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
         {/* Brand / Logo */}
         <div className="flex items-center gap-2 sm:gap-3">
           <Link
             href={isAuthenticated ? "/marketplace" : "/"}
-            className="flex items-center gap-2 transition group focus:outline-none"
+            className="flex items-center transition group focus:outline-none py-1"
             aria-label="LOOPEC home"
           >
             <BrandMark compact />
-            <span className="text-base sm:text-base font-black tracking-[.14em] text-[#241e14] group-hover:text-[#3e3423] transition-colors">
-              LOOPEC
-            </span>
           </Link>
 
           {sectionTitle ? (

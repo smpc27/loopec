@@ -33,7 +33,11 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="loopec-2w2s.vercel.app" android:pathPrefix="/auth" />
-                <data android:scheme="https" android:host="loopec-2w2s-the-restarters.vercel.app" android:pathPrefix="/auth" />
+                <data
+                    android:scheme="https"
+                    android:host="loopec-2w2s-the-restarters.vercel.app"
+                    android:pathPrefix="/auth"
+                />
                 <data android:scheme="https" android:host="loopec.in" android:pathPrefix="/auth" />
                 <data android:scheme="https" android:host="www.loopec.in" android:pathPrefix="/auth" />
             </intent-filter>

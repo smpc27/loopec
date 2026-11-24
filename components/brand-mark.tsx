@@ -1,27 +1,24 @@
-import Image from "next/image";
-
 type BrandMarkProps = {
   compact?: boolean;
   className?: string;
 };
 
 export function BrandMark({ compact = false, className = "" }: BrandMarkProps) {
-  const height = compact ? 22 : 30;
+  const height = compact ? 26 : 32;
   const width = Math.round(height * (676 / 316));
 
   return (
     <span
-      className={`brand-mark${compact ? " brand-mark-compact" : ""} ${className}`.trim()}
+      className={`inline-flex items-center brand-mark${compact ? " brand-mark-compact" : ""} ${className}`.trim()}
       aria-hidden="true"
     >
-      <Image
+      <img
         src="/logo.png"
-        alt="LOOPEC Logo"
+        alt="LOOPEC"
         width={width}
         height={height}
-        priority
-        className="h-full w-auto object-contain"
-        style={{ width: "auto", height: "auto" }}
+        className="h-full w-auto object-contain select-none"
+        style={{ width: "auto", height: `${height}px` }}
       />
     </span>
   );

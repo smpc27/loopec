@@ -42,9 +42,8 @@ export default async function NewListingPage({
       <header className="sticky top-0 z-40 border-b border-[#d0c1ab]/40 bg-white/80 backdrop-blur-xl shadow-[0_4px_30px_rgba(36,30,20,0.03)]">
         <div className="mx-auto flex min-h-[60px] sm:min-h-[64px] max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
-            <Link className="flex items-center gap-2.5" href="/" aria-label="LOOPEC home">
+            <Link className="flex items-center" href="/" aria-label="LOOPEC home">
               <BrandMark compact />
-              <span className="text-base font-black tracking-[.14em] text-[#241e14]">LOOPEC</span>
             </Link>
             <span className="hidden sm:inline-block h-4 w-px bg-[#d0c1ab]/50" />
             <div className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-[#d0c1ab]/60 bg-[#eee9e2] px-2.5 py-1 text-[11px] font-semibold text-[#5f574d] shadow-sm">

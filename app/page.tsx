@@ -251,7 +251,6 @@ export default async function Home({
       <footer className="site-footer page-shell">
         <Link className="brand footer-brand" href="/" aria-label="LOOPEC home">
           <BrandMark compact />
-          <span className="brand-wordmark">LOOPEC</span>
         </Link>
         <span className="footer-credit">A CiGaRa Technologies product · CiGaRa Group</span>
         <nav className="flex gap-4 text-xs font-semibold text-[#736b60]" aria-label="Policies">

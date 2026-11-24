@@ -17,9 +17,8 @@ export function PublicPage({
     <main className="min-h-screen bg-[#f7f6f4] text-[#302b37]">
       <header className="border-b border-[#e8e5e2] bg-white/90">
         <div className="mx-auto flex min-h-[60px] sm:min-h-[64px] max-w-6xl items-center justify-between px-4 sm:px-6">
-          <Link className="inline-flex items-center gap-2.5" href="/" aria-label="LOOPEC home">
+          <Link className="inline-flex items-center" href="/" aria-label="LOOPEC home">
             <BrandMark compact />
-            <span className="text-sm font-extrabold tracking-[.14em] text-[#302546]">LOOPEC</span>
           </Link>
           <nav aria-label="Public navigation" className="flex items-center gap-4 text-xs font-semibold text-[#716b77] sm:gap-6">
             <Link className="hover:text-violet-900" href="/marketplace">Marketplace</Link>
