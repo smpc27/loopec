@@ -110,6 +110,7 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
   const requestedSort = first(params.sort);
   const sort = requestedSort === "price_low" || requestedSort === "price_high" ? requestedSort : "recent";
   const listingType = first(params.type) || "all";
+  const submitted = Boolean(first(params.submitted));
   const previewMode = process.env.NODE_ENV === "development" && process.env.LOOPEC_DEV_BYPASS_AUTH === "true";
   const { supabase, userId, profile } = await requireApprovedMember();
 
@@ -213,6 +214,26 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
           </div>
           {pickupName ? <p className="rounded-full border border-white/80 bg-white/75 backdrop-blur-md px-4 py-2 text-xs text-[#241e14] shadow-sm">Campus pickup · <b className="text-[#241e14] font-bold">{pickupName}</b></p> : null}
         </div>
+
+        {submitted ? (
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-300 bg-emerald-50/95 p-4 shadow-sm backdrop-blur-md text-emerald-950 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="flex items-center gap-3">
+              <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-emerald-600 text-white font-black text-sm shadow-xs">
+                ✓
+              </span>
+              <div>
+                <p className="font-bold text-sm leading-tight text-emerald-950">Your listing is live on the campus loop!</p>
+                <p className="text-xs text-emerald-800 mt-0.5">Verified members across your campus can now discover and purchase it.</p>
+              </div>
+            </div>
+            <Link
+              href="/listings"
+              className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-white/90 px-3.5 py-1.5 text-xs font-bold text-emerald-900 hover:bg-emerald-100 hover:text-emerald-950 transition shadow-xs"
+            >
+              Manage in Studio →
+            </Link>
+          </div>
+        ) : null}
 
         {/* Ultra-Modern Glass Category Chips, Filter Tabs & Search Dock */}
         <div className="mt-5 relative z-30">

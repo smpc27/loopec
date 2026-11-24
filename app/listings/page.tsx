@@ -55,7 +55,7 @@ export default async function MyListingsPage({ searchParams }: PageProps<"/listi
         </div>
         <div className="mt-6 space-y-4">
           {errorCode ? <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">{authMessage(errorCode)}</p> : null}
-          {params.submitted ? <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Your listing is in the moderation queue.</p> : null}
+          {params.submitted ? <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Your listing is now live on the campus marketplace!</p> : null}
           {params.deleted ? <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Draft listing deleted.</p> : null}
           {params.withdrawn ? <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">The live listing was removed from the marketplace. Its order history is kept.</p> : null}
           {listings.length ? (

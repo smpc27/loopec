@@ -45,13 +45,15 @@ export function CampusLoader({
           <div className="absolute inset-1.5 rounded-full border-2 border-transparent border-t-[#241e14] border-r-[#8e7a63] animate-[spin_1.8s_cubic-bezier(0.4,0,0.2,1)_infinite]" />
 
           {/* Center Brand Emblem - Pure authentic LOOPEC logo in true colors */}
-          <div className="relative size-16 rounded-2xl bg-white border border-[#d0c1ab] flex items-center justify-center shadow-sm p-2.5 transition-transform animate-[pulse_2.4s_ease-in-out_infinite]">
+          <div className="relative size-16 rounded-2xl bg-white border border-[#d0c1ab] flex items-center justify-center shadow-sm p-2 transition-transform animate-[pulse_2.4s_ease-in-out_infinite]">
             <img
               src="/logo.png"
               alt="LOOPEC"
               width={64}
               height={32}
-              className="h-7 w-auto object-contain select-none"
+              loading="eager"
+              decoding="sync"
+              className="h-8 w-auto object-contain select-none"
             />
           </div>
         </div>

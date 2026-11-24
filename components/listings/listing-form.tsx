@@ -430,7 +430,7 @@ export function ListingForm({
                 <span className="text-[10px] font-bold uppercase tracking-[.16em] text-[#8e7a63]">
                   Step 4
                 </span>
-                <h2 className="mt-1 text-lg font-bold text-[#241e14]">Photos (1–5 photos) *</h2>
+                <h2 className="mt-1 text-lg font-bold text-[#241e14]">Photos (Optional, up to 5 photos)</h2>
               </div>
               <span className="text-xs text-[#736b60]">JPG, PNG, or WebP</span>
             </div>
@@ -442,7 +442,6 @@ export function ListingForm({
               type="file"
               accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
               multiple
-              required={imagePreviews.length === 0}
               onChange={handleImageChange}
               className="sr-only"
             />
