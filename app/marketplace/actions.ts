@@ -30,6 +30,26 @@ export async function toggleWishlist(formData: FormData) {
   redirect(returnTo);
 }
 
+export async function toggleWishlistDirect(productId: string) {
+  const parsed = z.uuid().safeParse(productId);
+  if (!parsed.success) return { success: false, saved: false };
+  const { supabase, userId } = await requireApprovedMember();
+  const { data: existing } = await supabase
+    .from("wishlists")
+    .select("product_id")
+    .eq("user_id", userId)
+    .eq("product_id", parsed.data)
+    .maybeSingle();
+
+  if (existing) {
+    await supabase.from("wishlists").delete().eq("user_id", userId).eq("product_id", parsed.data);
+    return { success: true, saved: false };
+  } else {
+    await supabase.from("wishlists").insert({ user_id: userId, product_id: parsed.data });
+    return { success: true, saved: true };
+  }
+}
+
 export async function addToCart(formData: FormData) {
   const productId = z.uuid().safeParse(formData.get("product_id"));
   if (!productId.success) redirect("/marketplace");

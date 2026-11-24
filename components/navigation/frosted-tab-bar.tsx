@@ -179,7 +179,7 @@ export function FrostedTabBar({
       if (onTabSelect) {
         onTabSelect(index);
       } else if (tabs[index]?.href) {
-        router.push(tabs[index].href);
+        router.push(tabs[index].href, { scroll: false });
       }
     },
     [activeTab, mode, onTabSelect, router, tabs]

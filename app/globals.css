@@ -42,6 +42,15 @@ a { text-decoration: none; }
 button, a { -webkit-tap-highlight-color: transparent; }
 ::selection { background: #d0c1ab; color: #241e14; }
 
+@keyframes loading-sweep {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(100%); }
+  100% { transform: translateX(350%); }
+}
+.animate-loading-sweep {
+  animation: loading-sweep 1.2s ease-in-out infinite;
+}
+
 /* ==========================================================================
    GLASSMORPHISM DESIGN SYSTEM (Glass Model)
    ========================================================================== */

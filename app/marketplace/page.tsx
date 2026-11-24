@@ -100,6 +100,9 @@ function marketplaceDataHelp(code?: string) {
   return "The app could not read marketplace data from Supabase. Check the project URL, Data API, migrations, and public schema settings.";
 }
 
+// In-memory cache for storage signed URLs to avoid repeating expensive crypto signing over HTTP on every request
+const signedUrlCache = new Map<string, { url: string; expiresAt: number }>();
+
 export default async function MarketplacePage({ searchParams }: PageProps<"/marketplace">) {
   await connection();
   const params = await searchParams;
@@ -114,15 +117,7 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
   const previewMode = process.env.NODE_ENV === "development" && process.env.LOOPEC_DEV_BYPASS_AUTH === "true";
   const { supabase, userId, profile } = await requireApprovedMember();
 
-  const [{ data: categoriesData }, { data: pickupData }, { count: unreadCount }] = await Promise.all([
-    previewMode ? Promise.resolve({ data: previewCategories }) : supabase.from("categories").select("id, name, slug").eq("is_active", true).order("sort_order"),
-    previewMode ? Promise.resolve({ data: [{ name: "NIT Calicut" }] }) : profile.college_id
-      ? supabase.from("pickup_locations").select("id, name").eq("college_id", profile.college_id).eq("is_active", true).order("sort_order").limit(1)
-      : Promise.resolve({ data: [] }),
-    previewMode ? Promise.resolve({ count: 0 }) : supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", userId).is("read_at", null),
-  ]);
-  const categories = (categoriesData ?? []) as Category[];
-
+  // Prepare product query in parallel with categories, pickup and unread count
   let query = supabase
     .from("products")
     .select("id, seller_id, category_id, name, description, price, item_condition, quantity, is_featured, published_at")
@@ -131,7 +126,7 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
     .gt("quantity", 0)
     .limit(60);
   if (search) query = query.textSearch("search_vector", search, { type: "plain", config: "simple" });
-  if (categoryId && categories.some((category) => category.id === categoryId)) query = query.eq("category_id", categoryId);
+  if (categoryId) query = query.eq("category_id", categoryId);
   if (minPrice !== null) query = query.gte("price", minPrice);
   if (maxPrice !== null) query = query.lte("price", maxPrice);
   if (sort === "price_low") {
@@ -142,9 +137,24 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
     query = query.order("is_featured", { ascending: false }).order("published_at", { ascending: false, nullsFirst: false });
   }
 
-  const { data: productData, error: productsError } = previewMode
-    ? { data: filterPreviewProducts({ search, categoryId, minPrice, maxPrice, sort, categories, listingType }), error: null }
-    : await query;
+  // Execute all 4 primary data sources concurrently in a single network round-trip
+  const [
+    { data: categoriesData },
+    { data: pickupData },
+    { count: unreadCount },
+    productResult,
+  ] = await Promise.all([
+    previewMode ? Promise.resolve({ data: previewCategories }) : supabase.from("categories").select("id, name, slug").eq("is_active", true).order("sort_order"),
+    previewMode ? Promise.resolve({ data: [{ name: "NIT Calicut" }] }) : profile.college_id
+      ? supabase.from("pickup_locations").select("id, name").eq("college_id", profile.college_id).eq("is_active", true).order("sort_order").limit(1)
+      : Promise.resolve({ data: [] }),
+    previewMode ? Promise.resolve({ count: 0 }) : supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", userId).is("read_at", null),
+    previewMode
+      ? Promise.resolve({ data: filterPreviewProducts({ search, categoryId, minPrice, maxPrice, sort, categories: previewCategories, listingType }), error: null })
+      : query,
+  ]);
+  const categories = (categoriesData ?? []) as Category[];
+  const { data: productData, error: productsError } = productResult;
   const rawProducts = (productData ?? []) as ProductRow[];
   const products = rawProducts.filter((p) => {
     const isGiveaway = Number(p.price) === 0 || p.description?.includes("[GIVEAWAY]");
@@ -169,14 +179,34 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
   const firstImageByProduct = new Map<string, string>();
   for (const image of images) if (!firstImageByProduct.has(image.product_id)) firstImageByProduct.set(image.product_id, image.storage_path);
   const pathByProduct = products.map((product) => firstImageByProduct.get(product.id)).filter((path): path is string => Boolean(path));
+  
+  // Ultra-fast in-memory cache for storage signed URLs to eliminate slow HTTP signing
   const imageUrls = new Map<string, string>();
-  if (pathByProduct.length > 0) {
+  const pathsToSign: string[] = [];
+  const now = Date.now();
+
+  for (const path of pathByProduct) {
+    const cached = signedUrlCache.get(path);
+    if (cached && cached.expiresAt > now + 60000) {
+      imageUrls.set(path, cached.url);
+    } else {
+      pathsToSign.push(path);
+    }
+  }
+
+  if (pathsToSign.length > 0) {
     const { data: signedUrls } = await supabase.storage
       .from("product-images")
-      .createSignedUrls(pathByProduct, 15 * 60);
+      .createSignedUrls(pathsToSign, 3600);
     if (signedUrls) {
       for (const item of signedUrls) {
-        if (item.signedUrl && item.path) imageUrls.set(item.path, item.signedUrl);
+        if (item.signedUrl && item.path) {
+          imageUrls.set(item.path, item.signedUrl);
+          signedUrlCache.set(item.path, {
+            url: item.signedUrl,
+            expiresAt: now + 3500 * 1000,
+          });
+        }
       }
     }
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Search,
@@ -20,6 +20,7 @@ import {
   Gift,
   ArrowUpDown,
   Layers,
+  Loader2,
 } from "lucide-react";
 
 type Category = { id: string; name: string; slug?: string };
@@ -54,6 +55,7 @@ export function MarketplaceFilterDock({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
 
   const [search, setSearch] = useState(initialSearch);
   const [selectedCategory, setSelectedCategory] = useState(initialCategoryId);
@@ -107,7 +109,9 @@ export function MarketplaceFilterDock({
     if (finalType && finalType !== "all") p.set("type", finalType);
 
     const qs = p.toString();
-    router.push(`/marketplace${qs ? `?${qs}` : ""}`);
+    startTransition(() => {
+      router.push(`/marketplace${qs ? `?${qs}` : ""}`, { scroll: false });
+    });
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -158,13 +162,13 @@ export function MarketplaceFilterDock({
   return (
     <div className="relative z-30 space-y-3">
       {/* 1. VISUAL CATEGORY PILLS BAR (AIRBNB / APPLE STYLE) */}
-      <div className="overflow-x-auto pb-0.5 scrollbar-none -mx-2 px-2">
+      <div className="flex items-center justify-between gap-2 overflow-x-auto pb-0.5 scrollbar-none -mx-2 px-2">
         <div className="flex items-center gap-1.5 sm:gap-2 min-w-max">
           {/* All Categories Chip */}
           <button
             type="button"
             onClick={() => selectCategory("")}
-            className={`flex items-center gap-2 rounded-2xl px-3.5 py-2 text-xs font-bold transition-all duration-200 cursor-pointer ${
+            className={`flex items-center gap-2 rounded-2xl px-3.5 py-2 text-xs font-bold transition-all duration-200 active:scale-95 cursor-pointer ${
               !selectedCategory
                 ? "bg-[#241e14] text-white shadow-md shadow-[#241e14]/20 ring-2 ring-[#d0c1ab]"
                 : "border border-white/80 bg-white/75 backdrop-blur-md text-[#241e14]/80 hover:bg-white hover:border-[#d0c1ab] shadow-sm"
@@ -184,7 +188,7 @@ export function MarketplaceFilterDock({
                 key={cat.id}
                 type="button"
                 onClick={() => selectCategory(cat.id)}
-                className={`flex items-center gap-2 rounded-2xl px-3.5 py-2 text-xs font-bold transition-all duration-200 cursor-pointer ${
+                className={`flex items-center gap-2 rounded-2xl px-3.5 py-2 text-xs font-bold transition-all duration-200 active:scale-95 cursor-pointer ${
                   isSelected
                     ? "bg-[#241e14] text-white shadow-md shadow-[#241e14]/20 ring-2 ring-[#d0c1ab]"
                     : "border border-white/80 bg-white/75 backdrop-blur-md text-[#241e14]/80 hover:bg-white hover:border-[#d0c1ab] shadow-sm"
@@ -196,6 +200,14 @@ export function MarketplaceFilterDock({
             );
           })}
         </div>
+
+        {/* Live Filter Update Indicator */}
+        {isPending ? (
+          <span className="shrink-0 inline-flex items-center gap-1.5 text-[11px] font-bold text-[#241e14] bg-white/85 backdrop-blur-md border border-[#d0c1ab]/50 rounded-full px-3 py-1 shadow-xs animate-in fade-in duration-150">
+            <Loader2 size={12} className="animate-spin text-[#8e7a63]" />
+            <span>Updating...</span>
+          </span>
+        ) : null}
       </div>
 
       {/* 2. LISTING TYPE TABS (All Items / For Sale / Trade / Free Giveaways) */}
@@ -281,8 +293,21 @@ export function MarketplaceFilterDock({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search textbooks, calculators, drafters, cycles..."
-            className="h-11 w-full rounded-2xl bg-white/80 border border-[#d0c1ab]/50 pl-10 pr-4 text-xs sm:text-sm text-[#241e14] outline-none placeholder:text-[#8a8175] transition focus:bg-white focus:border-[#241e14] focus:ring-4 focus:ring-[#d0c1ab]/30 shadow-inner"
+            className="h-11 w-full rounded-2xl bg-white/80 border border-[#d0c1ab]/50 pl-10 pr-9 text-xs sm:text-sm text-[#241e14] outline-none placeholder:text-[#8a8175] transition focus:bg-white focus:border-[#241e14] focus:ring-4 focus:ring-[#d0c1ab]/30 shadow-inner"
           />
+          {search ? (
+            <button
+              type="button"
+              onClick={() => {
+                setSearch("");
+                pushNavigation({ q: "" });
+              }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 size-5 grid place-items-center rounded-full bg-[#eee9e2] text-[#5f574d] hover:bg-[#241e14] hover:text-white transition cursor-pointer"
+              aria-label="Clear search"
+            >
+              <X size={12} />
+            </button>
+          ) : null}
         </div>
 
         {/* Custom Frosted Category Dropdown (3 Cols) - Replaces ugly native select! */}

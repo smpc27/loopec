@@ -232,9 +232,9 @@ export function SiteHeader({
               <Link
                 href="/listings/new"
                 aria-label="List an item to sell or giveaway"
-                className="inline-flex items-center gap-1.5 rounded-full bg-[#241e14] hover:bg-[#382f20] px-3.5 py-1.5 sm:py-2 text-xs font-bold text-white shadow-md shadow-[#241e14]/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#241e14] via-[#382f20] to-[#241e14] hover:brightness-115 px-3.5 py-1.5 sm:py-2 text-xs font-bold text-white shadow-md shadow-[#241e14]/25 transition-all hover:scale-[1.03] active:scale-[0.97]"
               >
-                <Plus size={14} strokeWidth={2.5} />
+                <Plus size={14} strokeWidth={2.5} className="text-[#d0c1ab]" />
                 <span className="hidden sm:inline">List an item</span>
                 <span className="sm:hidden">Sell</span>
               </Link>
