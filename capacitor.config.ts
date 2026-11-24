@@ -4,6 +4,7 @@ const config: CapacitorConfig = {
   appId: "com.loopec.campus",
   appName: "LOOPEC",
   webDir: "public",
+  appendUserAgent: "LOOPEC-App",
   server: {
     // Primary production endpoint on Vercel
     url: process.env.CAPACITOR_SERVER_URL || "https://loopec-2w2s.vercel.app",
@@ -25,10 +26,12 @@ const config: CapacitorConfig = {
     captureInput: true,
     webContentsDebuggingEnabled: process.env.NODE_ENV !== "production",
     backgroundColor: "#eee9e2",
+    appendUserAgent: "LOOPEC-App",
   },
   ios: {
     contentInset: "automatic",
     limitsNavigationsToAppBoundDomains: false,
+    appendUserAgent: "LOOPEC-App",
   },
 };
 

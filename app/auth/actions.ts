@@ -106,11 +106,12 @@ export async function signInWithGoogle(formData?: FormData) {
   if (!isSupabaseConfigured()) redirect("/setup");
   const supabase = await createClient();
   const next = formData?.get("next") ? String(formData.get("next")) : "/marketplace";
+  const source = formData?.get("source") ? String(formData.get("source")) : "web";
   const origin = await getRuntimeOrigin();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`,
+      redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}&source=${encodeURIComponent(source)}`,
       queryParams: {
         access_type: "offline",
         prompt: "select_account",

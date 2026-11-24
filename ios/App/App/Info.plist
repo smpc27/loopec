@@ -66,6 +66,17 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.loopec.campus</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>loopec</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>LOOPEC needs camera access to capture college ID verification documents and product listing photos.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

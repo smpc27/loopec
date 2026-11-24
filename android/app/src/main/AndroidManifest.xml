@@ -18,6 +18,25 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- Custom URL Scheme: loopec:// -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="loopec" />
+            </intent-filter>
+
+            <!-- HTTPS App Link & Handoff from External Browsers: /auth/* -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="loopec-2w2s.vercel.app" android:pathPrefix="/auth" />
+                <data android:scheme="https" android:host="loopec-2w2s-the-restarters.vercel.app" android:pathPrefix="/auth" />
+                <data android:scheme="https" android:host="loopec.in" android:pathPrefix="/auth" />
+                <data android:scheme="https" android:host="www.loopec.in" android:pathPrefix="/auth" />
+            </intent-filter>
         </activity>
 
         <provider

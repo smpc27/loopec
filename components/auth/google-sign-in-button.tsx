@@ -15,8 +15,15 @@ export function GoogleSignInButton({
 
   const handleGoogleSignIn = () => {
     startTransition(async () => {
+      const isMobile =
+        typeof window !== "undefined" &&
+        ((window as any).Capacitor?.isNativePlatform?.() ||
+          navigator.userAgent.includes("LOOPEC-App") ||
+          /android|iphone|ipad|ipod/i.test(navigator.userAgent));
+
       const formData = new FormData();
       formData.set("next", nextPath);
+      formData.set("source", isMobile ? "app" : "web");
       await signInWithGoogle(formData);
     });
   };
