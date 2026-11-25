@@ -24,11 +24,15 @@ export default async function DashboardPage() {
     supabase.from("wishlists").select("product_id", { count: "exact", head: true }).eq("user_id", userId),
     supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", userId).is("read_at", null),
   ]);
-  const activeListings = metrics?.active_listings ?? 0;
-  const pendingOrders = metrics?.pending_orders ?? 0;
-  const completedOrders = metrics?.completed_orders ?? 0;
-  const paidSales = Number(metrics?.paid_sales ?? 0);
-  const averageRating = metrics?.average_rating ? Number(metrics.average_rating) : null;
+  const activeListings = metrics?.active_listings ?? listings.filter((l) => l.status === "approved").length;
+  const pendingOrders = metrics?.pending_orders ?? orders.filter((o) => ["pending", "accepted", "payment_pending", "paid", "ready_for_pickup"].includes(o.status)).length;
+  const completedOrders = metrics?.completed_orders ?? orders.filter((o) => o.status === "completed").length;
+  const paidSales = metrics
+    ? Number(metrics.paid_sales ?? 0)
+    : orders
+        .filter((o) => ["paid", "ready_for_pickup", "completed"].includes(o.status))
+        .reduce((sum, o) => sum + Number(o.total_amount), 0);
+  const averageRating = metrics?.average_rating && Number(metrics.average_rating) > 0 ? Number(metrics.average_rating) : null;
   const recentOrders = orders.slice(0, 5);
   const buyerIds = [...new Set(recentOrders.map((order) => order.buyer_id))];
   const { data: buyerData } = buyerIds.length ? await supabase.from("profiles").select("id, full_name").in("id", buyerIds) : { data: [] };
@@ -49,7 +53,7 @@ export default async function DashboardPage() {
               <Store size={14} /> Seller studio
             </p>
             <h1 className="mt-2 font-serif text-3xl sm:text-4xl tracking-tight text-[#241e14]">
-              Good morning, {profile.full_name.split(" ")[0]}.
+              Welcome back, {profile.full_name.split(" ")[0]}.
             </h1>
             <p className="mt-1.5 text-sm text-[#736b60]">Your campus listings and exchanges, in one place.</p>
           </div>

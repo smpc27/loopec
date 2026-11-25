@@ -53,7 +53,6 @@ export function FrostedTabBar({
   // Responsive width measurement for mobile bottom dock
   useEffect(() => {
     if (!isBottomBar) {
-      setMeasuredWidth(470);
       return;
     }
 
@@ -149,14 +148,17 @@ export function FrostedTabBar({
     else return;
 
     if (nextTab !== activeTab) {
-      const prev = activeTab;
-      setActiveTab(nextTab);
-      animRef.current.userTap = {
-        fromTab: prev,
-        toTab: nextTab,
-        tapTime: performance.now(),
-      };
-      animRef.current.isSettled = false;
+      const id = requestAnimationFrame(() => {
+        const prev = activeTab;
+        setActiveTab(nextTab);
+        animRef.current.userTap = {
+          fromTab: prev,
+          toTab: nextTab,
+          tapTime: performance.now(),
+        };
+        animRef.current.isSettled = false;
+      });
+      return () => cancelAnimationFrame(id);
     }
   }, [pathname, activeTab]);
 

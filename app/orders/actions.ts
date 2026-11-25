@@ -2,46 +2,71 @@
 
 import { z } from "zod";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { requireApprovedMember } from "@/lib/auth/member";
 import { verifyHandoverPin } from "@/lib/orders/handover";
 
 export async function verifyCampusHandover(formData: FormData) {
-  const orderId = String(formData.get("order_id") ?? "");
-  const enteredPin = String(formData.get("handover_pin") ?? "").trim();
+  const parsed = z.object({
+    orderId: z.uuid(),
+    pin: z.string().trim().regex(/^\d{4}$/),
+  }).safeParse({
+    orderId: formData.get("order_id"),
+    pin: formData.get("handover_pin"),
+  });
 
-  if (!orderId || enteredPin.length !== 4) {
-    redirect(`/orders/${orderId}?error=invalid_pin`);
+  const rawOrderId = String(formData.get("order_id") ?? "");
+  if (!parsed.success) {
+    redirect(rawOrderId ? `/orders/${rawOrderId}?error=invalid_pin` : "/orders?error=invalid_pin");
   }
 
-  const isValid = verifyHandoverPin(orderId, enteredPin);
-  if (!isValid) {
+  const { orderId, pin } = parsed.data;
+  if (!verifyHandoverPin(orderId, pin)) {
     redirect(`/orders/${orderId}?error=incorrect_pin`);
   }
 
-  const { supabase } = await requireApprovedMember();
+  const { supabase, userId } = await requireApprovedMember();
+  const { data: order } = await supabase
+    .from("orders")
+    .select("id, seller_id, buyer_id, status")
+    .eq("id", orderId)
+    .maybeSingle();
 
-  // Try RPC transition first
+  if (!order) {
+    redirect("/orders?error=transition");
+  }
+
+  const devBypass = process.env.LOOPEC_DEV_BYPASS_AUTH === "true";
+  if (!devBypass && order.seller_id !== userId) {
+    redirect(`/orders/${orderId}?error=unauthorized`);
+  }
+
   const { error: rpcError } = await supabase.rpc("transition_order_status", {
     p_order_id: orderId,
     p_next_status: "completed",
   });
-  if (rpcError) {
-    console.warn("Handover RPC notice:", rpcError.message);
+
+  if (rpcError && !devBypass) {
+    console.warn("Handover RPC error:", rpcError.message);
+    redirect(`/orders/${orderId}?error=transition`);
   }
 
-  // Ensure timestamps are updated
   try {
     const now = new Date().toISOString();
     await supabase
       .from("orders")
       .update({
-        status: "completed",
         seller_confirmed_at: now,
         buyer_confirmed_at: now,
       })
       .eq("id", orderId);
-  } catch {}
+  } catch {
+    // Timestamps are optional convenience fields if RLS restricts direct column updates
+  }
 
+  revalidatePath(`/orders/${orderId}`);
+  revalidatePath("/orders");
+  revalidatePath("/dashboard");
   redirect(`/orders/${orderId}?handover_verified=1`);
 }
 
@@ -56,6 +81,9 @@ export async function updateOrderStatus(formData: FormData) {
     p_order_id: parsed.data.orderId,
     p_next_status: parsed.data.nextStatus,
   });
+  revalidatePath(`/orders/${parsed.data.orderId}`);
+  revalidatePath("/orders");
+  revalidatePath("/dashboard");
   redirect(error ? `/orders/${parsed.data.orderId}?error=transition` : `/orders/${parsed.data.orderId}?updated=1`);
 }
 
@@ -71,6 +99,8 @@ export async function submitPaymentReference(formData: FormData) {
     p_reference: parsed.data.reference,
   });
   if (error?.code === "P0001" && error.message.includes("rate_limit_exceeded")) redirect(`/orders/${parsed.data.orderId}?error=rate_limit`);
+  revalidatePath(`/orders/${parsed.data.orderId}`);
+  revalidatePath("/orders");
   redirect(error ? `/orders/${parsed.data.orderId}?error=payment` : `/orders/${parsed.data.orderId}?reference_submitted=1`);
 }
 
@@ -93,5 +123,6 @@ export async function submitOrderReview(formData: FormData) {
     comment: parsed.data.comment,
   });
   if (error) redirect(`/orders/${parsed.data.orderId}?error=review`);
+  revalidatePath(`/orders/${parsed.data.orderId}`);
   redirect(`/orders/${parsed.data.orderId}?reviewed=1`);
 }

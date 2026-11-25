@@ -101,92 +101,17 @@ function marketplaceDataHelp(code?: string) {
   return "The app could not read marketplace data from Supabase. Check the project URL, Data API, migrations, and public schema settings.";
 }
 
-// In-memory cache for storage signed URLs to avoid repeating expensive crypto signing over HTTP on every request
 const signedUrlCache = new Map<string, { url: string; expiresAt: number }>();
 
-export default async function MarketplacePage({ searchParams }: PageProps<"/marketplace">) {
-  await connection();
-  const params = await searchParams;
-  const search = (first(params.q) ?? "").trim().slice(0, 100);
-  const categoryId = first(params.category) ?? "";
-  const minPrice = parsePrice(first(params.min));
-  const maxPrice = parsePrice(first(params.max));
-  const requestedSort = first(params.sort);
-  const sort = requestedSort === "price_low" || requestedSort === "price_high" ? requestedSort : "recent";
-  const listingType = first(params.type) || "all";
-  const submitted = Boolean(first(params.submitted));
-  const previewMode = process.env.NODE_ENV === "development" && process.env.LOOPEC_DEV_BYPASS_AUTH === "true";
-  const { supabase, userId, profile } = await requireApprovedMember();
-
-  // Prepare product query in parallel with categories, pickup and unread count
-  let query = supabase
-    .from("products")
-    .select("id, seller_id, category_id, name, description, price, item_condition, quantity, is_featured, published_at")
-    .eq("status", "approved")
-    .eq("college_id", profile.college_id ?? "00000000-0000-0000-0000-000000000000")
-    .gt("quantity", 0)
-    .limit(60);
-  if (search) query = query.textSearch("search_vector", search, { type: "plain", config: "simple" });
-  if (categoryId) query = query.eq("category_id", categoryId);
-  if (minPrice !== null) query = query.gte("price", minPrice);
-  if (maxPrice !== null) query = query.lte("price", maxPrice);
-  if (sort === "price_low") {
-    query = query.order("price", { ascending: true }).order("is_featured", { ascending: false });
-  } else if (sort === "price_high") {
-    query = query.order("price", { ascending: false }).order("is_featured", { ascending: false });
-  } else {
-    query = query.order("is_featured", { ascending: false }).order("published_at", { ascending: false, nullsFirst: false });
-  }
-
-  // Execute all 4 primary data sources concurrently in a single network round-trip
-  const [
-    { data: categoriesData },
-    { data: pickupData },
-    { count: unreadCount },
-    productResult,
-  ] = await Promise.all([
-    previewMode ? Promise.resolve({ data: previewCategories }) : supabase.from("categories").select("id, name, slug").eq("is_active", true).order("sort_order"),
-    previewMode ? Promise.resolve({ data: [{ name: "NIT Calicut" }] }) : profile.college_id
-      ? supabase.from("pickup_locations").select("id, name").eq("college_id", profile.college_id).eq("is_active", true).order("sort_order").limit(1)
-      : Promise.resolve({ data: [] }),
-    previewMode ? Promise.resolve({ count: 0 }) : supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", userId).is("read_at", null),
-    previewMode
-      ? Promise.resolve({ data: filterPreviewProducts({ search, categoryId, minPrice, maxPrice, sort, categories: previewCategories, listingType }), error: null })
-      : query,
-  ]);
-  const categories = (categoriesData ?? []) as Category[];
-  const { data: productData, error: productsError } = productResult;
-  const rawProducts = (productData ?? []) as ProductRow[];
-  const products = rawProducts.filter((p) => {
-    const isGiveaway = Number(p.price) === 0 || p.description?.includes("[GIVEAWAY]");
-    const isTrade = p.description?.includes("[TRADE") || p.name.toLowerCase().includes("trade");
-    if (listingType === "giveaway") return isGiveaway;
-    if (listingType === "trade") return isTrade;
-    if (listingType === "sale") return !isGiveaway && !isTrade;
-    return true;
-  });
-  const productIds = products.map((product) => product.id);
-  const sellerIds = [...new Set(products.map((product) => product.seller_id))];
-  const [{ data: imageData }, { data: sellersData }, { data: savedData }] = await Promise.all([
-    previewMode || !productIds.length ? Promise.resolve({ data: [] }) : supabase.from("product_images").select("product_id, storage_path, sort_order").in("product_id", productIds).order("sort_order"),
-    previewMode || !sellerIds.length ? Promise.resolve({ data: [] }) : supabase.from("profiles").select("id, full_name, handle").in("id", sellerIds),
-    previewMode || !productIds.length ? Promise.resolve({ data: [] }) : supabase.from("wishlists").select("product_id").eq("user_id", userId).in("product_id", productIds),
-  ]);
-  const images = (imageData ?? []) as { product_id: string; storage_path: string; sort_order: number }[];
-  const sellers = (sellersData ?? []) as { id: string; full_name: string; handle: string }[];
-  const saved = new Set((savedData ?? []).map((row) => (row as { product_id: string }).product_id));
-  const categoryNames = new Map(categories.map((category) => [category.id, category.name]));
-  const sellerById = new Map(sellers.map((seller) => [seller.id, seller]));
-  const firstImageByProduct = new Map<string, string>();
-  for (const image of images) if (!firstImageByProduct.has(image.product_id)) firstImageByProduct.set(image.product_id, image.storage_path);
-  const pathByProduct = products.map((product) => firstImageByProduct.get(product.id)).filter((path): path is string => Boolean(path));
-  
-  // Ultra-fast in-memory cache for storage signed URLs to eliminate slow HTTP signing
+async function resolveProductImageUrls(
+  supabase: Awaited<ReturnType<typeof requireApprovedMember>>["supabase"],
+  paths: string[]
+) {
   const imageUrls = new Map<string, string>();
   const pathsToSign: string[] = [];
   const now = Date.now();
 
-  for (const path of pathByProduct) {
+  for (const path of paths) {
     const cached = signedUrlCache.get(path);
     if (cached && cached.expiresAt > now + 60000) {
       imageUrls.set(path, cached.url);
@@ -212,6 +137,87 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
     }
   }
 
+  return imageUrls;
+}
+
+export default async function MarketplacePage({ searchParams }: PageProps<"/marketplace">) {
+  await connection();
+  const params = await searchParams;
+  const search = (first(params.q) ?? "").trim().slice(0, 100);
+  const categoryId = first(params.category) ?? "";
+  const minPrice = parsePrice(first(params.min));
+  const maxPrice = parsePrice(first(params.max));
+  const requestedSort = first(params.sort);
+  const sort = requestedSort === "price_low" || requestedSort === "price_high" ? requestedSort : "recent";
+  const listingType = first(params.type) || "all";
+  const submitted = Boolean(first(params.submitted));
+  const previewMode = process.env.NODE_ENV === "development" && process.env.LOOPEC_DEV_BYPASS_AUTH === "true";
+  const { supabase, userId, profile } = await requireApprovedMember();
+
+  let query = supabase
+    .from("products")
+    .select("id, seller_id, category_id, name, description, price, item_condition, quantity, is_featured, published_at")
+    .eq("status", "approved")
+    .eq("college_id", profile.college_id ?? "00000000-0000-0000-0000-000000000000")
+    .gt("quantity", 0)
+    .limit(60);
+  if (search) query = query.textSearch("search_vector", search, { type: "plain", config: "simple" });
+  if (categoryId) query = query.eq("category_id", categoryId);
+  if (minPrice !== null) query = query.gte("price", minPrice);
+  if (maxPrice !== null) query = query.lte("price", maxPrice);
+  if (sort === "price_low") {
+    query = query.order("price", { ascending: true }).order("is_featured", { ascending: false });
+  } else if (sort === "price_high") {
+    query = query.order("price", { ascending: false }).order("is_featured", { ascending: false });
+  } else {
+    query = query.order("is_featured", { ascending: false }).order("published_at", { ascending: false, nullsFirst: false });
+  }
+
+  const [
+    { data: categoriesData },
+    { data: pickupData },
+    { count: unreadCount },
+    productResult,
+  ] = await Promise.all([
+    previewMode ? Promise.resolve({ data: previewCategories }) : supabase.from("categories").select("id, name, slug").eq("is_active", true).order("sort_order"),
+    previewMode ? Promise.resolve({ data: [{ name: "NIT Calicut" }] }) : profile.college_id
+      ? supabase.from("pickup_locations").select("id, name").eq("college_id", profile.college_id).eq("is_active", true).order("sort_order").limit(1)
+      : Promise.resolve({ data: [] }),
+    previewMode ? Promise.resolve({ count: 0 }) : supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", userId).is("read_at", null),
+    previewMode
+      ? Promise.resolve({ data: filterPreviewProducts({ search, categoryId, minPrice, maxPrice, sort, categories: previewCategories, listingType }), error: null })
+      : query,
+  ]);
+  const categories = (categoriesData ?? []) as Category[];
+  const selectedCategory = categories.find((category) => category.id === categoryId);
+  const { data: productData, error: productsError } = productResult;
+  const rawProducts = (productData ?? []) as ProductRow[];
+  const products = rawProducts.filter((p) => {
+    const isGiveaway = Number(p.price) === 0 || p.description?.includes("[GIVEAWAY]");
+    const isTrade = p.description?.includes("[TRADE") || p.name.toLowerCase().includes("trade");
+    if (listingType === "giveaway") return isGiveaway;
+    if (listingType === "trade") return isTrade;
+    if (listingType === "sale") return !isGiveaway && !isTrade;
+    return true;
+  });
+  const productIds = products.map((product) => product.id);
+  const sellerIds = [...new Set(products.map((product) => product.seller_id))];
+  const [{ data: imageData }, { data: sellersData }, { data: savedData }] = await Promise.all([
+    previewMode || !productIds.length ? Promise.resolve({ data: [] }) : supabase.from("product_images").select("product_id, storage_path, sort_order").in("product_id", productIds).order("sort_order"),
+    previewMode || !sellerIds.length ? Promise.resolve({ data: [] }) : supabase.from("profiles").select("id, full_name, handle").in("id", sellerIds),
+    previewMode || !productIds.length ? Promise.resolve({ data: [] }) : supabase.from("wishlists").select("product_id").eq("user_id", userId).in("product_id", productIds),
+  ]);
+  const images = (imageData ?? []) as { product_id: string; storage_path: string; sort_order: number }[];
+  const sellers = (sellersData ?? []) as { id: string; full_name: string; handle: string }[];
+  const saved = new Set((savedData ?? []).map((row) => (row as { product_id: string }).product_id));
+  const categoryNames = new Map(categories.map((category) => [category.id, category.name]));
+  const sellerById = new Map(sellers.map((seller) => [seller.id, seller]));
+  const firstImageByProduct = new Map<string, string>();
+  for (const image of images) if (!firstImageByProduct.has(image.product_id)) firstImageByProduct.set(image.product_id, image.storage_path);
+  const pathByProduct = products.map((product) => firstImageByProduct.get(product.id)).filter((path): path is string => Boolean(path));
+
+  const imageUrls = await resolveProductImageUrls(supabase, pathByProduct);
+
   const cards: MarketplaceProduct[] = products.map((product) => {
     const seller = sellerById.get(product.seller_id);
     const imagePath = firstImageByProduct.get(product.id);
@@ -224,10 +230,12 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
     };
   });
 
-  // Fetch approved items from Google Firestore database
+  // Merge Google Firestore campus listings & normalize category filters
   try {
     const firestoreProducts = await getFirestoreProducts({
       categoryId,
+      categorySlug: selectedCategory?.slug,
+      categoryName: selectedCategory?.name,
       search,
       minPrice,
       maxPrice,
@@ -236,8 +244,24 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
     });
 
     const existingCardIds = new Set(cards.map((c) => c.id));
+    const firestoreStoragePaths = firestoreProducts
+      .filter((fp) => !existingCardIds.has(fp.id) && !fp.imageUrl && fp.imageStoragePath)
+      .map((fp) => fp.imageStoragePath!)
+      .filter((p) => !imageUrls.has(p));
+
+    if (firestoreStoragePaths.length > 0) {
+      const { data: fsSigned } = await supabase.storage
+        .from("product-images")
+        .createSignedUrls(firestoreStoragePaths, 3600);
+      for (const s of fsSigned ?? []) {
+        if (s.path && s.signedUrl) imageUrls.set(s.path, s.signedUrl);
+      }
+    }
+
     for (const fp of firestoreProducts) {
       if (!existingCardIds.has(fp.id)) {
+        const resolvedUrl =
+          fp.imageUrl ?? (fp.imageStoragePath ? imageUrls.get(fp.imageStoragePath) ?? null : null);
         cards.push({
           id: fp.id,
           seller_id: fp.seller_id,
@@ -252,7 +276,7 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
           categoryName: fp.categoryName,
           sellerName: fp.sellerName,
           sellerHandle: fp.sellerHandle,
-          imageUrl: fp.imageUrl,
+          imageUrl: resolvedUrl,
         });
         existingCardIds.add(fp.id);
       }
@@ -260,13 +284,21 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
   } catch (err) {
     console.warn("Firestore fetch notice:", err);
   }
-  const selectedCategory = categories.find((category) => category.id === categoryId);
+
+  // Re-sort the merged Supabase + Firestore list consistently
+  cards.sort((a, b) => {
+    const featuredDiff = Number(b.is_featured) - Number(a.is_featured);
+    if (sort === "price_low") return Number(a.price) - Number(b.price) || featuredDiff;
+    if (sort === "price_high") return Number(b.price) - Number(a.price) || featuredDiff;
+    if (featuredDiff) return featuredDiff;
+    return Date.parse(b.published_at ?? "1970-01-01") - Date.parse(a.published_at ?? "1970-01-01");
+  });
+
   const pickupName = (pickupData?.[0] as { name?: string } | undefined)?.name;
 
   return (
     <main className="min-h-screen bg-transparent">
       {previewMode ? <span className="sr-only">Developer preview</span> : null}
-      {/* Global Responsive Site Header with Mobile/Tablet Drawer */}
       <SiteHeader
         profile={profile}
         unreadAlertsCount={unreadCount ?? 0}
@@ -303,7 +335,6 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
           </div>
         ) : null}
 
-        {/* Ultra-Modern Glass Category Chips, Filter Tabs & Search Dock */}
         <div className="mt-5 relative z-30">
           <MarketplaceFilterDock
             categories={categories}
@@ -320,7 +351,8 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
           <p className="text-sm text-[#736b60]">{selectedCategory ? <><b className="text-[#241e14]">{selectedCategory.name}</b><span className="mx-2">·</span></> : null}{search ? <>Results for <b className="text-[#241e14]">“{search}”</b><span className="mx-2">·</span></> : null}{cards.length} {cards.length === 1 ? "item" : "items"}</p>
           <span className="text-[11px] font-semibold text-[#8e7a63]">Verified listings · private to your campus</span>
         </div>
-        {productsError ? (
+
+        {productsError && !cards.length ? (
           <div role="alert" className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-950">
             <p className="font-semibold">Marketplace data could not be loaded.</p>
             <p className="mt-1">{marketplaceDataHelp(productsError.code)}</p>

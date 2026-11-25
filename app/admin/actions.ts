@@ -2,8 +2,10 @@
 
 import { z } from "zod";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { getCurrentMember } from "@/lib/auth/member";
+import { syncProductStatusInFirestore } from "@/lib/firebase/sync";
 
 export async function reviewVerification(formData: FormData) {
   if (!isSupabaseConfigured()) redirect("/setup");
@@ -65,6 +67,9 @@ export async function moderateProduct(formData: FormData) {
     p_moderator_notes: parsed.data.decision === "rejected" ? parsed.data.notes : null,
   });
   if (error) redirect("/admin/listings?error=moderation");
+  await syncProductStatusInFirestore(parsed.data.productId, parsed.data.decision);
+  revalidatePath("/marketplace");
+  revalidatePath("/admin/listings");
   redirect("/admin/listings?reviewed=1");
 }
 

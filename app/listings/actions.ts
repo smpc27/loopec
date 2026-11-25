@@ -2,10 +2,15 @@
 
 import { z } from "zod";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireApprovedMember } from "@/lib/auth/member";
 import { createStorageAdminClient } from "@/lib/supabase/admin";
-import { getFirebaseAdminDb } from "@/lib/firebase/admin";
+import {
+  deleteProductFromFirestore,
+  syncProductStatusInFirestore,
+  syncProductToFirestore,
+} from "@/lib/firebase/sync";
 
 const listingFields = z.object({
   categoryId: z.uuid(),
@@ -90,7 +95,6 @@ async function uploadImages({
     }
     const path = `${userId}/${productId}/${crypto.randomUUID()}.${fileType.extension}`;
 
-    // Only invoke RPC rate limit check if not using direct storageAdmin client
     if (!storageAdmin) {
       const { data: authorized, error: limitError } = await supabase.rpc("authorize_private_upload", {
         p_bucket_id: "product-images",
@@ -131,6 +135,13 @@ async function uploadImages({
   return { error: null, uploaded, records };
 }
 
+async function resolveFirstImageUrl(supabase: SupabaseClient, storageAdmin: SupabaseClient | null, path?: string | null) {
+  if (!path) return null;
+  const storageClient = storageAdmin ? storageAdmin.storage : supabase.storage;
+  const { data } = await storageClient.from("product-images").createSignedUrl(path, 60 * 60 * 24 * 7);
+  return data?.signedUrl ?? null;
+}
+
 export async function createListing(formData: FormData) {
   const fields = readFields(formData);
   const files = getImageFiles(formData);
@@ -139,7 +150,12 @@ export async function createListing(formData: FormData) {
   const { supabase, userId, profile } = await requireApprovedMember();
   const storageAdmin = createStorageAdminClient();
   if (!profile.college_id) redirect("/listings/new?error=invalid");
-  const { data: category } = await supabase.from("categories").select("id").eq("id", fields.data.categoryId).eq("is_active", true).maybeSingle();
+  const { data: category } = await supabase
+    .from("categories")
+    .select("id, name, slug")
+    .eq("id", fields.data.categoryId)
+    .eq("is_active", true)
+    .maybeSingle();
   if (!category && !previewMode) redirect("/listings/new?error=invalid");
 
   const { data: product, error } = await supabase
@@ -159,20 +175,21 @@ export async function createListing(formData: FormData) {
   if (isRateLimitError(error)) redirect("/listings/new?error=rate_limit");
   if (error || !product) redirect("/listings/new?error=save");
 
+  let firstImageStoragePath: string | null = null;
   if (files.length > 0) {
     const uploaded = await uploadImages({ supabase, storageAdmin, files, userId, productId: product.id, productName: fields.data.name, sortOffset: 0 });
     if (uploaded.error && !uploaded.records.length) {
       console.warn("Image upload issue during listing creation:", uploaded.error);
+    } else if (uploaded.records.length > 0) {
+      firstImageStoragePath = uploaded.records[0].storage_path;
     }
   }
 
-  // Submit product for moderation or direct auto-approval
   const { error: submitError } = await supabase.rpc("submit_product", { p_product_id: product.id });
   if (submitError && submitError.code !== "PGRST202") {
     console.warn("submit_product rpc warning:", submitError);
   }
 
-  // Instant auto-approval: activate listing immediately in the campus loop
   const nowIso = new Date().toISOString();
   if (storageAdmin) {
     await storageAdmin.from("products").update({
@@ -181,7 +198,6 @@ export async function createListing(formData: FormData) {
       updated_at: nowIso,
     }).eq("id", product.id);
 
-    // Also auto-approve any lingering pending products by this seller
     await storageAdmin.from("products").update({
       status: "approved",
       published_at: nowIso,
@@ -189,32 +205,34 @@ export async function createListing(formData: FormData) {
     }).eq("seller_id", userId).eq("status", "pending");
   }
 
-  // Sync to Google Firebase (Firestore)
-  try {
-    const adminDb = getFirebaseAdminDb();
-    if (adminDb) {
-      await adminDb.collection("products").doc(product.id).set({
-        name: fields.data.name,
-        description: fields.data.description,
-        price: fields.data.price,
-        item_condition: fields.data.condition,
-        quantity: fields.data.quantity,
-        category_id: fields.data.categoryId,
-        seller_id: userId,
-        sellerName: profile.full_name || "Campus Member",
-        sellerHandle: profile.handle || "member",
-        sellerPhone: profile.phone || null,
-        college_id: profile.college_id,
-        status: "approved",
-        is_featured: false,
-        published_at: nowIso,
-        created_at: nowIso,
-      });
-    }
-  } catch (firebaseErr) {
-    console.warn("Firebase sync notice:", firebaseErr);
-  }
+  const firstImageUrl = await resolveFirstImageUrl(supabase, storageAdmin, firstImageStoragePath);
 
+  await syncProductToFirestore({
+    id: product.id,
+    name: fields.data.name,
+    description: fields.data.description,
+    price: fields.data.price,
+    item_condition: fields.data.condition,
+    quantity: fields.data.quantity,
+    category_id: fields.data.categoryId,
+    categoryName: category?.name ?? "Campus Finds",
+    categorySlug: category?.slug ?? undefined,
+    seller_id: userId,
+    sellerName: profile.full_name || "Campus Member",
+    sellerHandle: profile.handle || "member",
+    sellerPhone: profile.phone || null,
+    college_id: profile.college_id,
+    status: "approved",
+    is_featured: false,
+    imageUrl: firstImageUrl,
+    imageStoragePath: firstImageStoragePath,
+    published_at: nowIso,
+    created_at: nowIso,
+  });
+
+  revalidatePath("/marketplace");
+  revalidatePath("/listings");
+  revalidatePath("/dashboard");
   redirect("/marketplace?submitted=1");
 }
 
@@ -223,12 +241,12 @@ export async function updateListing(formData: FormData) {
   const fields = readFields(formData);
   const files = getImageFiles(formData);
   if (!productId.success || !fields.success || files.length > 5) redirect("/listings?error=invalid");
-  const { supabase, userId } = await requireApprovedMember();
+  const { supabase, userId, profile } = await requireApprovedMember();
   const storageAdmin = files.length ? createStorageAdminClient() : null;
   if (files.length && !storageAdmin) redirect(`/setup#storage-key`);
-  const { data: product } = await supabase.from("products").select("id, seller_id, status, name").eq("id", productId.data).maybeSingle();
+  const { data: product } = await supabase.from("products").select("id, seller_id, status, name, college_id, published_at, created_at").eq("id", productId.data).maybeSingle();
   if (!product || product.seller_id !== userId || !["draft", "rejected"].includes(product.status)) redirect("/listings?error=unavailable");
-  const { data: category } = await supabase.from("categories").select("id").eq("id", fields.data.categoryId).eq("is_active", true).maybeSingle();
+  const { data: category } = await supabase.from("categories").select("id, name, slug").eq("id", fields.data.categoryId).eq("is_active", true).maybeSingle();
   if (!category) redirect(`/listings/${product.id}/edit?error=invalid`);
 
   const { error } = await supabase.from("products").update({
@@ -247,6 +265,10 @@ export async function updateListing(formData: FormData) {
     const uploaded = await uploadImages({ supabase, storageAdmin, files, userId, productId: product.id, productName: fields.data.name, sortOffset: count ?? 0 });
     if (uploaded.error) redirect(`/listings/${product.id}/edit?error=${uploaded.error}`);
   }
+
+  revalidatePath(`/listings/${product.id}/edit`);
+  revalidatePath("/listings");
+  void profile;
   redirect(`/listings/${product.id}/edit?saved=1`);
 }
 
@@ -261,21 +283,26 @@ export async function removeListingImage(formData: FormData) {
   const { error: storageError } = await supabase.storage.from("product-images").remove([image.storage_path]);
   if (storageError) redirect(`/listings/${image.product_id}/edit?error=image_remove`);
   const { error } = await supabase.from("product_images").delete().eq("id", image.id);
+  revalidatePath(`/listings/${image.product_id}/edit`);
   redirect(error ? `/listings/${image.product_id}/edit?error=image_remove` : `/listings/${image.product_id}/edit?removed=1`);
 }
 
 export async function submitListing(formData: FormData) {
   const productId = z.uuid().safeParse(formData.get("product_id"));
   if (!productId.success) redirect("/listings");
-  const { supabase, userId } = await requireApprovedMember();
+  const { supabase, userId, profile } = await requireApprovedMember();
   const storageAdmin = createStorageAdminClient();
-  const { data: product } = await supabase.from("products").select("id, seller_id, status").eq("id", productId.data).maybeSingle();
+  const { data: product } = await supabase
+    .from("products")
+    .select("id, seller_id, status, name, description, price, item_condition, quantity, category_id, college_id, created_at")
+    .eq("id", productId.data)
+    .maybeSingle();
   if (!product || product.seller_id !== userId || !["draft", "rejected"].includes(product.status)) redirect("/listings?error=unavailable");
-  
+
   const { error } = await supabase.rpc("submit_product", { p_product_id: product.id });
-  
+
+  const nowIso = new Date().toISOString();
   if (storageAdmin) {
-    const nowIso = new Date().toISOString();
     await storageAdmin.from("products").update({
       status: "approved",
       published_at: nowIso,
@@ -283,6 +310,39 @@ export async function submitListing(formData: FormData) {
     }).eq("id", product.id);
   }
 
+  if (!error) {
+    const [{ data: category }, { data: firstImg }] = await Promise.all([
+      supabase.from("categories").select("name, slug").eq("id", product.category_id).maybeSingle(),
+      supabase.from("product_images").select("storage_path").eq("product_id", product.id).order("sort_order").limit(1).maybeSingle(),
+    ]);
+    const imageUrl = await resolveFirstImageUrl(supabase, storageAdmin, firstImg?.storage_path);
+    await syncProductToFirestore({
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      price: Number(product.price) || 0,
+      item_condition: product.item_condition,
+      quantity: product.quantity,
+      category_id: product.category_id,
+      categoryName: category?.name ?? "Campus Finds",
+      categorySlug: category?.slug ?? undefined,
+      seller_id: userId,
+      sellerName: profile.full_name || "Campus Member",
+      sellerHandle: profile.handle || "member",
+      sellerPhone: profile.phone || null,
+      college_id: product.college_id,
+      status: "approved",
+      is_featured: false,
+      imageUrl,
+      imageStoragePath: firstImg?.storage_path ?? null,
+      published_at: nowIso,
+      created_at: product.created_at,
+    });
+  }
+
+  revalidatePath("/marketplace");
+  revalidatePath("/listings");
+  revalidatePath("/dashboard");
   redirect(error ? `/listings/${product.id}/edit?error=submit` : "/marketplace?submitted=1");
 }
 
@@ -299,6 +359,11 @@ export async function deleteListing(formData: FormData) {
     if (error) redirect(`/listings/${product.id}/edit?error=image_remove`);
   }
   const { error } = await supabase.from("products").delete().eq("id", product.id);
+  if (!error) {
+    await deleteProductFromFirestore(product.id);
+  }
+  revalidatePath("/listings");
+  revalidatePath("/marketplace");
   redirect(error ? `/listings/${product.id}/edit?error=delete` : "/listings?deleted=1");
 }
 
@@ -309,5 +374,11 @@ export async function withdrawListing(formData: FormData) {
   const { data: product } = await supabase.from("products").select("id, seller_id, status").eq("id", productId.data).maybeSingle();
   if (!product || product.seller_id !== userId || product.status !== "approved") redirect("/listings?error=unavailable");
   const { error } = await supabase.rpc("withdraw_product", { p_product_id: product.id });
+  if (!error) {
+    await syncProductStatusInFirestore(product.id, "removed");
+  }
+  revalidatePath("/listings");
+  revalidatePath("/marketplace");
+  revalidatePath("/dashboard");
   redirect(error ? "/listings?error=withdraw" : "/listings?withdrawn=1");
 }

@@ -4,13 +4,11 @@ import { notFound } from "next/navigation";
 import { FormNotice } from "@/components/auth/auth-shell";
 import { authMessage } from "@/lib/auth/messages";
 import { requireApprovedMember } from "@/lib/auth/member";
-import { signOut } from "@/app/auth/actions";
 import { submitOrderReview, submitPaymentReference, updateOrderStatus } from "@/app/orders/actions";
 import { PaymentReceiptCard } from "@/components/payments/pay-online-card";
 import { WhatsAppPayCard } from "@/components/payments/whatsapp-pay-card";
 import { CampusHandoverCard } from "@/components/orders/campus-handover-card";
 import { getOrderHandoverPin } from "@/lib/orders/handover";
-import { calculateCommission } from "@/lib/payments/commission";
 import { SiteHeader } from "@/components/navigation/site-header";
 
 export const instant = false;
@@ -72,7 +70,9 @@ export default async function OrderDetailsPage({ params, searchParams }: PagePro
   const errorMessage = errorCode ? authMessage(errorCode) : null;
   const title = statusLabels[order.status] ?? order.status;
   const isPaid = order.status === "paid" || ["ready_for_pickup", "completed"].includes(order.status) || payment?.status === "paid";
-  const commission = calculateCommission(order.total_amount, 5);
+  const totalAmount = Math.max(0, Number(order.total_amount) || 0);
+  const commissionAmount = Math.max(0, Number(order.commission_amount) || 0);
+  const sellerNetAmount = Math.max(0, totalAmount - commissionAmount);
 
   return (
     <main className="min-h-screen bg-transparent">
@@ -130,9 +130,9 @@ export default async function OrderDetailsPage({ params, searchParams }: PagePro
                   ? "Direct UPI App"
                   : payment?.provider === "cash_pickup"
                   ? "Cash Handover"
-                  : payment?.provider === "razorpay"
-                  ? "Online"
-                  : "Direct UPI"
+                  : payment?.provider === "manual_upi"
+                  ? "Manual UPI Ref"
+                  : "Direct Campus Pay"
               }
               referenceId={payment?.provider_payment_id}
               verifiedAt={payment?.verified_at}
@@ -158,19 +158,19 @@ export default async function OrderDetailsPage({ params, searchParams }: PagePro
             <div className="mt-5 border-t border-[#eee9e2] pt-4 space-y-2 text-xs text-[#736b60]">
               <div className="flex justify-between">
                 <span>Items Subtotal</span>
-                <b className="text-[#241e14]">{currency.format(Number(order.total_amount))}</b>
+                <b className="text-[#241e14]">{currency.format(Number(order.subtotal || totalAmount))}</b>
               </div>
               <div className="flex justify-between">
-                <span>LOOPEC Platform Commission (5%)</span>
-                <b className="text-[#8e7a63] font-semibold">{commission.formatted.commissionAmount}</b>
+                <span>LOOPEC Platform Fee</span>
+                <b className="text-[#8e7a63] font-semibold">{currency.format(commissionAmount)}</b>
               </div>
               <div className="flex justify-between">
-                <span>Seller Net Proceeds (95%)</span>
-                <b className="text-[#241e14] font-semibold">{commission.formatted.sellerNetAmount}</b>
+                <span>Seller Net Proceeds</span>
+                <b className="text-[#241e14] font-semibold">{currency.format(sellerNetAmount)}</b>
               </div>
               <div className="border-t border-[#eee9e2] pt-2 flex justify-between text-sm">
                 <span className="font-bold text-[#241e14]">Total Amount</span>
-                <b className="font-bold text-[#241e14]">{currency.format(Number(order.total_amount))}</b>
+                <b className="font-bold text-[#241e14]">{currency.format(totalAmount)}</b>
               </div>
             </div>
           </article>
@@ -276,7 +276,7 @@ export default async function OrderDetailsPage({ params, searchParams }: PagePro
           {order.status === "paid" && !buyerView ? (
             <article className="rounded-[24px] border border-emerald-300 bg-emerald-50/80 p-5 shadow-xs">
               <p className="text-sm font-semibold text-emerald-950">Payment verified & escrowed</p>
-              <p className="mt-2 text-xs leading-5 text-emerald-900">Your net payout ({commission.formatted.sellerNetAmount}) is secured. Prepare the item and arrange pickup.</p>
+              <p className="mt-2 text-xs leading-5 text-emerald-900">Your net payout ({currency.format(sellerNetAmount)}) is recorded. Prepare the item and arrange pickup.</p>
               <form action={updateOrderStatus} className="mt-4">
                 <input type="hidden" name="order_id" value={order.id} />
                 <input type="hidden" name="next_status" value="ready_for_pickup" />

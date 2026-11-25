@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { requireApprovedMember } from "@/lib/auth/member";
 
 export async function sendMessage(formData: FormData) {
@@ -29,6 +30,8 @@ export async function sendMessage(formData: FormData) {
   });
   if (error?.code === "P0001" && error.message.includes("rate_limit_exceeded")) redirect(`/messages/${parsed.data.conversationId}?error=rate_limit`);
   if (error) redirect(`/messages/${parsed.data.conversationId}?error=message`);
+  revalidatePath(`/messages/${parsed.data.conversationId}`);
+  revalidatePath("/messages");
   redirect(`/messages/${parsed.data.conversationId}`);
 }
 

@@ -4,7 +4,7 @@ import { ArrowLeft, BadgeCheck, ShoppingBag, Trash2 } from "lucide-react";
 import { requireApprovedMember } from "@/lib/auth/member";
 import { authMessage } from "@/lib/auth/messages";
 import { removeCartItem, updateCartQuantity } from "@/app/cart/actions";
-import { signOut } from "@/app/auth/actions";
+import { SiteHeader } from "@/components/navigation/site-header";
 
 export const instant = false;
 
@@ -16,7 +16,7 @@ export default async function CartPage({ searchParams }: PageProps<"/cart">) {
   const params = await searchParams;
   const errorCode = Array.isArray(params.error) ? params.error[0] : params.error;
   const added = Boolean(params.added);
-  const { supabase, userId } = await requireApprovedMember();
+  const { supabase, userId, profile } = await requireApprovedMember();
   const { data: lineData } = await supabase.from("cart_items").select("product_id, quantity").eq("user_id", userId).order("created_at", { ascending: true });
   const lines = (lineData ?? []) as CartLine[];
   const productIds = lines.map((line) => line.product_id);
@@ -54,7 +54,7 @@ export default async function CartPage({ searchParams }: PageProps<"/cart">) {
 
   return (
     <main className="min-h-screen bg-transparent">
-      <header className="border-b border-[#d0c1ab]/40 bg-white/80 backdrop-blur-xl"><div className="mx-auto flex min-h-[60px] sm:min-h-[64px] max-w-6xl items-center justify-between px-4 sm:px-6"><Link href="/marketplace" className="text-sm font-extrabold tracking-[.14em] text-[#241e14]">LOOPEC <span className="ml-2 font-normal tracking-normal text-[#736b60]">Your cart</span></Link><form action={signOut}><button className="text-xs font-semibold text-[#736b60] hover:text-[#241e14]" type="submit">Sign out</button></form></div></header>
+      <SiteHeader profile={profile} sectionTitle="Your Cart" />
       <section className="mx-auto max-w-6xl px-4 py-5 sm:px-6 sm:py-8">
         <Link href="/marketplace" className="inline-flex items-center gap-2 text-xs font-semibold text-[#736b60] hover:text-[#241e14] transition"><ArrowLeft size={14} /> Keep browsing</Link>
         <div className="mt-5 flex items-end justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[.14em] text-[#8e7a63]">Campus finds</p><h1 className="mt-2 font-serif text-4xl tracking-[-.05em] text-[#241e14]">Your cart</h1></div><span className="text-sm text-[#736b60]">{lines.length} {lines.length === 1 ? "item" : "items"}</span></div>

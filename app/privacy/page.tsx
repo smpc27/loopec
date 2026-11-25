@@ -36,7 +36,7 @@ export default function PrivacyPage() {
           We do not sell, rent, or trade student data with marketing aggregators or commercial advertisers.
         </p>
         <p>
-          Payment processing is handled via PCI-DSS certified payment gateways (e.g. Razorpay). LOOPEC never stores your credit card numbers, CVVs, or net banking passwords.
+          Peer payments are handled directly via UPI apps (Google Pay, PhonePe, Paytm, BHIM) or campus handover settlements. LOOPEC never stores your bank account passwords, card numbers, CVVs, or UPI PINs.
         </p>
       </InfoSection>
 

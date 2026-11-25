@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { getCurrentMember } from "@/lib/auth/member";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
@@ -41,5 +42,8 @@ export async function updateProfile(formData: FormData) {
   if (error) {
     redirect(error.code === "23505" ? "/profile?error=handle" : "/profile?error=invalid");
   }
+  revalidatePath("/profile");
+  revalidatePath("/dashboard");
+  revalidatePath("/marketplace");
   redirect("/profile?saved=1");
 }

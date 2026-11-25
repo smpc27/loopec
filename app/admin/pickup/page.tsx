@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { authMessage } from "@/lib/auth/messages";
 import { getCurrentMember } from "@/lib/auth/member";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { AdminHeader } from "@/components/admin/admin-header";
 import { savePickupLocation } from "@/app/admin/actions";
-import { signOut } from "@/app/auth/actions";
 
 export const instant = false;
 
@@ -47,8 +47,8 @@ export default async function AdminPickupPage({ searchParams }: PageProps<"/admi
   const collegeId = isSuperAdmin ? colleges[0]?.id ?? "" : member.profile.college_id ?? "";
 
   return (
-    <main className="min-h-screen bg-[#f7f6f4] px-5 py-8 sm:px-8">
-      <header className="mx-auto flex max-w-6xl items-center justify-between"><Link href="/admin" className="text-sm font-extrabold tracking-[.14em] text-[#302546]">LOOPEC <span className="ml-2 font-normal tracking-normal text-[#8b8590]">Admin</span></Link><form action={signOut}><button type="submit" className="text-xs font-semibold text-[#77717e]">Sign out</button></form></header>
+    <main className="min-h-screen bg-[#eee9e2] px-5 py-8 sm:px-8 text-[#241e14]">
+      <AdminHeader adminName={member.profile.full_name} isSuperAdmin={isSuperAdmin} />
       <section className="mx-auto mt-11 max-w-5xl">
         <Link href="/admin" className="inline-flex items-center gap-2 text-xs font-semibold text-[#77717e] hover:text-violet-900"><ArrowLeft size={14} /> Admin home</Link>
         <div className="mt-5 border-b border-[#e8e5e2] pb-7"><p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.15em] text-violet-700"><MapPin size={14} /> Campus operations</p><h1 className="mt-2 font-serif text-4xl tracking-[-.05em] text-[#28232f]">Pickup points</h1><p className="mt-2 text-sm leading-6 text-[#77717e]">Add only locations approved for campus exchanges. Every change is recorded in the admin audit log.</p></div>

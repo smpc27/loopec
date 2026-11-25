@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { requireApprovedMember } from "@/lib/auth/member";
 
 function safeReturnTo(value: string | null) {
@@ -43,9 +44,11 @@ export async function toggleWishlistDirect(productId: string) {
 
   if (existing) {
     await supabase.from("wishlists").delete().eq("user_id", userId).eq("product_id", parsed.data);
+    revalidatePath("/wishlist");
     return { success: true, saved: false };
   } else {
     await supabase.from("wishlists").insert({ user_id: userId, product_id: parsed.data });
+    revalidatePath("/wishlist");
     return { success: true, saved: true };
   }
 }

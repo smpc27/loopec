@@ -5,7 +5,10 @@ import crypto from "crypto";
  * Derived from the order ID and secret key, ensuring only the buyer who views the order has it.
  */
 export function getOrderHandoverPin(orderId: string): string {
-  const secret = process.env.RAZORPAY_KEY_SECRET || "loopec-nitc-handover-salt-2026";
+  const secret =
+    process.env.HANDOVER_PIN_SECRET ||
+    process.env.SUPABASE_SECRET_KEY ||
+    "loopec-nitc-handover-salt-2026";
   const hash = crypto
     .createHmac("sha256", secret)
     .update(`handover-pin-${orderId}`)

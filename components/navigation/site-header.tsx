@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Menu,
   X,
@@ -48,7 +48,15 @@ export function SiteHeader({
   sectionTitle,
 }: SiteHeaderProps) {
   const pathname = usePathname();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [openMenuPath, setOpenMenuPath] = useState<string | null>(null);
+  const mobileMenuOpen = openMenuPath === pathname;
+  const setMobileMenuOpen = useCallback((next: boolean | ((prev: boolean) => boolean)) => {
+    setOpenMenuPath((prevPath) => {
+      const currentlyOpen = prevPath === pathname;
+      const shouldOpen = typeof next === "function" ? next(currentlyOpen) : next;
+      return shouldOpen ? pathname : null;
+    });
+  }, [pathname]);
   const [alertsCount, setAlertsCount] = useState(unreadAlertsCount);
   const [messagesCount, setMessagesCount] = useState(unreadMessagesCount);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -69,11 +77,6 @@ export function SiteHeader({
       isMounted = false;
     };
   }, [profile, pathname]);
-
-  // Close mobile menu whenever pathname changes
-  useEffect(() => {
-    setMobileMenuOpen(false);
-  }, [pathname]);
 
   // Close mobile menu on Escape key press or outside click
   useEffect(() => {
@@ -102,7 +105,7 @@ export function SiteHeader({
       document.removeEventListener("mousedown", handleClickOutside);
       document.body.style.overflow = "";
     };
-  }, [mobileMenuOpen]);
+  }, [mobileMenuOpen, setMobileMenuOpen]);
 
   const isAdmin = profile?.role === "college_admin" || profile?.role === "super_admin";
   const isAuthenticated = Boolean(profile);

@@ -3,15 +3,10 @@ import {
   doc,
   getDocs,
   getDoc,
-  setDoc,
   addDoc,
-  updateDoc,
   query,
   where,
-  orderBy,
   limit,
-  serverTimestamp,
-  type DocumentData,
 } from "firebase/firestore";
 import { getFirebaseDb, isFirebaseConfigured } from "./client";
 
@@ -24,14 +19,16 @@ export type FirestoreProduct = {
   quantity: number;
   category_id: string;
   categoryName: string;
+  categorySlug?: string;
   seller_id: string;
   sellerName: string;
   sellerHandle: string;
   sellerPhone?: string | null;
   college_id: string;
-  status: "approved" | "pending" | "sold" | "rejected";
+  status: "approved" | "pending" | "sold" | "rejected" | "removed";
   is_featured: boolean;
   imageUrl: string | null;
+  imageStoragePath?: string | null;
   published_at: string;
   created_at?: string;
 };
@@ -52,11 +49,52 @@ export const defaultCampusCategories: FirestoreCategory[] = [
   { id: "cat-finds", name: "Other Campus Finds", slug: "campus-finds", sort_order: 6 },
 ];
 
+function canonicalCategoryKey(input?: string | null): string {
+  const s = (input ?? "").toLowerCase().trim();
+  if (!s) return "";
+  if (s.includes("book") || s.includes("study") || s.includes("notes")) return "books";
+  if (s.includes("electr") || s.includes("gadget")) return "electronics";
+  if (s.includes("station") || s.includes("draft")) return "stationery";
+  if (s.includes("hostel") || s.includes("furnit")) return "hostel";
+  if (s.includes("cycle") || s.includes("sport") || s.includes("bike")) return "sports";
+  if (s.includes("fashion")) return "fashion";
+  if (s.includes("access")) return "accessories";
+  if (s.includes("other") || s.includes("campus-finds") || s.includes("cat-finds")) return "other";
+  return s;
+}
+
+function matchesCategoryFilter(
+  item: FirestoreProduct,
+  {
+    categoryId,
+    categorySlug,
+    categoryName,
+  }: { categoryId?: string; categorySlug?: string; categoryName?: string }
+): boolean {
+  if (!categoryId && !categorySlug && !categoryName) return true;
+  if (categoryId && item.category_id === categoryId) return true;
+
+  const targetKey =
+    canonicalCategoryKey(categorySlug) ||
+    canonicalCategoryKey(categoryName) ||
+    canonicalCategoryKey(categoryId);
+  if (!targetKey) return false;
+
+  const itemKey =
+    canonicalCategoryKey(item.categorySlug) ||
+    canonicalCategoryKey(item.categoryName) ||
+    canonicalCategoryKey(item.category_id);
+
+  return Boolean(itemKey && itemKey === targetKey);
+}
+
 /**
  * Fetch approved marketplace products from Google Firestore
  */
 export async function getFirestoreProducts({
   categoryId,
+  categorySlug,
+  categoryName,
   search,
   minPrice,
   maxPrice,
@@ -64,6 +102,8 @@ export async function getFirestoreProducts({
   listingType = "all",
 }: {
   categoryId?: string;
+  categorySlug?: string;
+  categoryName?: string;
   search?: string;
   minPrice?: number | null;
   maxPrice?: number | null;
@@ -75,15 +115,10 @@ export async function getFirestoreProducts({
   try {
     const db = getFirebaseDb();
     const productsRef = collection(db, "products");
-    
-    // Primary query filtering for active approved items
-    let q = query(
-      productsRef,
-      where("status", "==", "approved"),
-      limit(60)
-    );
 
+    const q = query(productsRef, where("status", "==", "approved"), limit(80));
     const snapshot = await getDocs(q);
+
     let items: FirestoreProduct[] = snapshot.docs.map((docSnap) => {
       const data = docSnap.data();
       return {
@@ -95,30 +130,35 @@ export async function getFirestoreProducts({
         quantity: Number(data.quantity) || 1,
         category_id: data.category_id || "",
         categoryName: data.categoryName || "Campus item",
+        categorySlug: data.categorySlug || undefined,
         seller_id: data.seller_id || "",
         sellerName: data.sellerName || "Campus Peer",
         sellerHandle: data.sellerHandle || "member",
+        sellerPhone: data.sellerPhone || null,
         college_id: data.college_id || "nit-calicut",
         status: data.status || "approved",
         is_featured: Boolean(data.is_featured),
         imageUrl: data.imageUrl || null,
+        imageStoragePath: data.imageStoragePath || null,
         published_at: data.published_at || new Date().toISOString(),
+        created_at: data.created_at || undefined,
       };
     });
 
-    // Client-side filtering & sorting for flexible multi-field filtering without complex Firestore composite indexes
-    if (categoryId) {
-      items = items.filter((p) => p.category_id === categoryId);
+    items = items.filter((p) => p.quantity > 0);
+
+    if (categoryId || categorySlug || categoryName) {
+      items = items.filter((p) =>
+        matchesCategoryFilter(p, { categoryId, categorySlug, categoryName })
+      );
     }
 
     if (search) {
-      const lower = search.toLowerCase();
-      items = items.filter(
-        (p) =>
-          p.name.toLowerCase().includes(lower) ||
-          p.description.toLowerCase().includes(lower) ||
-          p.categoryName.toLowerCase().includes(lower)
-      );
+      const terms = search.toLowerCase().split(/\s+/).filter(Boolean);
+      items = items.filter((p) => {
+        const hay = `${p.name} ${p.description} ${p.categoryName} ${p.sellerName}`.toLowerCase();
+        return terms.every((t) => hay.includes(t));
+      });
     }
 
     if (minPrice !== null && minPrice !== undefined) {
@@ -132,17 +172,18 @@ export async function getFirestoreProducts({
     if (listingType === "giveaway") {
       items = items.filter((p) => p.price === 0 || p.description.includes("[GIVEAWAY]"));
     } else if (listingType === "trade") {
-      items = items.filter((p) => p.description.includes("[TRADE") || p.name.toLowerCase().includes("trade"));
+      items = items.filter(
+        (p) => p.description.includes("[TRADE") || p.name.toLowerCase().includes("trade")
+      );
     } else if (listingType === "sale") {
       items = items.filter((p) => p.price > 0 && !p.description.includes("[GIVEAWAY]"));
     }
 
     if (sort === "price_low") {
-      items.sort((a, b) => a.price - b.price);
+      items.sort((a, b) => a.price - b.price || Number(b.is_featured) - Number(a.is_featured));
     } else if (sort === "price_high") {
-      items.sort((a, b) => b.price - a.price);
+      items.sort((a, b) => b.price - a.price || Number(b.is_featured) - Number(a.is_featured));
     } else {
-      // Recent sort: featured first, then published_at descending
       items.sort((a, b) => {
         if (a.is_featured && !b.is_featured) return -1;
         if (!a.is_featured && b.is_featured) return 1;
@@ -168,6 +209,7 @@ export async function getFirestoreProductById(productId: string): Promise<Firest
     const snap = await getDoc(docRef);
     if (!snap.exists()) return null;
     const data = snap.data();
+    if (data.status && data.status !== "approved") return null;
     return {
       id: snap.id,
       name: data.name || "",
@@ -177,6 +219,7 @@ export async function getFirestoreProductById(productId: string): Promise<Firest
       quantity: Number(data.quantity) || 1,
       category_id: data.category_id || "",
       categoryName: data.categoryName || "Campus Item",
+      categorySlug: data.categorySlug || undefined,
       seller_id: data.seller_id || "",
       sellerName: data.sellerName || "Campus Peer",
       sellerHandle: data.sellerHandle || "member",
@@ -185,7 +228,9 @@ export async function getFirestoreProductById(productId: string): Promise<Firest
       status: data.status || "approved",
       is_featured: Boolean(data.is_featured),
       imageUrl: data.imageUrl || null,
+      imageStoragePath: data.imageStoragePath || null,
       published_at: data.published_at || new Date().toISOString(),
+      created_at: data.created_at || undefined,
     };
   } catch (err) {
     console.error("Firestore getFirestoreProductById error:", err);
@@ -253,7 +298,7 @@ export async function createFirestoreListing(productData: {
     sellerName: productData.sellerName,
     sellerHandle: productData.sellerHandle,
     college_id: "nit-calicut",
-    status: "approved", // Auto-approved for instant campus peer discovery
+    status: "approved",
     is_featured: false,
     imageUrl: productData.imageUrl || null,
     published_at: now,

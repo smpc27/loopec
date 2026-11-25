@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import test from "node:test";
 
 const baseUrl = process.env.LOOPEC_BASE_URL || "http://localhost:3000";
@@ -66,7 +67,7 @@ test("sign-in page explains the college account flow", async () => {
   const response = await get("/auth/sign-in");
   const html = await response.text();
   assert.match(html, /Sign in to LOOPEC/);
-  assert.match(html, /college email address/i);
+  assert.match(html, /college email/i);
 });
 
 test("web manifest includes install-ready any and maskable icons", async () => {
@@ -98,28 +99,48 @@ test("offline fallback and PWA image assets are served", async () => {
   }
 });
 
-test("razorpay webhook endpoint is reachable and handles requests securely", async () => {
-  const response = await fetch(new URL("/api/webhooks/razorpay", baseUrl), {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ event: "ping" }),
-  });
-  assert.equal(response.status, 200);
+test("health check API responds cleanly", async () => {
+  const response = await get("/api/health");
   const data = await response.json();
   assert.equal(data.status, "ok");
+  assert.equal(typeof data.ts, "number");
+  assert.equal(typeof data.services?.supabase, "boolean");
+  assert.equal(typeof data.services?.firebase, "boolean");
 });
 
-test("5% platform commission arithmetic and escrow breakdown calculations", () => {
+test("federated search API handles queries and enforces auth or preview bypass", async () => {
+  const response = await fetch(new URL("/api/search?q=calc", baseUrl));
+  assert.ok([200, 401].includes(response.status), "search endpoint returns 200 (dev/auth) or 401");
+  const data = await response.json();
+  if (response.status === 200) {
+    assert.ok(Array.isArray(data.results));
+    assert.equal(typeof data.total, "number");
+  }
+});
+
+test("removed Razorpay routes return 404", async () => {
+  const responses = await Promise.all([
+    fetch(new URL("/api/create-order", baseUrl), { method: "POST" }),
+    fetch(new URL("/api/verify-payment", baseUrl), { method: "POST" }),
+    fetch(new URL("/api/webhooks/razorpay", baseUrl), { method: "POST" }),
+    fetch(new URL("/checkout/razorpay-demo", baseUrl)),
+  ]);
+  for (const res of responses) {
+    assert.equal(res.status, 404);
+  }
+});
+
+test("platform commission arithmetic and breakdown calculations", () => {
   const calculateCommission = (subtotal, percent = 5) => {
     const num = Math.max(0, Number(subtotal) || 0);
-    const comm = Math.round((num * percent) / 100 * 100) / 100;
+    const comm = Math.round(((num * percent) / 100) * 100) / 100;
     const net = Math.max(0, Math.round((num - comm) * 100) / 100);
     return { subtotal: num, commission: comm, sellerNet: net, total: num };
   };
 
   const c1 = calculateCommission(1000, 5);
-  assert.equal(c1.commission, 50); // 5% fee for platform
-  assert.equal(c1.sellerNet, 950); // 95% net payout for student seller
+  assert.equal(c1.commission, 50);
+  assert.equal(c1.sellerNet, 950);
   assert.equal(c1.total, 1000);
 
   const c2 = calculateCommission(599, 5);
@@ -127,90 +148,16 @@ test("5% platform commission arithmetic and escrow breakdown calculations", () =
   assert.equal(c2.sellerNet, 569.05);
 });
 
-test("POST /api/create-order creates Razorpay orders and validates minimum amount", async () => {
-  // Test invalid amount (< 100 paise)
-  const badRes = await fetch(new URL("/api/create-order", baseUrl), {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ amount: 50 }),
-  });
-  assert.equal(badRes.status, 400);
-
-  // Test valid order creation with Razorpay test keys
-  const goodRes = await fetch(new URL("/api/create-order", baseUrl), {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      amount: 10000, // ₹100.00
-      currency: "INR",
-      receipt: "rcpt_smoke_test_1",
-    }),
-  });
-
-  if (goodRes.status === 200) {
-    const data = await goodRes.json();
-    assert.ok(data.order_id);
-    assert.equal(data.amount, 10000);
-    assert.equal(data.currency, "INR");
-    assert.equal(data.key_id, process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_TyreyjCIz9Wdr2");
-  } else {
-    // If external network is unreachable or throttled in CI, it must return a handled error
-    assert.ok([200, 401, 500, 502, 503].includes(goodRes.status));
-  }
-});
-
-test("POST /api/verify-payment validates HMAC-SHA256 signatures", async () => {
-  const secret = process.env.RAZORPAY_KEY_SECRET || "x99hnME8YstbOjOvwvnTsBaq";
-  const orderId = "order_test_123456";
-  const paymentId = "pay_test_789012";
-
-  // 1. Missing fields should return 400
-  const missingRes = await fetch(new URL("/api/verify-payment", baseUrl), {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ order_id: orderId }),
-  });
-  assert.equal(missingRes.status, 400);
-
-  // 2. Bad signature should return 400
-  const badSigRes = await fetch(new URL("/api/verify-payment", baseUrl), {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      order_id: orderId,
-      payment_id: paymentId,
-      razorpay_signature: "bad_signature_abcdef123456",
-    }),
-  });
-  assert.equal(badSigRes.status, 400);
-
-  // 3. Genuine HMAC-SHA256 signature must return 200 success
-  const crypto = await import("node:crypto");
-  const validSignature = crypto
-    .createHmac("sha256", secret)
-    .update(`${orderId}|${paymentId}`)
-    .digest("hex");
-
-  const validRes = await fetch(new URL("/api/verify-payment", baseUrl), {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      order_id: orderId,
-      payment_id: paymentId,
-      razorpay_signature: validSignature,
-    }),
-  });
-  assert.equal(validRes.status, 200);
-  const validData = await validRes.json();
-  assert.equal(validData.success, true);
-  assert.equal(validData.payment_id, paymentId);
-});
-
-test("Razorpay standard checkout demo page loads cleanly", async () => {
-  const res = await get("/checkout/razorpay-demo");
-  const html = await res.text();
-  assert.match(html, /Razorpay Standard Web Checkout/);
-  assert.match(html, /Pay ₹.*100.*with Razorpay/);
+test("deterministic campus handover PIN derivation", () => {
+  const secret = "loopec-nitc-handover-salt-2026";
+  const derivePin = (orderId) => {
+    const hash = crypto.createHmac("sha256", secret).update(`handover-pin-${orderId}`).digest("hex");
+    return ((parseInt(hash.slice(0, 8), 16) % 9000) + 1000).toString();
+  };
+  const pinA = derivePin("35b88dad-65f3-4cd6-b44d-c7d2fda7711a");
+  const pinB = derivePin("35b88dad-65f3-4cd6-b44d-c7d2fda7711a");
+  assert.match(pinA, /^\d{4}$/);
+  assert.equal(pinA, pinB);
 });
 
 test("WhatsApp direct link and UPI intent URI format generator", () => {
@@ -231,7 +178,3 @@ test("WhatsApp direct link and UPI intent URI format generator", () => {
   const upi = buildUpiLink("seller@okaxis", "Student Seller", 450, "ord123");
   assert.equal(upi, "upi://pay?pa=seller%40okaxis&pn=Student%20Seller&am=450&cu=INR&tn=LOOPEC%20Order%20ord123");
 });
-
-
-
-

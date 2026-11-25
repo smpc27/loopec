@@ -5,8 +5,8 @@ import { AuthShell, FormNotice } from "@/components/auth/auth-shell";
 import { authMessage } from "@/lib/auth/messages";
 import { getCurrentMember } from "@/lib/auth/member";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { AdminHeader } from "@/components/admin/admin-header";
 import { reviewVerification } from "@/app/admin/actions";
-import { signOut } from "@/app/auth/actions";
 
 export const instant = false;
 
@@ -93,20 +93,10 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
 
   return (
     <main className="min-h-screen bg-[#eee9e2] px-5 py-8 sm:px-8 text-[#241e14]">
-      <header className="mx-auto flex max-w-6xl items-center justify-between gap-4">
-        <Link href="/" className="text-sm font-extrabold tracking-[.14em] uppercase text-[#241e14]">LOOPEC <span className="font-normal tracking-normal text-[#8e7a63]">Admin</span></Link>
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <Link href="/admin/payouts" className="rounded-full border border-[#d0c1ab] bg-[#241e14] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#382f20] transition-colors">Payouts & 5% Fee</Link>
-          <Link href="/admin/listings" className="rounded-full border border-[#d0c1ab]/60 bg-white/90 px-4 py-2.5 text-xs font-bold text-[#524a40] hover:text-[#241e14] hover:border-[#b8a58b] transition-colors">Listing moderation</Link>
-          <Link href="/admin/orders" className="rounded-full border border-[#d0c1ab]/60 bg-white/90 px-4 py-2.5 text-xs font-bold text-[#524a40] hover:text-[#241e14] hover:border-[#b8a58b] transition-colors">Order review</Link>
-          <Link href="/admin/members" className="rounded-full border border-[#d0c1ab]/60 bg-white/90 px-4 py-2.5 text-xs font-bold text-[#524a40] hover:text-[#241e14] hover:border-[#b8a58b] transition-colors">Member access</Link>
-          <Link href="/admin/pickup" className="rounded-full border border-[#d0c1ab]/60 bg-white/90 px-4 py-2.5 text-xs font-bold text-[#524a40] hover:text-[#241e14] hover:border-[#b8a58b] transition-colors">Pickup points</Link>
-          <Link href="/admin/reports" className="rounded-full border border-[#d0c1ab]/60 bg-white/90 px-4 py-2.5 text-xs font-bold text-[#524a40] hover:text-[#241e14] hover:border-[#b8a58b] transition-colors">Reports</Link>
-          {member.profile.role === "super_admin" ? <Link href="/admin/settings" className="rounded-full border border-[#d0c1ab]/60 bg-white/90 px-4 py-2.5 text-xs font-bold text-[#524a40] hover:text-[#241e14] hover:border-[#b8a58b] transition-colors">Platform settings</Link> : null}
-          <span className="hidden text-xs font-bold text-[#736b60] sm:block">{member.profile.full_name}</span>
-          <form action={signOut}><button className="rounded-full border border-[#d0c1ab]/60 bg-white/90 px-4 py-2.5 text-xs font-bold text-[#524a40] hover:text-[#241e14] hover:border-[#b8a58b] transition-colors" type="submit">Sign out</button></form>
-        </div>
-      </header>
+      <AdminHeader
+        adminName={member.profile.full_name}
+        isSuperAdmin={member.profile.role === "super_admin"}
+      />
       <section className="mx-auto mt-12 max-w-6xl">
         <div className="flex flex-col gap-7 border-b border-[#d0c1ab]/50 pb-8 sm:flex-row sm:items-end sm:justify-between">
           <div>

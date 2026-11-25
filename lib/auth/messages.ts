@@ -1,5 +1,8 @@
 const messages: Record<string, string> = {
   invalid: "Check the details and try again.",
+  invalid_input: "Please make sure all required feedback fields are filled out accurately.",
+  invalid_token: "Your sign-in token expired or was invalid. Please sign in again.",
+  unauthorized: "You are not authorized to perform this action.",
   sign_in: "We could not sign you in. Check your email and password.",
   sign_up: "We could not create your account. Check the details and try again.",
   email_send: "We couldn't send a confirmation link. Check the email address, wait before retrying, or contact support if this continues.",
@@ -31,6 +34,8 @@ const messages: Record<string, string> = {
   invalid_pin: "Please enter a valid 4-digit handover PIN.",
   incorrect_pin: "The handover PIN entered does not match this order. Please verify with the buyer and try again.",
   payment_reference: "Enter a valid payment reference after the seller accepts the order.",
+  payment_payload: "The payment details were incomplete. Try again.",
+  payment_confirm_failed: "We could not confirm this payment yet. Refresh the order and try again.",
   payment: "That payment reference could not be recorded. Check the details and try again.",
   payment_review: "We could not update the payment review. Refresh the queue and try again.",
   member_review: "We could not update member access. Refresh the page and try again.",

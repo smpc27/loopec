@@ -1,12 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, BadgeCheck, Bookmark, Gift, MessageCircle, PackageOpen, RefreshCw, ShieldCheck, ShoppingBag, Sparkles } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Bookmark, Gift, MessageCircle, PackageOpen, Phone, RefreshCw, ShieldCheck, ShoppingBag, Sparkles } from "lucide-react";
 import { ProductCard, type MarketplaceProduct } from "@/components/marketplace/product-card";
 import { requireApprovedMember } from "@/lib/auth/member";
 import { addToCart, buyNow, reportListing, startConversation, toggleWishlist } from "@/app/marketplace/actions";
 import { SiteHeader } from "@/components/navigation/site-header";
-import { getFirestoreProductById } from "@/lib/firebase/firestore";
+import { getFirestoreProductById, getFirestoreProducts } from "@/lib/firebase/firestore";
 
 export const instant = false;
 
@@ -48,7 +48,6 @@ export default async function ProductDetailsPage({ params, searchParams }: PageP
     productData = data as Product | null;
   }
 
-  // If not found in Supabase, check Google Firestore
   let firestoreDoc = null;
   if (!productData) {
     firestoreDoc = await getFirestoreProductById(productId);
@@ -114,7 +113,7 @@ export default async function ProductDetailsPage({ params, searchParams }: PageP
 
   const category = (categoryData as { name: string; slug: string } | null) || (firestoreDoc ? {
     name: firestoreDoc.categoryName || "Campus item",
-    slug: firestoreDoc.category_id || "campus-item",
+    slug: firestoreDoc.categorySlug || firestoreDoc.category_id || "campus-item",
   } : null);
 
   const images = (imageData ?? []) as { id: string; storage_path: string; alt_text: string; sort_order: number }[];
@@ -125,15 +124,23 @@ export default async function ProductDetailsPage({ params, searchParams }: PageP
     return { ...image, url: data?.signedUrl ?? null };
   }));
 
-  if (imageUrls.length === 0 && firestoreDoc?.imageUrl) {
-    imageUrls.push({
-      id: "firestore-img-1",
-      storage_path: "",
-      alt_text: firestoreDoc.name,
-      sort_order: 0,
-      url: firestoreDoc.imageUrl,
-    });
+  if (imageUrls.length === 0 && firestoreDoc) {
+    let resolvedUrl = firestoreDoc.imageUrl;
+    if (!resolvedUrl && firestoreDoc.imageStoragePath) {
+      const { data } = await supabase.storage.from("product-images").createSignedUrl(firestoreDoc.imageStoragePath, 15 * 60);
+      resolvedUrl = data?.signedUrl ?? null;
+    }
+    if (resolvedUrl) {
+      imageUrls.push({
+        id: "firestore-img-1",
+        storage_path: firestoreDoc.imageStoragePath || "",
+        alt_text: firestoreDoc.name,
+        sort_order: 0,
+        url: resolvedUrl,
+      });
+    }
   }
+
   const otherProducts = (relatedData ?? []) as Product[];
   const relatedSellerIds = [...new Set(otherProducts.map((item) => item.seller_id))];
   const [{ data: relatedSellers }, { data: relatedImages }, { data: relatedSaved }] = await Promise.all([
@@ -150,7 +157,7 @@ export default async function ProductDetailsPage({ params, searchParams }: PageP
   }));
   const relatedUrlMap = new Map(relatedUrls);
   const categoryName = category?.name ?? "Campus finds";
-  const relatedCards: MarketplaceProduct[] = otherProducts.map((item) => {
+  let relatedCards: MarketplaceProduct[] = otherProducts.map((item) => {
     const itemSeller = relatedSellerMap.get(item.seller_id);
     return {
       ...item,
@@ -160,6 +167,30 @@ export default async function ProductDetailsPage({ params, searchParams }: PageP
       imageUrl: relatedUrlMap.get(item.id) ?? null,
     };
   });
+
+  if (relatedCards.length === 0) {
+    const fsRelated = await getFirestoreProducts().catch(() => []);
+    relatedCards = fsRelated
+      .filter((fp) => fp.id !== product.id)
+      .slice(0, 4)
+      .map((fp) => ({
+        id: fp.id,
+        seller_id: fp.seller_id,
+        category_id: fp.category_id,
+        name: fp.name,
+        description: fp.description,
+        price: fp.price,
+        item_condition: fp.item_condition,
+        quantity: fp.quantity,
+        is_featured: fp.is_featured,
+        published_at: fp.published_at,
+        categoryName: fp.categoryName,
+        sellerName: fp.sellerName,
+        sellerHandle: fp.sellerHandle,
+        imageUrl: fp.imageUrl,
+      }));
+  }
+
   const query = await search;
   const error = Array.isArray(query.error) ? query.error[0] : query.error;
   const savedRelated = new Set((relatedSaved ?? []).map((item) => (item as { product_id: string }).product_id));
@@ -180,18 +211,17 @@ export default async function ProductDetailsPage({ params, searchParams }: PageP
   const rawSellerPhone = (seller?.phone || "").replace(/\D/g, "");
   const waSellerPhone = rawSellerPhone.length === 10 ? `91${rawSellerPhone}` : rawSellerPhone;
 
-  let waText = `Hi ${seller?.full_name || "there"}! 👋 I saw your listing for "${product.name}" (₹${product.price}) on LOOPEC. Is it still available for campus pickup?`;
+  let waText = `Hi ${seller?.full_name || "there"}! I saw your listing for "${product.name}" (₹${product.price}) on LOOPEC. Is it still available for campus pickup?`;
   if (isGiveaway) {
-    waText = `Hi ${seller?.full_name || "there"}! 👋 I saw your free campus giveaway for "${product.name}" on LOOPEC. I'd love to claim it if still available for campus pickup!`;
+    waText = `Hi ${seller?.full_name || "there"}! I saw your free campus giveaway for "${product.name}" on LOOPEC. I'd love to claim it if still available for campus pickup!`;
   } else if (isTrade) {
-    waText = `Hi ${seller?.full_name || "there"}! 👋 I saw your listing for "${product.name}" on LOOPEC looking to trade for "${tradeWishlist || "items"}". I'd like to propose an exchange with you!`;
+    waText = `Hi ${seller?.full_name || "there"}! I saw your listing for "${product.name}" on LOOPEC looking to trade for "${tradeWishlist || "items"}". I'd like to propose an exchange with you!`;
   }
 
   const waInquiryLink = waSellerPhone ? `https://wa.me/${waSellerPhone}?text=${encodeURIComponent(waText)}` : null;
 
   return (
     <main className="min-h-screen bg-transparent">
-      {/* Global Responsive Site Header */}
       <SiteHeader
         profile={profile}
         sectionTitle="Marketplace"
@@ -272,11 +302,18 @@ export default async function ProductDetailsPage({ params, searchParams }: PageP
             <div className="mt-7 rounded-[26px] border border-[#d0c1ab]/50 bg-white/90 backdrop-blur-xl p-4 sm:p-5 shadow-xs">
               <p className="text-[11px] font-bold uppercase tracking-[.13em] text-[#8e7a63]">Seller</p>
               <div className="mt-3 flex items-center justify-between gap-4">
-                <Link href={`/members/${seller?.handle ?? "member"}`} className="group flex min-w-0 items-center gap-3">
-                  <span className="grid size-11 shrink-0 place-items-center rounded-full bg-[#eee9e2] font-serif text-lg text-[#241e14] shadow-xs">{(seller?.full_name ?? "M").slice(0, 1).toUpperCase()}</span>
-                  <span className="min-w-0"><b className="flex items-center gap-1.5 truncate text-sm text-[#241e14] group-hover:text-[#8e7a63]">{seller?.full_name ?? "Verified member"}{seller?.verification_status === "approved" ? <BadgeCheck size={15} className="shrink-0 text-[#8e7a63]" /> : null}</b><small className="mt-1 block text-xs text-[#736b60]">{sellerRole} · @{seller?.handle ?? "member"}</small></span>
-                </Link>
-                <div className="shrink-0 text-right"><p className="text-sm font-semibold text-[#241e14]">{averageRating ? `${averageRating.toFixed(1)} / 5` : "New seller"}</p><small className="text-[11px] text-[#736b60]">{reviewRatings.length ? `${reviewRatings.length} reviews` : "No reviews yet"}</small></div>
+                {isSellerUuid ? (
+                  <Link href={`/members/${seller?.handle ?? "member"}`} className="group flex min-w-0 items-center gap-3">
+                    <span className="grid size-11 shrink-0 place-items-center rounded-full bg-[#eee9e2] font-serif text-lg text-[#241e14] shadow-xs">{(seller?.full_name ?? "M").slice(0, 1).toUpperCase()}</span>
+                    <span className="min-w-0"><b className="flex items-center gap-1.5 truncate text-sm text-[#241e14] group-hover:text-[#8e7a63]">{seller?.full_name ?? "Verified member"}{seller?.verification_status === "approved" ? <BadgeCheck size={15} className="shrink-0 text-[#8e7a63]" /> : null}</b><small className="mt-1 block text-xs text-[#736b60]">{sellerRole} · @{seller?.handle ?? "member"}</small></span>
+                  </Link>
+                ) : (
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="grid size-11 shrink-0 place-items-center rounded-full bg-[#eee9e2] font-serif text-lg text-[#241e14] shadow-xs">{(seller?.full_name ?? "M").slice(0, 1).toUpperCase()}</span>
+                    <span className="min-w-0"><b className="flex items-center gap-1.5 truncate text-sm text-[#241e14]">{seller?.full_name ?? "Verified member"}<BadgeCheck size={15} className="shrink-0 text-[#8e7a63]" /></b><small className="mt-1 block text-xs text-[#736b60]">{sellerRole} · @{seller?.handle ?? "member"}</small></span>
+                  </div>
+                )}
+                <div className="shrink-0 text-right"><p className="text-sm font-semibold text-[#241e14]">{averageRating ? `${averageRating.toFixed(1)} / 5` : "Campus Seller"}</p><small className="text-[11px] text-[#736b60]">{reviewRatings.length ? `${reviewRatings.length} reviews` : "Peer pickup"}</small></div>
               </div>
             </div>
 
@@ -352,15 +389,26 @@ export default async function ProductDetailsPage({ params, searchParams }: PageP
                     ) : null}
 
                     {waInquiryLink ? (
-                      <a
-                        href={waInquiryLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#25D366] px-5 text-sm font-bold text-white shadow-sm transition hover:bg-[#20ba59] sm:col-span-2"
-                      >
-                        <MessageCircle size={18} />
-                        <span>Chat & Buy on WhatsApp ({seller?.phone || "Seller"})</span>
-                      </a>
+                      <>
+                        <a
+                          href={waInquiryLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#25D366] px-5 text-sm font-bold text-white shadow-sm transition hover:bg-[#20ba59] sm:col-span-2"
+                        >
+                          <MessageCircle size={18} />
+                          <span>Chat & Buy on WhatsApp ({seller?.phone || "Seller"})</span>
+                        </a>
+                        {seller?.phone && (
+                          <a
+                            href={`tel:${rawSellerPhone}`}
+                            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-[#d0c1ab] bg-white/90 px-4 text-xs font-semibold text-[#241e14] shadow-xs transition hover:bg-[#eee9e2] sm:col-span-2"
+                          >
+                            <Phone size={15} />
+                            <span>Call Seller ({seller.phone})</span>
+                          </a>
+                        )}
+                      </>
                     ) : null}
 
                     {isProdUuid ? (
@@ -373,11 +421,47 @@ export default async function ProductDetailsPage({ params, searchParams }: PageP
                 )}
               </div>
             ) : <p className="mt-5 rounded-2xl border border-[#d0c1ab] bg-[#eee9e2]/60 backdrop-blur-md px-4 py-3 text-sm text-[#241e14] shadow-xs">This is your listing. Manage it from <Link className="font-semibold underline underline-offset-4 hover:text-[#8e7a63]" href="/listings">My listings</Link>.</p>}
-            {product.seller_id !== userId ? <details className="mt-5 rounded-2xl border border-[#d0c1ab]/50 bg-white/80 backdrop-blur-md px-4 py-3 shadow-xs"><summary className="cursor-pointer text-xs font-semibold text-[#736b60]">Report this listing</summary><form action={reportListing} className="mt-4 space-y-3"><input type="hidden" name="product_id" value={product.id} /><label className="block text-xs font-semibold text-[#5f574d]">Reason<select className="mt-2 min-h-11 w-full rounded-xl border border-[#d0c1ab] bg-white px-3 text-sm outline-none focus:border-[#241e14] focus:ring-4 focus:ring-[#d0c1ab]/30 shadow-xs" name="reason" required defaultValue=""><option value="" disabled>Select a reason</option><option value="prohibited_item">Prohibited item</option><option value="misleading_listing">Misleading listing</option><option value="safety">Safety concern</option><option value="harassment">Harassment</option><option value="other">Other</option></select></label><label className="block text-xs font-semibold text-[#5f574d]">Details <span className="font-normal">(optional)</span><textarea className="mt-2 min-h-20 w-full resize-y rounded-xl border border-[#d0c1ab] bg-white p-3 text-sm outline-none focus:border-[#241e14] focus:ring-4 focus:ring-[#d0c1ab]/30 shadow-xs" name="details" maxLength={2000} /></label><button className="min-h-10 rounded-full border border-rose-200 px-4 text-xs font-semibold text-rose-800 hover:bg-rose-50" type="submit">Send report to admin</button></form></details> : null}
-            <p className="mt-4 flex items-start gap-2 text-xs leading-5 text-[#736b60]"><ShieldCheck className="mt-0.5 shrink-0 text-[#8e7a63]" size={15} /> Arrange pickup at an approved campus location and coordinate through LOOPEC messages.</p>
+
+            {product.seller_id !== userId && isProdUuid ? (
+              <details className="mt-5 rounded-2xl border border-[#d0c1ab]/50 bg-white/80 backdrop-blur-md px-4 py-3 shadow-xs">
+                <summary className="cursor-pointer text-xs font-semibold text-[#736b60]">Report this listing</summary>
+                <form action={reportListing} className="mt-4 space-y-3">
+                  <input type="hidden" name="product_id" value={product.id} />
+                  <label className="block text-xs font-semibold text-[#5f574d]">Reason
+                    <select className="mt-2 min-h-11 w-full rounded-xl border border-[#d0c1ab] bg-white px-3 text-sm outline-none focus:border-[#241e14] focus:ring-4 focus:ring-[#d0c1ab]/30 shadow-xs" name="reason" required defaultValue="">
+                      <option value="" disabled>Select a reason</option>
+                      <option value="prohibited_item">Prohibited item</option>
+                      <option value="misleading_listing">Misleading listing</option>
+                      <option value="safety">Safety concern</option>
+                      <option value="harassment">Harassment</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </label>
+                  <label className="block text-xs font-semibold text-[#5f574d]">Details <span className="font-normal">(optional)</span>
+                    <textarea className="mt-2 min-h-20 w-full resize-y rounded-xl border border-[#d0c1ab] bg-white p-3 text-sm outline-none focus:border-[#241e14] focus:ring-4 focus:ring-[#d0c1ab]/30 shadow-xs" name="details" maxLength={2000} />
+                  </label>
+                  <button className="min-h-10 rounded-full border border-rose-200 px-4 text-xs font-semibold text-rose-800 hover:bg-rose-50" type="submit">Send report to admin</button>
+                </form>
+              </details>
+            ) : null}
+
+            <p className="mt-4 flex items-start gap-2 text-xs leading-5 text-[#736b60]"><ShieldCheck className="mt-0.5 shrink-0 text-[#8e7a63]" size={15} /> Arrange pickup at an approved campus location and coordinate through WhatsApp or LOOPEC messages.</p>
           </div>
         </div>
-        {relatedCards.length ? <section className="mt-16 border-t border-[#d0c1ab]/40 pt-9"><div className="flex items-end justify-between"><div><p className="text-[11px] font-bold uppercase tracking-[.14em] text-[#8e7a63]">From the same category</p><h2 className="mt-2 font-serif text-3xl tracking-tight text-[#241e14]">More around your campus</h2></div><Link className="text-xs font-semibold text-[#241e14] hover:text-[#8e7a63] underline underline-offset-4" href={`/marketplace?category=${product.category_id}`}>See all</Link></div><div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">{relatedCards.map((item) => <ProductCard key={item.id} product={item} saved={savedRelated.has(item.id)} currentUserId={userId} returnTo={`/marketplace/${product.id}`} />)}</div></section> : null}
+        {relatedCards.length ? (
+          <section className="mt-16 border-t border-[#d0c1ab]/40 pt-9">
+            <div className="flex items-end justify-between">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[.14em] text-[#8e7a63]">From your campus loop</p>
+                <h2 className="mt-2 font-serif text-3xl tracking-tight text-[#241e14]">More around your campus</h2>
+              </div>
+              <Link className="text-xs font-semibold text-[#241e14] hover:text-[#8e7a63] underline underline-offset-4" href={isCatUuid ? `/marketplace?category=${product.category_id}` : "/marketplace"}>See all</Link>
+            </div>
+            <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {relatedCards.map((item) => <ProductCard key={item.id} product={item} saved={savedRelated.has(item.id)} currentUserId={userId} returnTo={`/marketplace/${product.id}`} />)}
+            </div>
+          </section>
+        ) : null}
       </section>
     </main>
   );

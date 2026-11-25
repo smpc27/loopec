@@ -2,16 +2,14 @@ import crypto from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { calculateCommission, type CommissionBreakdown } from "@/lib/payments/commission";
 
-export type PaymentProvider = "razorpay" | "sandbox" | "manual_upi" | "whatsapp_upi" | "direct_upi" | "cash_pickup";
+export type PaymentProvider = "sandbox" | "manual_upi" | "whatsapp_upi" | "direct_upi" | "cash_pickup";
 
 export type PaymentSessionResult = {
-  mode: "razorpay" | "sandbox";
+  mode: "sandbox";
   orderId: string;
   amount: number;
   currency: string;
   breakdown: CommissionBreakdown;
-  keyId?: string;
-  razorpayOrderId?: string;
 };
 
 export type VerifyPaymentParams = {
@@ -22,28 +20,13 @@ export type VerifyPaymentParams = {
   signature?: string;
 };
 
-export function getRazorpayCredentials() {
-  const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID;
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
-  return {
-    keyId: keyId?.trim() || null,
-    keySecret: keySecret?.trim() || null,
-    isConfigured: Boolean(keyId && keySecret),
-  };
-}
-
 /**
- * Creates a payment session for an order.
- * If Razorpay keys are configured, creates a real Razorpay Order.
- * Otherwise, provisions a local campus sandbox session for instant testing.
+ * Creates a campus sandbox payment session for an order.
  */
 export async function createPaymentSession({
   orderId,
   amount,
   currency = "INR",
-  customerName,
-  customerEmail,
-  customerContact,
 }: {
   orderId: string;
   amount: number;
@@ -53,49 +36,6 @@ export async function createPaymentSession({
   customerContact?: string;
 }): Promise<PaymentSessionResult> {
   const breakdown = calculateCommission(amount, 5);
-  const { isConfigured, keyId, keySecret } = getRazorpayCredentials();
-
-  if (isConfigured && keyId && keySecret) {
-    try {
-      // Dynamic import to keep build lean
-      const RazorpayModule = await import("razorpay");
-      const RazorpayClass = RazorpayModule.default || RazorpayModule;
-      const razorpay = new RazorpayClass({
-        key_id: keyId,
-        key_secret: keySecret,
-      });
-
-      const amountInPaise = Math.round(breakdown.totalAmount * 100);
-      const razorpayOrder = await razorpay.orders.create({
-        amount: amountInPaise,
-        currency,
-        receipt: `ord_${orderId.slice(0, 16)}`,
-        notes: {
-          loopec_order_id: orderId,
-          subtotal: breakdown.subtotal.toString(),
-          commission_5pct: breakdown.commissionAmount.toString(),
-          seller_net_95pct: breakdown.sellerNetAmount.toString(),
-          customer_name: customerName || "Campus Member",
-          customer_email: customerEmail || "",
-          customer_contact: customerContact || "",
-        },
-      });
-
-      return {
-        mode: "razorpay",
-        orderId,
-        amount: breakdown.totalAmount,
-        currency,
-        breakdown,
-        keyId,
-        razorpayOrderId: razorpayOrder.id,
-      };
-    } catch (error) {
-      console.warn("Razorpay order creation fallback to sandbox:", error);
-    }
-  }
-
-  // Local Campus Sandbox (default when keys are not configured or during testing)
   return {
     mode: "sandbox",
     orderId,
@@ -103,34 +43,6 @@ export async function createPaymentSession({
     currency,
     breakdown,
   };
-}
-
-/**
- * Cryptographically verifies payment signature (HMAC SHA256 for Razorpay).
- */
-export function verifyRazorpaySignature({
-  razorpayOrderId,
-  razorpayPaymentId,
-  razorpaySignature,
-}: {
-  razorpayOrderId: string;
-  razorpayPaymentId: string;
-  razorpaySignature: string;
-}): boolean {
-  const { keySecret } = getRazorpayCredentials();
-  if (!keySecret) return false;
-
-  const body = `${razorpayOrderId}|${razorpayPaymentId}`;
-  const expectedSignature = crypto
-    .createHmac("sha256", keySecret)
-    .update(body)
-    .digest("hex");
-
-  const expectedBuf = Buffer.from(expectedSignature, "utf-8");
-  const receivedBuf = Buffer.from(razorpaySignature || "", "utf-8");
-
-  if (expectedBuf.length !== receivedBuf.length) return false;
-  return crypto.timingSafeEqual(expectedBuf, receivedBuf);
 }
 
 /**
@@ -143,7 +55,7 @@ export async function confirmOrderPaymentInDb(
 ): Promise<{ success: boolean; error?: string }> {
   const { orderId, provider, paymentId, orderReference } = params;
 
-  // 1. Try modern confirm_online_payment RPC
+  // 1. Try confirm_online_payment RPC
   const { error: rpcError } = await supabase.rpc("confirm_online_payment", {
     p_order_id: orderId,
     p_provider: provider,
@@ -155,8 +67,7 @@ export async function confirmOrderPaymentInDb(
     return { success: true };
   }
 
-  // 2. Fallback if confirm_online_payment RPC not yet applied in Supabase
-  // Attempt transition to payment_pending and submit reference
+  // 2. Fallback: transition + submit reference
   try {
     await supabase.rpc("transition_order_status", {
       p_order_id: orderId,
@@ -178,10 +89,14 @@ export async function confirmOrderPaymentInDb(
     console.warn("Fallback payment transition error:", err);
   }
 
-  // If in dev mode bypass, succeed gracefully
   if (process.env.LOOPEC_DEV_BYPASS_AUTH === "true") {
     return { success: true };
   }
 
   return { success: false, error: rpcError?.message || "Failed to confirm payment" };
+}
+
+// Keep HMAC helper for handover PIN signing
+export function hmacSha256(secret: string, data: string): string {
+  return crypto.createHmac("sha256", secret).update(data).digest("hex");
 }

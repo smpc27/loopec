@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const { initializeApp } = require("firebase/app");
-const { getFirestore, collection, doc, setDoc } = require("firebase/firestore");
+const { getFirestore, doc, setDoc } = require("firebase/firestore");
 
 const firebaseConfig = {
   apiKey: "AIzaSyAeStEnpwY3AKb2jcsZJ9Sweyqtqb9eeWc",

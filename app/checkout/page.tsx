@@ -5,7 +5,7 @@ import { AuthShell, FormNotice } from "@/components/auth/auth-shell";
 import { requireApprovedMember } from "@/lib/auth/member";
 import { authMessage } from "@/lib/auth/messages";
 import { createOrders } from "@/app/checkout/actions";
-import { signOut } from "@/app/auth/actions";
+import { SiteHeader } from "@/components/navigation/site-header";
 import { calculateCommission } from "@/lib/payments/commission";
 
 export const instant = false;
@@ -28,7 +28,7 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/checkou
   let lines = (cartData ?? []) as CartLine[];
   const buyNowProductId = quickProductId && isUuid(quickProductId) ? quickProductId : null;
   if (buyNowProductId) lines = [{ product_id: buyNowProductId, quantity: 1 }];
-  if (!lines.length) return <AuthShell eyebrow="Checkout" title="Your cart is empty" description="Add a listing before you begin checkout." footer={<Link className="font-semibold text-violet-800" href="/marketplace">Back to marketplace</Link>}><Link className="inline-flex min-h-11 items-center rounded-full bg-violet-950 px-5 text-sm font-semibold text-white" href="/cart">View your cart</Link></AuthShell>;
+  if (!lines.length) return <AuthShell eyebrow="Checkout" title="Your cart is empty" description="Add a listing before you begin checkout." footer={<Link className="font-semibold text-[#241e14] underline underline-offset-4 hover:text-[#8e7a63]" href="/marketplace">Back to marketplace</Link>}><Link className="inline-flex min-h-11 items-center rounded-full bg-[#241e14] hover:bg-[#382f20] px-5 text-sm font-semibold text-white transition" href="/cart">View your cart</Link></AuthShell>;
   const productIds = lines.map((line) => line.product_id);
   const [{ data: productData }, { data: sellerData }] = await Promise.all([
     supabase.from("products").select("id, seller_id, category_id, name, price, quantity, status").in("id", productIds),
@@ -94,7 +94,7 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/checkou
 
   return (
     <main className="min-h-screen bg-transparent">
-      <header className="border-b border-[#d0c1ab]/40 bg-white/80 backdrop-blur-xl"><div className="mx-auto flex min-h-[60px] sm:min-h-[64px] max-w-6xl items-center justify-between px-4 sm:px-6"><Link href="/marketplace" className="text-sm font-extrabold tracking-[.14em] text-[#241e14]">LOOPEC <span className="ml-2 font-normal tracking-normal text-[#736b60]">Checkout</span></Link><form action={signOut}><button type="submit" className="text-xs font-semibold text-[#736b60] hover:text-[#241e14]">Sign out</button></form></div></header>
+      <SiteHeader profile={profile} sectionTitle="Checkout" />
       <section className="mx-auto max-w-6xl px-4 py-5 sm:px-6 sm:py-8">
         <Link href="/cart" className="inline-flex items-center gap-2 text-xs font-semibold text-[#736b60] hover:text-[#241e14] transition"><ArrowLeft size={14} /> Back to cart</Link>
         <div className="mt-5"><p className="text-[10px] font-bold uppercase tracking-[.14em] text-[#8e7a63]">Secure campus exchange</p><h1 className="mt-2 font-serif text-4xl tracking-[-.05em] text-[#241e14]">Confirm your pickup</h1><p className="mt-2 text-sm leading-6 text-[#736b60]">Your items are rechecked and reserved together when you place the order.</p></div>

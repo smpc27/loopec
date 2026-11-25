@@ -1,59 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { CheckCircle2, CreditCard, Landmark, Loader2, QrCode, ShieldCheck, Sparkles, Zap } from "lucide-react";
+import { CheckCircle2, CreditCard, Landmark, QrCode, ShieldCheck, Sparkles, Zap } from "lucide-react";
 import { completeOrderPayment } from "@/app/orders/payment-actions";
 import { calculateCommission } from "@/lib/payments/commission";
-
-interface RazorpaySuccessResponse {
-  razorpay_payment_id: string;
-  razorpay_order_id: string;
-  razorpay_signature: string;
-}
-
-interface RazorpayErrorResponse {
-  error?: {
-    code?: string;
-    description?: string;
-    source?: string;
-    step?: string;
-    reason?: string;
-  };
-}
-
-interface RazorpayOptions {
-  key?: string;
-  amount: number;
-  currency: string;
-  name: string;
-  description?: string;
-  image?: string;
-  order_id: string;
-  prefill?: {
-    name?: string;
-    email?: string;
-    contact?: string;
-  };
-  theme?: {
-    color?: string;
-  };
-  modal?: {
-    ondismiss?: () => void;
-  };
-  handler: (response: RazorpaySuccessResponse) => void | Promise<void>;
-}
-
-interface RazorpayInstance {
-  open: () => void;
-  on: (event: string, callback: (response: RazorpayErrorResponse) => void) => void;
-}
-
-declare global {
-  interface Window {
-    Razorpay?: new (options: RazorpayOptions) => RazorpayInstance;
-  }
-}
 
 type PayOnlineCardProps = {
   orderId: string;
@@ -62,136 +12,24 @@ type PayOnlineCardProps = {
   buyerName?: string;
 };
 
-export function PayOnlineCard({ orderId, amount, buyerName = "Campus Member" }: PayOnlineCardProps) {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [showSandboxModal, setShowSandboxModal] = useState(false);
+export function PayOnlineCard({ orderId, amount }: PayOnlineCardProps) {
+  const [showModal, setShowModal] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<"upi" | "card" | "netbanking">("upi");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [sandboxPaymentId, setSandboxPaymentId] = useState("");
   const [sandboxOrderRef, setSandboxOrderRef] = useState("");
 
   const breakdown = calculateCommission(amount, 5);
 
-  const openSandbox = (method: "upi" | "card" | "netbanking" = selectedMethod) => {
+  const openModal = (method: "upi" | "card" | "netbanking" = selectedMethod) => {
     setSandboxPaymentId(`PAY-${method.toUpperCase()}-${Date.now().toString(36).toUpperCase()}`);
     setSandboxOrderRef(`REF-${Math.random().toString(36).slice(2, 10).toUpperCase()}`);
-    setShowSandboxModal(true);
+    setShowModal(true);
   };
 
   const handleMethodSelect = (method: "upi" | "card" | "netbanking") => {
     setSelectedMethod(method);
     setSandboxPaymentId(`PAY-${method.toUpperCase()}-${Date.now().toString(36).toUpperCase()}`);
   };
-
-  async function handleStartPayment() {
-    setLoading(true);
-    setErrorMessage(null);
-
-    try {
-      // 1. Ensure Razorpay checkout script is loaded
-      if (typeof window !== "undefined" && !window.Razorpay) {
-        await new Promise<void>((resolve, reject) => {
-          const script = document.createElement("script");
-          script.src = "https://checkout.razorpay.com/v1/checkout.js";
-          script.async = true;
-          script.onload = () => resolve();
-          script.onerror = () => reject(new Error("Failed to load Razorpay checkout SDK"));
-          document.body.appendChild(script);
-        });
-      }
-
-      // 2. Call Backend Create Order Endpoint
-      const createRes = await fetch("/api/create-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: Math.round(breakdown.totalAmount * 100),
-          currency: "INR",
-          receipt: `ord_${orderId.slice(0, 16)}`,
-          notes: {
-            loopec_order_id: orderId,
-            platform: "LOOPEC",
-          },
-        }),
-      });
-
-      const orderData = await createRes.json();
-
-      // If backend create-order fails or returns error, open campus sandbox modal
-      if (!createRes.ok || !orderData.order_id) {
-        console.warn("Live Razorpay order creation returned:", orderData.error);
-        openSandbox();
-        setLoading(false);
-        return;
-      }
-
-      // 3. Open Razorpay Standard Checkout Modal
-      const options: RazorpayOptions = {
-        key: orderData.key_id || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: orderData.amount,
-        currency: orderData.currency || "INR",
-        name: "LOOPEC",
-        description: `Campus Order ${orderId.slice(0, 8)}`,
-        image: "/logo.png",
-        order_id: orderData.order_id,
-        prefill: {
-          name: buyerName,
-        },
-        theme: {
-          color: "#49347F",
-        },
-        modal: {
-          ondismiss: () => {
-            setLoading(false);
-          },
-        },
-        handler: async function (response: RazorpaySuccessResponse) {
-          try {
-            // 4. Send all three to verify endpoint
-            const verifyRes = await fetch("/api/verify-payment", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                order_id: response.razorpay_order_id,
-                payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                loopec_order_id: orderId,
-              }),
-            });
-
-            const verifyData = await verifyRes.json();
-            if (!verifyRes.ok || !verifyData.success) {
-              throw new Error(verifyData.error || "Payment signature verification failed");
-            }
-
-            router.push(`/orders/${orderId}?paid=1`);
-            router.refresh();
-          } catch (verifyErr: unknown) {
-            const msg = verifyErr instanceof Error ? verifyErr.message : "Payment verification failed";
-            setErrorMessage(msg);
-            setLoading(false);
-          }
-        },
-      };
-
-      if (!window.Razorpay) {
-        throw new Error("Razorpay checkout failed to initialize");
-      }
-
-      const rzp = new window.Razorpay(options);
-      rzp.on("payment.failed", function (response: RazorpayErrorResponse) {
-        setErrorMessage(response.error?.description || "Payment failed or was cancelled.");
-        setLoading(false);
-      });
-
-      rzp.open();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "An unexpected error occurred while initiating payment.";
-      setErrorMessage(msg);
-      setLoading(false);
-    }
-  }
 
   return (
     <article className="overflow-hidden rounded-[24px] border border-[#d0c1ab]/50 bg-white/95 p-5 shadow-xs sm:p-6">
@@ -202,9 +40,7 @@ export function PayOnlineCard({ orderId, amount, buyerName = "Campus Member" }: 
           </span>
           <div>
             <h2 className="text-base font-bold text-[#241e14]">Pay Online · Instant Escrow</h2>
-            <p className="text-xs text-[#736b60]">
-              UPI, Cards, Netbanking via Razorpay · 0% buyer processing fee
-            </p>
+            <p className="text-xs text-[#736b60]">UPI, Cards, Netbanking · 0% buyer processing fee</p>
           </div>
         </div>
         <span className="inline-flex items-center gap-1 rounded-full bg-[#eee9e2] px-2.5 py-1 text-[11px] font-semibold text-[#241e14] border border-[#d0c1ab]/60">
@@ -249,56 +85,30 @@ export function PayOnlineCard({ orderId, amount, buyerName = "Campus Member" }: 
         </span>
       </div>
 
-      {errorMessage && (
-        <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
-          <p className="font-semibold">Payment Notice</p>
-          <p className="mt-0.5">{errorMessage}</p>
-        </div>
-      )}
-
-      {/* Pay CTA Button */}
-      <div className="mt-5 flex flex-wrap items-center gap-3">
+      {/* Pay CTA */}
+      <div className="mt-5">
         <button
           type="button"
-          onClick={handleStartPayment}
-          disabled={loading}
-          className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full bg-[#241e14] px-6 text-sm font-semibold text-[#eee9e2] shadow-sm transition hover:bg-[#382f20] active:scale-[0.98] disabled:opacity-60"
+          onClick={() => openModal()}
+          className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#241e14] px-6 text-sm font-semibold text-[#eee9e2] shadow-sm transition hover:bg-[#382f20] active:scale-[0.98]"
         >
-          {loading ? (
-            <>
-              <Loader2 size={16} className="animate-spin" />
-              Opening Secure Payment Gateway...
-            </>
-          ) : (
-            <>
-              <Zap size={16} />
-              Pay {breakdown.formatted.totalAmount} with Razorpay
-            </>
-          )}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => openSandbox()}
-          className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#d0c1ab] bg-white px-4 text-xs font-semibold text-[#241e14] transition hover:bg-[#eee9e2]/50"
-          title="Campus Sandbox Simulation for offline test runs"
-        >
-          Campus Sandbox
+          <Zap size={16} />
+          Pay {breakdown.formatted.totalAmount}
         </button>
       </div>
 
-      {/* Campus Sandbox Simulation Modal (For offline/sandbox fallback) */}
-      {showSandboxModal && (
+      {/* Payment Method Modal */}
+      {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#241e14]/60 p-4 backdrop-blur-xs">
           <div className="w-full max-w-md rounded-[28px] border border-[#d0c1ab] bg-white p-6 shadow-2xl">
             <div className="flex items-center justify-between border-b border-[#eee9e2] pb-3">
               <div className="flex items-center gap-2 text-[#241e14]">
                 <ShieldCheck size={20} className="text-[#8e7a63]" />
-                <h3 className="font-serif text-lg font-bold">LOOPEC Campus Sandbox</h3>
+                <h3 className="font-serif text-lg font-bold">Choose Payment Method</h3>
               </div>
               <button
                 type="button"
-                onClick={() => setShowSandboxModal(false)}
+                onClick={() => setShowModal(false)}
                 className="text-xs text-gray-400 hover:text-gray-700"
               >
                 ✕ Close
@@ -306,7 +116,7 @@ export function PayOnlineCard({ orderId, amount, buyerName = "Campus Member" }: 
             </div>
 
             <p className="mt-3 text-xs leading-5 text-[#736b60]">
-              Simulate standard payment gateway callback for local test orders. Select your simulated channel:
+              Select how you&apos;d like to pay for this campus order:
             </p>
 
             <div className="mt-4 grid grid-cols-3 gap-2">
@@ -353,36 +163,36 @@ export function PayOnlineCard({ orderId, amount, buyerName = "Campus Member" }: 
             <div className="mt-4 rounded-xl border border-[#d0c1ab]/40 bg-[#eee9e2]/60 p-3 text-xs text-[#241e14]">
               {selectedMethod === "upi" && (
                 <div className="space-y-1">
-                  <p className="font-semibold text-[#241e14]">Simulated UPI Intent: Google Pay, PhonePe, Paytm</p>
-                  <p className="text-[11px] text-[#736b60]">Direct instant authorization without external bank network latency.</p>
+                  <p className="font-semibold">UPI: Google Pay, PhonePe, Paytm, BHIM</p>
+                  <p className="text-[11px] text-[#736b60]">Pay seller directly via UPI and submit your transaction reference below.</p>
                 </div>
               )}
               {selectedMethod === "card" && (
                 <div className="space-y-1">
-                  <p className="font-semibold text-[#241e14]">Simulated RuPay / Visa / Mastercard</p>
-                  <p className="text-[11px] text-[#736b60]">Auto-approved 3D-Secure campus sandbox transaction.</p>
+                  <p className="font-semibold">RuPay / Visa / Mastercard</p>
+                  <p className="text-[11px] text-[#736b60]">Pay using your debit or credit card and enter the reference number.</p>
                 </div>
               )}
               {selectedMethod === "netbanking" && (
                 <div className="space-y-1">
-                  <p className="font-semibold text-[#241e14]">Simulated Campus NetBanking</p>
-                  <p className="text-[11px] text-[#736b60]">State Bank of India (SBI NITC Branch), Canara Bank, HDFC, ICICI supported.</p>
+                  <p className="font-semibold">Net Banking</p>
+                  <p className="text-[11px] text-[#736b60]">SBI, Canara Bank, HDFC, ICICI — transfer and submit UTR reference.</p>
                 </div>
               )}
             </div>
 
             <form action={completeOrderPayment} className="mt-5">
               <input type="hidden" name="order_id" value={orderId} />
-              <input type="hidden" name="provider" value="sandbox" />
+              <input type="hidden" name="provider" value={selectedMethod === "upi" ? "direct_upi" : "sandbox"} />
               <input
                 type="hidden"
                 name="payment_id"
-                value={sandboxPaymentId || `PAY-${selectedMethod.toUpperCase()}-SANDBOX`}
+                value={sandboxPaymentId || `PAY-${selectedMethod.toUpperCase()}-INSTANT`}
               />
               <input
                 type="hidden"
                 name="order_reference"
-                value={sandboxOrderRef || "REF-SANDBOX"}
+                value={sandboxOrderRef || "REF-MANUAL"}
               />
               <button
                 type="submit"
@@ -401,7 +211,7 @@ export function PayOnlineCard({ orderId, amount, buyerName = "Campus Member" }: 
 export function PaymentReceiptCard({
   orderId,
   amount,
-  paymentMethod = "Online",
+  paymentMethod = "Campus Pay",
   referenceId,
   verifiedAt,
 }: {
@@ -435,26 +245,26 @@ export function PaymentReceiptCard({
       </div>
 
       <div className="mt-4 rounded-2xl border border-emerald-100 bg-white/90 p-4 text-xs">
-        <div className="mb-2.5 flex justify-between border-b border-[#eee] pb-2 text-[#686072]">
+        <div className="mb-2.5 flex justify-between border-b border-[#eee9e2] pb-2 text-[#736b60]">
           <span>Order ID</span>
-          <code className="font-mono font-semibold text-[#2f273b]">#{orderId.slice(0, 8)}</code>
+          <code className="font-mono font-semibold text-[#241e14]">#{orderId.slice(0, 8)}</code>
         </div>
         {referenceId && (
-          <div className="mb-3 flex justify-between border-b border-[#eee] pb-2 text-[#686072]">
+          <div className="mb-3 flex justify-between border-b border-[#eee9e2] pb-2 text-[#736b60]">
             <span>Transaction Reference</span>
-            <code className="font-mono font-semibold text-[#2f273b]">{referenceId}</code>
+            <code className="font-mono font-semibold text-[#241e14]">{referenceId}</code>
           </div>
         )}
         <div className="space-y-1.5">
-          <div className="flex justify-between text-[#686072]">
+          <div className="flex justify-between text-[#736b60]">
             <span>Gross Amount</span>
-            <b className="text-[#2f273b]">{breakdown.formatted.totalAmount}</b>
+            <b className="text-[#241e14]">{breakdown.formatted.totalAmount}</b>
           </div>
-          <div className="flex justify-between text-[#686072]">
+          <div className="flex justify-between text-[#736b60]">
             <span>LOOPEC Platform Commission (5%)</span>
-            <b className="text-violet-900">{breakdown.formatted.commissionAmount}</b>
+            <b className="text-[#8e7a63]">{breakdown.formatted.commissionAmount}</b>
           </div>
-          <div className="flex justify-between text-[#686072]">
+          <div className="flex justify-between text-[#736b60]">
             <span>Seller Net Payout (95%)</span>
             <b className="text-emerald-900">{breakdown.formatted.sellerNetAmount}</b>
           </div>
@@ -462,7 +272,7 @@ export function PaymentReceiptCard({
       </div>
 
       <p className="mt-3 text-xs leading-5 text-emerald-900">
-        The payment is held in escrow. Payout to seller will be disbursed once both participants confirm the campus pickup handover.
+        The payment is confirmed. Payout to seller is finalized once both participants confirm the campus pickup handover.
       </p>
     </article>
   );

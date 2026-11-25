@@ -4,8 +4,8 @@ import { AuthShell, FormNotice } from "@/components/auth/auth-shell";
 import { authMessage } from "@/lib/auth/messages";
 import { getCurrentMember } from "@/lib/auth/member";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { AdminHeader } from "@/components/admin/admin-header";
 import { rejectManualPayment, verifyManualPayment } from "@/app/admin/actions";
-import { signOut } from "@/app/auth/actions";
 
 export const instant = false;
 
@@ -36,8 +36,8 @@ export default async function AdminOrdersPage({ searchParams }: PageProps<"/admi
   const errorMessage = errorCode === "payment_review" ? authMessage(errorCode) : authMessage(errorCode);
 
   return (
-    <main className="min-h-screen bg-[#f7f6f4] px-5 py-8 sm:px-8">
-      <header className="mx-auto flex max-w-6xl items-center justify-between"><Link href="/admin" className="text-sm font-extrabold tracking-[.14em] text-[#302546]">LOOPEC <span className="ml-2 font-normal tracking-normal text-[#8b8590]">Admin</span></Link><div className="flex items-center gap-4"><Link className="text-xs font-semibold text-violet-800" href="/admin">Verification queue</Link><form action={signOut}><button className="text-xs font-semibold text-[#77717e]" type="submit">Sign out</button></form></div></header>
+    <main className="min-h-screen bg-[#eee9e2] px-5 py-8 sm:px-8 text-[#241e14]">
+      <AdminHeader adminName={member.profile.full_name} isSuperAdmin={member.profile.role === "super_admin"} />
       <section className="mx-auto mt-11 max-w-6xl">
         <Link href="/admin" className="inline-flex items-center gap-2 text-xs font-semibold text-[#77717e] hover:text-violet-900"><ArrowLeft size={14} /> Admin home</Link>
         <div className="mt-5 flex flex-wrap items-end justify-between gap-5 border-b border-[#e8e5e2] pb-7"><div><p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.15em] text-violet-700"><ShieldCheck size={14} /> Manual payment review</p><h1 className="mt-2 font-serif text-4xl tracking-[-.05em] text-[#28232f]">Order monitoring</h1><p className="mt-2 max-w-xl text-sm leading-6 text-[#77717e]">Compare the submitted UPI reference with the college’s payment records. Only an admin decision can move a manual payment to paid.</p></div><span className="rounded-full border border-[#e8e3ec] bg-white px-4 py-2 text-xs font-semibold text-[#5e5765]">{orders.length} awaiting review</span></div>

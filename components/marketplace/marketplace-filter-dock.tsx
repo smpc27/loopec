@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect, useTransition } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Search,
   SlidersHorizontal,
@@ -21,19 +22,38 @@ import {
   ArrowUpDown,
   Layers,
   Loader2,
+  ArrowUpRight,
 } from "lucide-react";
 
 type Category = { id: string; name: string; slug?: string };
 
-function getCategoryIcon(name: string) {
+type QuickSearchItem = {
+  id: string;
+  name: string;
+  price: number;
+  categoryName: string;
+};
+
+const inr = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
+
+function CategoryIcon({
+  name,
+  size,
+  className,
+}: {
+  name?: string;
+  size: number;
+  className?: string;
+}) {
+  if (!name) return <Layers size={size} className={className} />;
   const lower = name.toLowerCase();
-  if (lower.includes("book") || lower.includes("study") || lower.includes("notes") || lower.includes("textbook")) return BookOpen;
-  if (lower.includes("electr") || lower.includes("gadget") || lower.includes("calc") || lower.includes("laptop")) return Laptop;
-  if (lower.includes("access") || lower.includes("bag") || lower.includes("watch") || lower.includes("fashion")) return Watch;
-  if (lower.includes("station") || lower.includes("draft") || lower.includes("tool")) return Compass;
-  if (lower.includes("hostel") || lower.includes("room") || lower.includes("furnit") || lower.includes("lamp")) return Home;
-  if (lower.includes("sport") || lower.includes("cycle") || lower.includes("bike")) return Bike;
-  return Sparkles;
+  if (lower.includes("book") || lower.includes("study") || lower.includes("notes") || lower.includes("textbook")) return <BookOpen size={size} className={className} />;
+  if (lower.includes("electr") || lower.includes("gadget") || lower.includes("calc") || lower.includes("laptop")) return <Laptop size={size} className={className} />;
+  if (lower.includes("access") || lower.includes("bag") || lower.includes("watch") || lower.includes("fashion")) return <Watch size={size} className={className} />;
+  if (lower.includes("station") || lower.includes("draft") || lower.includes("tool")) return <Compass size={size} className={className} />;
+  if (lower.includes("hostel") || lower.includes("room") || lower.includes("furnit") || lower.includes("lamp")) return <Home size={size} className={className} />;
+  if (lower.includes("sport") || lower.includes("cycle") || lower.includes("bike")) return <Bike size={size} className={className} />;
+  return <Sparkles size={size} className={className} />;
 }
 
 export function MarketplaceFilterDock({
@@ -54,7 +74,6 @@ export function MarketplaceFilterDock({
   initialType?: string;
 }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
   const [search, setSearch] = useState(initialSearch);
@@ -64,14 +83,18 @@ export function MarketplaceFilterDock({
   const [sort, setSort] = useState(initialSort);
   const [listingType, setListingType] = useState(initialType);
 
-  // Custom Dropdown Open States
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [isSortOpen, setIsSortOpen] = useState(false);
 
+  const [suggestions, setSuggestions] = useState<QuickSearchItem[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSearchingApi, setIsSearchingApi] = useState(false);
+
   const categoryRef = useRef<HTMLDivElement>(null);
   const sortRef = useRef<HTMLDivElement>(null);
+  const searchWrapRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Close dropdowns on outside click
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (categoryRef.current && !categoryRef.current.contains(e.target as Node)) {
@@ -80,10 +103,66 @@ export function MarketplaceFilterDock({
       if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
         setIsSortOpen(false);
       }
+      if (searchWrapRef.current && !searchWrapRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (
+        e.key === "/" &&
+        document.activeElement?.tagName !== "INPUT" &&
+        document.activeElement?.tagName !== "TEXTAREA"
+      ) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      } else if (e.key === "Escape") {
+        setShowSuggestions(false);
+        setIsCategoryOpen(false);
+        setIsSortOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
+
+  // Live federated search suggestions powered by GET /api/search
+  useEffect(() => {
+    const trimmed = search.trim();
+    if (trimmed.length < 2) {
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setIsSearchingApi(true);
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}&limit=6`, {
+          signal: controller.signal,
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data?.results)) {
+            setSuggestions(data.results);
+          }
+        }
+      } catch {
+        // Ignore aborted or transient fetch issues
+      } finally {
+        setIsSearchingApi(false);
+      }
+    }, 240);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [search]);
+
+  const visibleSuggestions = search.trim().length >= 2 ? suggestions : [];
 
   const pushNavigation = (overrides: {
     category?: string;
@@ -108,6 +187,7 @@ export function MarketplaceFilterDock({
     if (finalSort && finalSort !== "recent") p.set("sort", finalSort);
     if (finalType && finalType !== "all") p.set("type", finalType);
 
+    setShowSuggestions(false);
     const qs = p.toString();
     startTransition(() => {
       router.push(`/marketplace${qs ? `?${qs}` : ""}`, { scroll: false });
@@ -143,11 +223,11 @@ export function MarketplaceFilterDock({
     setMaxPrice("");
     setSort("recent");
     setListingType("all");
+    setShowSuggestions(false);
     router.push("/marketplace");
   };
 
   const currentCategoryObj = categories.find((c) => c.id === selectedCategory);
-  const CurrentCatIcon = currentCategoryObj ? getCategoryIcon(currentCategoryObj.name) : Layers;
 
   const hasActiveFilters = Boolean(
     search || selectedCategory || minPrice || maxPrice || sort !== "recent" || listingType !== "all"
@@ -161,10 +241,8 @@ export function MarketplaceFilterDock({
 
   return (
     <div className="relative z-30 space-y-3">
-      {/* 1. VISUAL CATEGORY PILLS BAR (AIRBNB / APPLE STYLE) */}
       <div className="flex items-center justify-between gap-2 overflow-x-auto pb-0.5 scrollbar-none -mx-2 px-2">
         <div className="flex items-center gap-1.5 sm:gap-2 min-w-max">
-          {/* All Categories Chip */}
           <button
             type="button"
             onClick={() => selectCategory("")}
@@ -178,9 +256,7 @@ export function MarketplaceFilterDock({
             <span>All Categories</span>
           </button>
 
-          {/* Individual Category Chips with Icons */}
           {categories.map((cat) => {
-            const IconComponent = getCategoryIcon(cat.name);
             const isSelected = selectedCategory === cat.id;
 
             return (
@@ -194,14 +270,13 @@ export function MarketplaceFilterDock({
                     : "border border-white/80 bg-white/75 backdrop-blur-md text-[#241e14]/80 hover:bg-white hover:border-[#d0c1ab] shadow-sm"
                 }`}
               >
-                <IconComponent size={15} className={isSelected ? "text-[#d0c1ab]" : "text-[#241e14]"} />
+                <CategoryIcon name={cat.name} size={15} className={isSelected ? "text-[#d0c1ab]" : "text-[#241e14]"} />
                 <span>{cat.name}</span>
               </button>
             );
           })}
         </div>
 
-        {/* Live Filter Update Indicator */}
         {isPending ? (
           <span className="shrink-0 inline-flex items-center gap-1.5 text-[11px] font-bold text-[#241e14] bg-white/85 backdrop-blur-md border border-[#d0c1ab]/50 rounded-full px-3 py-1 shadow-xs animate-in fade-in duration-150">
             <Loader2 size={12} className="animate-spin text-[#8e7a63]" />
@@ -210,7 +285,6 @@ export function MarketplaceFilterDock({
         ) : null}
       </div>
 
-      {/* 2. LISTING TYPE TABS (All Items / For Sale / Trade / Free Giveaways) */}
       <div className="flex flex-wrap items-center justify-between gap-2.5 pt-0.5">
         <div className="flex flex-wrap items-center gap-1.5">
           <button
@@ -277,22 +351,25 @@ export function MarketplaceFilterDock({
         )}
       </div>
 
-      {/* 3. ULTRA-MODERN FROSTED GLASS SEARCH & FILTER DOCK */}
       <form
         onSubmit={handleSearchSubmit}
         className="relative z-20 rounded-[28px] border border-white/80 bg-white/75 backdrop-blur-2xl p-3 sm:p-3.5 shadow-[0_20px_50px_-25px_rgba(36,30,20,0.08),_inset_0_1px_2px_rgba(255,255,255,0.95)] grid grid-cols-1 gap-2.5 sm:grid-cols-12 sm:items-center"
       >
-        {/* Main Keyword Search Input (5 Cols) */}
-        <div className="relative sm:col-span-4 lg:col-span-4">
+        <div ref={searchWrapRef} className="relative z-40 sm:col-span-4 lg:col-span-4">
           <Search
             size={17}
             className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8e7a63]"
           />
           <input
+            ref={searchInputRef}
             type="search"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search textbooks, calculators, drafters, cycles..."
+            onFocus={() => setShowSuggestions(true)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setShowSuggestions(true);
+            }}
+            placeholder="Search textbooks, calculators, drafters..."
             className="h-11 w-full rounded-2xl bg-white/80 border border-[#d0c1ab]/50 pl-10 pr-9 text-xs sm:text-sm text-[#241e14] outline-none placeholder:text-[#8a8175] transition focus:bg-white focus:border-[#241e14] focus:ring-4 focus:ring-[#d0c1ab]/30 shadow-inner"
           />
           {search ? (
@@ -300,6 +377,7 @@ export function MarketplaceFilterDock({
               type="button"
               onClick={() => {
                 setSearch("");
+                setSuggestions([]);
                 pushNavigation({ q: "" });
               }}
               className="absolute right-3 top-1/2 -translate-y-1/2 size-5 grid place-items-center rounded-full bg-[#eee9e2] text-[#5f574d] hover:bg-[#241e14] hover:text-white transition cursor-pointer"
@@ -308,9 +386,45 @@ export function MarketplaceFilterDock({
               <X size={12} />
             </button>
           ) : null}
+
+          {showSuggestions && search.trim().length >= 2 && (visibleSuggestions.length > 0 || isSearchingApi) ? (
+            <div className="absolute left-0 right-0 top-full mt-2 z-50 overflow-hidden rounded-2xl border border-white/95 bg-white/95 backdrop-blur-2xl p-1.5 shadow-[0_20px_50px_-10px_rgba(36,30,20,0.22)]">
+              {isSearchingApi && visibleSuggestions.length === 0 ? (
+                <div className="flex items-center gap-2 px-3 py-2.5 text-xs text-[#736b60]">
+                  <Loader2 size={13} className="animate-spin text-[#8e7a63]" />
+                  <span>Searching campus loop...</span>
+                </div>
+              ) : (
+                <>
+                  {visibleSuggestions.map((item) => (
+                    <Link
+                      key={item.id}
+                      href={`/marketplace/${item.id}`}
+                      onClick={() => setShowSuggestions(false)}
+                      className="flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-xs transition hover:bg-[#eee9e2]/70"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate font-bold text-[#241e14]">{item.name}</p>
+                        <p className="truncate text-[10px] text-[#8e7a63]">{item.categoryName}</p>
+                      </div>
+                      <span className="shrink-0 font-bold text-[#241e14]">
+                        {item.price === 0 ? "FREE" : inr.format(item.price)}
+                      </span>
+                    </Link>
+                  ))}
+                  <button
+                    type="submit"
+                    className="mt-1 flex w-full items-center justify-between border-t border-[#d0c1ab]/30 px-3 py-2 text-[11px] font-bold text-[#8e7a63] hover:text-[#241e14] cursor-pointer"
+                  >
+                    <span>Show all results for “{search.trim()}”</span>
+                    <ArrowUpRight size={13} />
+                  </button>
+                </>
+              )}
+            </div>
+          ) : null}
         </div>
 
-        {/* Custom Frosted Category Dropdown (3 Cols) - Replaces ugly native select! */}
         <div ref={categoryRef} className="relative z-30 sm:col-span-3 lg:col-span-3">
           <button
             type="button"
@@ -321,7 +435,7 @@ export function MarketplaceFilterDock({
             className="h-11 w-full flex items-center justify-between rounded-2xl border border-[#d0c1ab]/50 bg-white/80 px-3.5 text-xs sm:text-sm text-[#241e14] outline-none transition hover:bg-white hover:border-[#241e14] focus:ring-4 focus:ring-[#d0c1ab]/30 shadow-inner cursor-pointer"
           >
             <div className="flex items-center gap-2 truncate">
-              <CurrentCatIcon size={15} className="text-[#241e14] shrink-0" />
+              <CategoryIcon name={currentCategoryObj?.name} size={15} className="text-[#241e14] shrink-0" />
               <span className="truncate font-medium">
                 {currentCategoryObj ? currentCategoryObj.name : "All Categories"}
               </span>
@@ -334,7 +448,6 @@ export function MarketplaceFilterDock({
             />
           </button>
 
-          {/* Custom Frosted Glass Dropdown Menu */}
           {isCategoryOpen && (
             <div className="absolute left-0 top-full mt-2 z-50 w-64 max-h-72 overflow-y-auto rounded-2xl border border-white/95 bg-white/95 backdrop-blur-2xl p-2 shadow-[0_20px_50px_-10px_rgba(36,30,20,0.25)] animate-in fade-in zoom-in-95 duration-150">
               <button
@@ -356,7 +469,6 @@ export function MarketplaceFilterDock({
               <div className="my-1 border-t border-[#d0c1ab]/30" />
 
               {categories.map((c) => {
-                const Icon = getCategoryIcon(c.name);
                 const isItemSel = selectedCategory === c.id;
 
                 return (
@@ -371,7 +483,7 @@ export function MarketplaceFilterDock({
                     }`}
                   >
                     <div className="flex items-center gap-2.5 truncate">
-                      <Icon size={14} className="text-[#241e14] shrink-0" />
+                      <CategoryIcon name={c.name} size={14} className="text-[#241e14] shrink-0" />
                       <span className="truncate">{c.name}</span>
                     </div>
                     {isItemSel && <Check size={14} className="text-[#241e14] shrink-0" />}
@@ -382,7 +494,6 @@ export function MarketplaceFilterDock({
           )}
         </div>
 
-        {/* Price Inputs: Min & Max (3 Cols: 1.5 + 1.5) */}
         <div className="grid grid-cols-2 gap-2 sm:col-span-3 lg:col-span-3">
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#8e7a63]">
@@ -415,9 +526,7 @@ export function MarketplaceFilterDock({
           </div>
         </div>
 
-        {/* Custom Sort Dropdown & Submit Button (2 Cols) */}
         <div className="flex items-center gap-2 sm:col-span-2 lg:col-span-2">
-          {/* Custom Sort Popover */}
           <div ref={sortRef} className="relative z-30 flex-1">
             <button
               type="button"
@@ -455,7 +564,6 @@ export function MarketplaceFilterDock({
             )}
           </div>
 
-          {/* Action Filter Button */}
           <button
             type="submit"
             className="h-11 inline-flex items-center justify-center gap-1.5 rounded-2xl bg-[#241e14] hover:bg-[#382f20] px-4 text-xs font-bold text-white shadow-md shadow-[#241e14]/20 transition cursor-pointer"

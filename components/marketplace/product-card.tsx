@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -33,6 +33,31 @@ export type MarketplaceProduct = {
   imageUrl: string | null;
 };
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+export const LOCAL_WISHLIST_STORAGE_KEY = "loopec_saved_firestore_items";
+
+export function readLocalWishlistIds(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(LOCAL_WISHLIST_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeLocalWishlistIds(ids: string[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(LOCAL_WISHLIST_STORAGE_KEY, JSON.stringify(ids));
+    window.dispatchEvent(new Event("loopec:wishlist-change"));
+  } catch {
+    // Ignore storage quota errors
+  }
+}
+
 const currency = new Intl.NumberFormat("en-IN", {
   style: "currency",
   currency: "INR",
@@ -49,20 +74,27 @@ const conditionBadges: Record<
   used: { label: "Campus used", bg: "bg-[#eee9e2] text-[#524a40] border-[#d0c1ab]/70", dot: "bg-[#8e7a63]" },
 };
 
-function getCategoryPlaceholderIcon(categoryName: string) {
+function CategoryPlaceholderIcon({
+  categoryName,
+  size,
+  className,
+}: {
+  categoryName: string;
+  size: number;
+  className?: string;
+}) {
   const lower = categoryName.toLowerCase();
-  if (lower.includes("book") || lower.includes("study") || lower.includes("notes") || lower.includes("textbook")) return BookOpen;
-  if (lower.includes("electr") || lower.includes("gadget") || lower.includes("calc") || lower.includes("laptop")) return Laptop;
-  if (lower.includes("station") || lower.includes("draft") || lower.includes("tool")) return Compass;
-  if (lower.includes("sport") || lower.includes("cycle") || lower.includes("bike")) return Bike;
-  if (lower.includes("hostel") || lower.includes("room") || lower.includes("furnit") || lower.includes("lamp")) return Home;
-  return PackageOpen;
+  if (lower.includes("book") || lower.includes("study") || lower.includes("notes") || lower.includes("textbook")) return <BookOpen size={size} className={className} />;
+  if (lower.includes("electr") || lower.includes("gadget") || lower.includes("calc") || lower.includes("laptop")) return <Laptop size={size} className={className} />;
+  if (lower.includes("station") || lower.includes("draft") || lower.includes("tool")) return <Compass size={size} className={className} />;
+  if (lower.includes("sport") || lower.includes("cycle") || lower.includes("bike")) return <Bike size={size} className={className} />;
+  if (lower.includes("hostel") || lower.includes("room") || lower.includes("furnit") || lower.includes("lamp")) return <Home size={size} className={className} />;
+  return <PackageOpen size={size} className={className} />;
 }
 
 export function ProductCard({
   product,
   saved: initialSaved,
-  returnTo = "/marketplace",
   showSeller = true,
   currentUserId,
   previewMode = false,
@@ -74,26 +106,49 @@ export function ProductCard({
   currentUserId: string;
   previewMode?: boolean;
 }) {
+  const isUuid = UUID_REGEX.test(product.id);
   const [isSaved, setIsSaved] = useState(initialSaved);
-  const [isWishlistPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (isUuid) return;
+    const syncLocal = () => {
+      const savedIds = readLocalWishlistIds();
+      setIsSaved(savedIds.includes(product.id));
+    };
+    const id = requestAnimationFrame(syncLocal);
+    window.addEventListener("loopec:wishlist-change", syncLocal);
+    return () => {
+      cancelAnimationFrame(id);
+      window.removeEventListener("loopec:wishlist-change", syncLocal);
+    };
+  }, [isUuid, product.id]);
 
   const isGiveaway = Number(product.price) === 0 || product.description?.includes("[GIVEAWAY]");
   const isTrade = product.description?.includes("[TRADE") || product.name.toLowerCase().includes("trade");
   const badge = conditionBadges[product.item_condition] || conditionBadges.good;
-  const FallbackIcon = getCategoryPlaceholderIcon(product.categoryName);
 
   const handleToggleWishlist = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     const nextSaved = !isSaved;
     setIsSaved(nextSaved);
+
+    if (!isUuid) {
+      const current = new Set(readLocalWishlistIds());
+      if (nextSaved) current.add(product.id);
+      else current.delete(product.id);
+      writeLocalWishlistIds([...current]);
+      return;
+    }
+
     startTransition(async () => {
       try {
         const res = await toggleWishlistDirect(product.id);
         if (!res.success) {
           setIsSaved(!nextSaved);
         }
-      } catch (err) {
+      } catch {
         setIsSaved(!nextSaved);
       }
     });
@@ -101,7 +156,6 @@ export function ProductCard({
 
   return (
     <article className="group relative overflow-hidden rounded-[26px] border border-white/80 bg-white/75 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_22px_45px_-15px_rgba(36,30,20,0.12)] hover:bg-white/95 hover:border-white shadow-[0_8px_25px_-12px_rgba(36,30,20,0.06),_inset_0_1px_1px_rgba(255,255,255,0.9)] active:scale-[0.99]">
-      {/* Product Image / Dynamic Category Illustration */}
       <div className="relative aspect-[1.18/1] overflow-hidden bg-gradient-to-br from-[#eee9e2] to-[#e4ded5]">
         {product.imageUrl ? (
           <Image
@@ -115,7 +169,7 @@ export function ProductCard({
         ) : (
           <div className="relative grid h-full place-items-center bg-gradient-to-br from-[#f8f5f0] via-[#ede6dc] to-[#e0d6c9] p-6 text-center select-none">
             <div className="relative size-16 rounded-3xl bg-white/90 border border-white flex items-center justify-center shadow-sm group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
-              <FallbackIcon size={30} className="text-[#241e14]" />
+              <CategoryPlaceholderIcon categoryName={product.categoryName} size={30} className="text-[#241e14]" />
             </div>
             <span className="mt-2 text-[10.5px] font-bold tracking-wider uppercase text-[#8e7a63]">
               {product.categoryName}
@@ -123,7 +177,6 @@ export function ProductCard({
           </div>
         )}
 
-        {/* Condition Badge with live indicator dot */}
         <span
           className={`absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold shadow-xs backdrop-blur-md transition-transform group-hover:scale-105 ${badge.bg}`}
         >
@@ -131,14 +184,13 @@ export function ProductCard({
           {badge.label}
         </span>
 
-        {/* Trade / Giveaway / Featured Top Badge */}
         {isGiveaway ? (
           <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-emerald-400/40 bg-emerald-700/95 px-3 py-1 text-xs font-bold text-white shadow-md backdrop-blur-md">
-            🎁 FREE
+            FREE
           </span>
         ) : isTrade ? (
           <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-[#d0c1ab]/50 bg-[#241e14]/95 px-3 py-1 text-xs font-bold text-[#eee9e2] shadow-md backdrop-blur-md">
-            🔄 TRADE
+            TRADE
           </span>
         ) : product.is_featured ? (
           <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-amber-300/40 bg-gradient-to-r from-amber-600 to-amber-700 px-3 py-1 text-xs font-bold text-white shadow-md backdrop-blur-md">
@@ -147,7 +199,6 @@ export function ProductCard({
         ) : null}
       </div>
 
-      {/* Card Content */}
       <div className="p-4 sm:p-4.5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
@@ -155,9 +206,12 @@ export function ProductCard({
               {product.categoryName}
             </p>
             {previewMode ? (
-              <span className="mt-1 line-clamp-2 block min-h-[44px] text-base font-bold leading-snug text-[#241e14]">
+              <Link
+                href={`/marketplace/${product.id}`}
+                className="mt-1 line-clamp-2 block min-h-[44px] text-base font-bold leading-snug text-[#241e14] transition hover:text-[#8e7a63]"
+              >
                 {product.name}
-              </span>
+              </Link>
             ) : (
               <Link
                 href={`/marketplace/${product.id}`}
@@ -168,8 +222,7 @@ export function ProductCard({
             )}
           </div>
 
-          {/* Instant Optimistic Wishlist Button (0 delay!) */}
-          {product.seller_id !== currentUserId && !previewMode ? (
+          {product.seller_id !== currentUserId ? (
             <button
               onClick={handleToggleWishlist}
               className={`grid size-9 shrink-0 place-items-center rounded-full border transition-all cursor-pointer active:scale-125 duration-200 ${
@@ -190,7 +243,6 @@ export function ProductCard({
           ) : null}
         </div>
 
-        {/* Price & Seller Footer */}
         <div className="mt-3.5 flex items-end justify-between gap-3 border-t border-[#d0c1ab]/40 pt-3">
           <div>
             {isGiveaway ? (
@@ -210,7 +262,7 @@ export function ProductCard({
               </p>
             )}
             {showSeller ? (
-              previewMode ? (
+              previewMode && product.sellerHandle === "member" ? (
                 <span className="mt-1 block max-w-[160px] truncate text-xs font-semibold text-[#524a40]">
                   {product.sellerName}
                 </span>

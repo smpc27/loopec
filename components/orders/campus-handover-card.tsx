@@ -66,7 +66,7 @@ export function CampusHandoverCard({
               Campus Handover Completed
             </h2>
             <p className="text-xs leading-relaxed text-emerald-900/80 sm:text-sm">
-              Both parties completed physical verification on campus. 95% net seller payout has been released, and 5% platform commission is booked.
+              Both parties completed physical verification on campus. This order is now finalized.
             </p>
           </div>
         </div>
@@ -100,43 +100,41 @@ export function CampusHandoverCard({
   }
 
   return (
-    <article className="rounded-[26px] border border-violet-200 bg-white p-6 shadow-sm">
-      <div className="flex items-center justify-between gap-4 border-b border-violet-100 pb-4">
+    <article className="rounded-[26px] border border-[#d0c1ab]/60 bg-white/95 p-6 shadow-sm">
+      <div className="flex items-center justify-between gap-4 border-b border-[#eee9e2] pb-4">
         <div className="flex items-center gap-2.5">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-violet-600 text-white shadow-sm">
+          <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#241e14] text-[#eee9e2] shadow-sm">
             <KeyRound className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="font-serif text-lg font-bold text-violet-950 sm:text-xl">
-              Campus Delivery Handover Protection
+            <h2 className="font-serif text-lg font-bold text-[#241e14] sm:text-xl">
+              Campus Delivery Handover PIN
             </h2>
-            <p className="text-xs text-gray-500">
-              Meeting point: <strong className="text-violet-900">{pickupLocationName}</strong>
+            <p className="text-xs text-[#736b60]">
+              Meeting point: <strong className="text-[#241e14]">{pickupLocationName}</strong>
             </p>
           </div>
         </div>
 
-        <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-800 border border-violet-200">
-          <ShieldCheck className="h-3.5 w-3.5 text-violet-600" />
-          Zero-Fraud Escrow
+        <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-[#eee9e2] px-3 py-1 text-xs font-semibold text-[#241e14] border border-[#d0c1ab]/60">
+          <ShieldCheck className="h-3.5 w-3.5 text-[#8e7a63]" />
+          Verified Handover
         </span>
       </div>
 
       <div className="mt-6">
         {buyerView ? (
-          /* BUYER VIEW: SHOW 4-DIGIT PIN & QR */
           <div className="space-y-6">
-            <div className="rounded-2xl border border-violet-200 bg-violet-50/70 p-5 text-center">
-              <p className="text-xs font-bold uppercase tracking-wider text-violet-700">
+            <div className="rounded-2xl border border-[#d0c1ab]/60 bg-[#eee9e2]/50 p-5 text-center">
+              <p className="text-xs font-bold uppercase tracking-wider text-[#8e7a63]">
                 Your 4-Digit Handover PIN
               </p>
 
-              {/* Big 4-digit PIN Boxes */}
               <div className="mt-3 flex items-center justify-center gap-3">
                 {handoverPin.split("").map((digit, i) => (
                   <div
                     key={i}
-                    className="flex h-14 w-12 sm:h-16 sm:w-14 items-center justify-center rounded-2xl border-2 border-violet-400 bg-white font-mono text-3xl font-extrabold text-violet-950 shadow-sm"
+                    className="flex h-14 w-12 sm:h-16 sm:w-14 items-center justify-center rounded-2xl border-2 border-[#241e14] bg-white font-mono text-3xl font-extrabold text-[#241e14] shadow-sm"
                   >
                     {digit}
                   </div>
@@ -147,7 +145,7 @@ export function CampusHandoverCard({
                 <button
                   type="button"
                   onClick={handleCopyPin}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-violet-300 bg-white px-3 py-1 text-xs font-medium text-violet-800 shadow-xs hover:bg-violet-50 transition"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[#d0c1ab] bg-white px-3 py-1 text-xs font-medium text-[#241e14] shadow-xs hover:bg-[#eee9e2]/60 transition cursor-pointer"
                 >
                   {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
                   <span>{copied ? "PIN Copied!" : "Copy PIN"}</span>
@@ -156,50 +154,48 @@ export function CampusHandoverCard({
                 <button
                   type="button"
                   onClick={() => setShowQr(!showQr)}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-violet-300 bg-white px-3 py-1 text-xs font-medium text-violet-800 shadow-xs hover:bg-violet-50 transition"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[#d0c1ab] bg-white px-3 py-1 text-xs font-medium text-[#241e14] shadow-xs hover:bg-[#eee9e2]/60 transition cursor-pointer"
                 >
                   <QrCode className="h-3.5 w-3.5" />
-                  <span>{showQr ? "Hide QR" : "Show Handover QR"}</span>
+                  <span>{showQr ? "Hide Pass" : "Show Handover Pass"}</span>
                 </button>
               </div>
 
               {showQr && (
-                <div className="mt-4 p-4 bg-white rounded-xl border border-violet-200 inline-block shadow-sm">
-                  <div className="grid place-items-center h-40 w-40 bg-violet-950 rounded-lg text-white text-center p-2 font-mono text-xs">
-                    <QrCode className="h-20 w-20 text-white mb-1" />
+                <div className="mt-4 p-4 bg-white rounded-xl border border-[#d0c1ab] inline-block shadow-sm">
+                  <div className="grid place-items-center h-40 w-40 bg-[#241e14] rounded-lg text-[#eee9e2] text-center p-2 font-mono text-xs">
+                    <QrCode className="h-20 w-20 text-[#eee9e2] mb-1" />
                     <span>PIN: {handoverPin}</span>
-                    <span className="text-[9px] text-violet-300">LOOPEC Handover</span>
+                    <span className="text-[9px] text-[#d0c1ab]">LOOPEC Handover</span>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Buyer Instructions */}
-            <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 text-xs text-amber-900 leading-relaxed space-y-1.5">
+            <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-4 text-xs text-amber-900 leading-relaxed space-y-1.5">
               <p className="font-bold flex items-center gap-1.5 text-amber-950">
                 <AlertCircle className="h-4 w-4 shrink-0 text-amber-700" />
                 Important Buyer Safety Rule:
               </p>
               <p>
-                Meet <strong>{sellerName}</strong> at <strong>{pickupLocationName}</strong>. Inspect the item thoroughly (check books, electronic devices, or condition). Give this 4-digit PIN to the seller <strong>ONLY AFTER</strong> you physically verify the item.
+                Meet <strong>{sellerName}</strong> at <strong>{pickupLocationName}</strong>. Inspect the item thoroughly before giving this 4-digit PIN to the seller. Sharing the PIN confirms final handover.
               </p>
             </div>
           </div>
         ) : (
-          /* SELLER VIEW: ENTER BUYER'S 4-DIGIT PIN TO COMPLETE */
           <div className="space-y-6">
-            <div className="rounded-2xl border border-violet-200 bg-violet-50/50 p-5">
-              <p className="text-xs font-bold uppercase tracking-wider text-violet-800">
+            <div className="rounded-2xl border border-[#d0c1ab]/60 bg-[#eee9e2]/45 p-5">
+              <p className="text-xs font-bold uppercase tracking-wider text-[#241e14]">
                 Enter Buyer&apos;s Handover PIN
               </p>
-              <p className="mt-1 text-xs text-gray-600">
+              <p className="mt-1 text-xs text-[#736b60]">
                 Ask <strong>{buyerName}</strong> for their 4-digit PIN once they have inspected and accepted the item.
               </p>
 
               <form action={verifyCampusHandover} className="mt-4 space-y-4">
                 <input type="hidden" name="order_id" value={orderId} />
 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   <input
                     name="handover_pin"
                     type="text"
@@ -209,7 +205,7 @@ export function CampusHandoverCard({
                     value={pinInput}
                     onChange={(e) => setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
                     placeholder="4-digit PIN"
-                    className="h-14 w-48 rounded-2xl border-2 border-violet-300 bg-white px-4 text-center font-mono text-2xl font-bold tracking-widest text-violet-950 outline-none focus:border-violet-600 focus:ring-4 focus:ring-violet-100 shadow-sm"
+                    className="h-14 w-48 rounded-2xl border-2 border-[#d0c1ab] bg-white px-4 text-center font-mono text-2xl font-bold tracking-widest text-[#241e14] outline-none focus:border-[#241e14] focus:ring-4 focus:ring-[#d0c1ab]/30 shadow-sm"
                     required
                   />
 
@@ -217,7 +213,7 @@ export function CampusHandoverCard({
                     type="submit"
                     size="lg"
                     disabled={pinInput.length !== 4}
-                    className="flex-1 font-semibold"
+                    className="flex-1 font-semibold bg-[#241e14] hover:bg-[#382f20] text-[#eee9e2]"
                   >
                     <span>Verify PIN & Complete Handover</span>
                     <ArrowRight className="h-4 w-4" />
@@ -226,8 +222,8 @@ export function CampusHandoverCard({
               </form>
             </div>
 
-            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-xs text-gray-600 leading-relaxed">
-              💡 <strong>Instant Payout Release:</strong> Once you enter the correct 4-digit PIN, this order completes immediately and your 95% net payout is confirmed.
+            <div className="rounded-xl border border-[#d0c1ab]/40 bg-[#eee9e2]/40 p-4 text-xs text-[#5f574d] leading-relaxed">
+              Once you enter the buyer&apos;s 4-digit PIN, this campus exchange is marked as completed for both members.
             </div>
           </div>
         )}

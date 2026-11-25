@@ -17,7 +17,7 @@ export function GoogleSignInButton({
     startTransition(async () => {
       const isMobile =
         typeof window !== "undefined" &&
-        ((window as any).Capacitor?.isNativePlatform?.() ||
+        ((window as Window & { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.() ||
           navigator.userAgent.includes("LOOPEC-App") ||
           /android|iphone|ipad|ipod/i.test(navigator.userAgent));
 

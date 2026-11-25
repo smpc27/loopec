@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { ArrowLeft, Bookmark } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { ProductCard, type MarketplaceProduct } from "@/components/marketplace/product-card";
+import { SavedCampusItems } from "@/components/wishlist/saved-campus-items";
 import { requireApprovedMember } from "@/lib/auth/member";
 import { SiteHeader } from "@/components/navigation/site-header";
+import { getFirestoreProducts } from "@/lib/firebase/firestore";
 
 export const instant = false;
 
@@ -13,7 +15,10 @@ type Product = {
 
 export default async function WishlistPage() {
   const { supabase, userId, profile } = await requireApprovedMember();
-  const { data: savedData } = await supabase.from("wishlists").select("product_id").eq("user_id", userId).order("created_at", { ascending: false });
+  const [{ data: savedData }, firestoreRaw] = await Promise.all([
+    supabase.from("wishlists").select("product_id").eq("user_id", userId).order("created_at", { ascending: false }),
+    getFirestoreProducts().catch(() => []),
+  ]);
   const savedIds = (savedData ?? []).map((item) => (item as { product_id: string }).product_id);
   const { data: productData } = savedIds.length
     ? await supabase.from("products").select("id, seller_id, category_id, name, description, price, item_condition, quantity, is_featured, published_at").in("id", savedIds).eq("status", "approved").gt("quantity", 0)
@@ -41,9 +46,28 @@ export default async function WishlistPage() {
     return { ...product, categoryName: categories.get(product.category_id) ?? "Campus finds", sellerName: seller?.full_name ?? "Verified member", sellerHandle: seller?.handle ?? "member", imageUrl: images.get(product.id) ?? null };
   });
 
+  const existingIds = new Set(cards.map((c) => c.id));
+  const firestoreCards: MarketplaceProduct[] = firestoreRaw
+    .filter((fp) => !existingIds.has(fp.id))
+    .map((fp) => ({
+      id: fp.id,
+      seller_id: fp.seller_id,
+      category_id: fp.category_id,
+      name: fp.name,
+      description: fp.description,
+      price: fp.price,
+      item_condition: fp.item_condition,
+      quantity: fp.quantity,
+      is_featured: fp.is_featured,
+      published_at: fp.published_at,
+      categoryName: fp.categoryName,
+      sellerName: fp.sellerName,
+      sellerHandle: fp.sellerHandle,
+      imageUrl: fp.imageUrl,
+    }));
+
   return (
     <main className="min-h-screen bg-transparent">
-      {/* Global Responsive Site Header */}
       <SiteHeader
         profile={profile}
         sectionTitle="Wishlist"
@@ -51,9 +75,13 @@ export default async function WishlistPage() {
       <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-8">
         <Link href="/marketplace" className="inline-flex items-center gap-2 text-xs font-semibold text-[#736b60] hover:text-[#241e14] transition"><ArrowLeft size={14} /> Marketplace</Link>
         <div className="mt-5"><p className="text-[10px] font-bold uppercase tracking-[.14em] text-[#8e7a63]">Saved for later</p><h1 className="mt-2 font-serif text-4xl tracking-[-.05em] text-[#241e14]">Your wishlist</h1></div>
-        {cards.length ? <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{cards.map((product) => <ProductCard key={product.id} product={product} saved returnTo="/wishlist" currentUserId={userId} />)}</div> : (
-          <div className="mt-6 rounded-[26px] border border-dashed border-[#d0c1ab] bg-white/80 px-6 py-16 text-center"><span className="mx-auto grid size-12 place-items-center rounded-2xl bg-[#eee9e2] text-[#241e14]"><Bookmark size={22} /></span><h2 className="mt-4 font-serif text-2xl text-[#241e14]">Keep an eye on something.</h2><p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#736b60]">Save listings as you browse, and they’ll be gathered here for your next campus find.</p><Link className="mt-5 inline-flex min-h-11 items-center rounded-full bg-[#241e14] hover:bg-[#382f20] px-5 text-sm font-semibold text-white shadow-sm transition" href="/marketplace">Browse listings</Link></div>
-        )}
+        {cards.length ? (
+          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {cards.map((product) => <ProductCard key={product.id} product={product} saved returnTo="/wishlist" currentUserId={userId} />)}
+          </div>
+        ) : null}
+
+        <SavedCampusItems firestoreProducts={firestoreCards} currentUserId={userId} hasDbSaved={cards.length > 0} />
       </section>
     </main>
   );

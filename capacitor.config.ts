@@ -18,7 +18,6 @@ const config: CapacitorConfig = {
       "www.loopec.in",
       "*.vercel.app",
       "*.supabase.co",
-      "*.razorpay.com",
     ],
   },
   android: {
