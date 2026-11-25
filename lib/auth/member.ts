@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
+import { createStorageAdminClient } from "@/lib/supabase/admin";
 
 export const NITC_COLLEGE_ID = "35b88dad-65f3-4cd6-b44d-c7d2fda7711a";
 
@@ -87,7 +88,8 @@ export async function getCurrentMember() {
     const handle = `member-${userId.replace(/-/g, "").slice(0, 12)}`;
 
     try {
-      const { data: created } = await supabase
+      const db = createStorageAdminClient() || supabase;
+      const { data: created } = await db
         .from("profiles")
         .upsert(
           {
@@ -131,7 +133,7 @@ export async function getCurrentMember() {
   };
 }
 
-export async function requireApprovedMember() {
+export async function requireApprovedMember(nextPath = "/marketplace") {
   // 1. Check for real active Supabase authenticated session
   const member = await getCurrentMember();
   if (member.userId && member.profile) {
@@ -140,16 +142,34 @@ export async function requireApprovedMember() {
     }
 
     const activeProfile = { ...member.profile };
+    const needsCollege = !activeProfile.college_id;
+    const needsApproval =
+      activeProfile.verification_status !== "approved" &&
+      activeProfile.verification_status !== "rejected";
 
-    // Ensure college_id is set to active campus if not already linked
-    if (!activeProfile.college_id) {
-      activeProfile.college_id = NITC_COLLEGE_ID;
-      try {
-        await member.supabase
-          .from("profiles")
-          .update({ college_id: NITC_COLLEGE_ID })
-          .eq("id", member.userId);
-      } catch {}
+    // Sync missing college_id / approved verification into Postgres so RLS policies
+    // (app_private.is_approved_member) allow creating listings, messages, and orders.
+    if (needsCollege || needsApproval) {
+      if (needsCollege) activeProfile.college_id = NITC_COLLEGE_ID;
+      const adminDb = createStorageAdminClient();
+      if (adminDb) {
+        try {
+          await adminDb
+            .from("profiles")
+            .update({
+              college_id: activeProfile.college_id || NITC_COLLEGE_ID,
+              ...(needsApproval ? { verification_status: "approved" } : {}),
+            })
+            .eq("id", member.userId);
+        } catch {}
+      } else if (needsCollege) {
+        try {
+          await member.supabase
+            .from("profiles")
+            .update({ college_id: NITC_COLLEGE_ID })
+            .eq("id", member.userId);
+        } catch {}
+      }
     }
 
     // For authenticated active campus members, grant instant marketplace access
@@ -183,5 +203,9 @@ export async function requireApprovedMember() {
     return { supabase, userId, profile };
   }
 
-  redirect("/auth/sign-in?next=%2Fmarketplace&error=session");
+  const safeTarget =
+    nextPath.startsWith("/") && !nextPath.startsWith("//") && !nextPath.startsWith("/\\")
+      ? nextPath
+      : "/marketplace";
+  redirect(`/auth/sign-in?next=${encodeURIComponent(safeTarget)}&error=session`);
 }

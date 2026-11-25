@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useActionState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   Tag,
   RefreshCw,
@@ -12,11 +13,19 @@ import {
   UploadCloud,
   CheckCircle2,
   MapPin,
+  Loader2,
+  AlertCircle,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { createListing } from "@/app/listings/actions";
+import { createListingAction, type CreateListingState } from "@/app/listings/actions";
 
 type Category = { id: string; name: string };
+type SelectedImage = { id: string; file: File; previewUrl: string };
+
+const MAX_PHOTOS = 5;
+const MAX_TOTAL_BYTES = 4 * 1024 * 1024;
+const TARGET_SINGLE_BYTES = 550 * 1024;
 
 const conditionOptions = [
   { value: "new", label: "New", desc: "Unused, unopened in original condition" },
@@ -25,13 +34,102 @@ const conditionOptions = [
   { value: "used", label: "Used", desc: "Well used, working condition, budget friendly" },
 ] as const;
 
+function isSupportedImageFile(file: File) {
+  if (["image/jpeg", "image/png", "image/webp"].includes(file.type)) return true;
+  return /\.(jpe?g|png|webp)$/i.test(file.name);
+}
+
+async function compressImageIfNeeded(file: File): Promise<File> {
+  if (file.size <= TARGET_SINGLE_BYTES && ["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+    return file;
+  }
+
+  return await new Promise<File>((resolve) => {
+    const objectUrl = URL.createObjectURL(file);
+    const img = new window.Image();
+    img.onload = () => {
+      try {
+        const maxSide = 1400;
+        const scale = Math.min(1, maxSide / Math.max(img.width || 1, img.height || 1));
+        const width = Math.max(1, Math.round(img.width * scale));
+        const height = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          URL.revokeObjectURL(objectUrl);
+          resolve(file);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        const outName = file.name.replace(/\.[^.]+$/, "") + ".jpg";
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              URL.revokeObjectURL(objectUrl);
+              resolve(file);
+              return;
+            }
+            if (blob.size > 750 * 1024) {
+              canvas.toBlob(
+                (smallerBlob) => {
+                  URL.revokeObjectURL(objectUrl);
+                  resolve(
+                    smallerBlob
+                      ? new File([smallerBlob], outName, { type: "image/jpeg" })
+                      : new File([blob], outName, { type: "image/jpeg" })
+                  );
+                },
+                "image/jpeg",
+                0.68
+              );
+            } else {
+              URL.revokeObjectURL(objectUrl);
+              resolve(new File([blob], outName, { type: "image/jpeg" }));
+            }
+          },
+          "image/jpeg",
+          0.82
+        );
+      } catch {
+        URL.revokeObjectURL(objectUrl);
+        resolve(file);
+      }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(file);
+    };
+    img.src = objectUrl;
+  });
+}
+
+function syncFileInput(input: HTMLInputElement | null, files: SelectedImage[]) {
+  if (!input || typeof DataTransfer === "undefined") return;
+  try {
+    const dt = new DataTransfer();
+    for (const item of files) dt.items.add(item.file);
+    input.files = dt.files;
+  } catch {
+    // Fallback gracefully if DataTransfer assignment is unsupported
+  }
+}
+
 export function ListingForm({
   categories,
   sellerName = "You (NIT Calicut Member)",
+  isAuthenticated = true,
 }: {
   categories: Category[];
   sellerName?: string;
+  isAuthenticated?: boolean;
 }) {
+  const [actionState, formAction, isPending] = useActionState<CreateListingState, FormData>(
+    createListingAction,
+    { error: null }
+  );
+
   const [listingType, setListingType] = useState<"sale" | "trade" | "giveaway">("sale");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -40,28 +138,132 @@ export function ListingForm({
   const [categoryId, setCategoryId] = useState(categories[0]?.id || "");
   const [condition, setCondition] = useState<"new" | "like_new" | "good" | "used">("good");
   const [tradeWishlist, setTradeWishlist] = useState("");
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
+  const [isCompressing, setIsCompressing] = useState(false);
+  const [clientError, setClientError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const selectedImagesRef = useRef<SelectedImage[]>([]);
 
-  // Clean up object URLs on unmount
+  useEffect(() => {
+    selectedImagesRef.current = selectedImages;
+  }, [selectedImages]);
+
   useEffect(() => {
     return () => {
-      imagePreviews.forEach((url) => {
-        if (url.startsWith("blob:")) URL.revokeObjectURL(url);
-      });
+      for (const item of selectedImagesRef.current) {
+        if (item.previewUrl.startsWith("blob:")) URL.revokeObjectURL(item.previewUrl);
+      }
     };
-  }, [imagePreviews]);
+  }, []);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawFiles = Array.from(e.target.files ?? []);
+    if (rawFiles.length === 0) return;
 
-    const urls: string[] = [];
-    const limit = Math.min(files.length, 5);
-    for (let i = 0; i < limit; i++) {
-      urls.push(URL.createObjectURL(files[i]));
+    setClientError(null);
+    const availableSlots = MAX_PHOTOS - selectedImages.length;
+    if (availableSlots <= 0) {
+      setClientError(`You can attach up to ${MAX_PHOTOS} photos per listing.`);
+      syncFileInput(fileInputRef.current, selectedImages);
+      return;
     }
-    setImagePreviews(urls);
+
+    const candidates = rawFiles.slice(0, availableSlots);
+    const unsupported = candidates.find((f) => !isSupportedImageFile(f));
+    if (unsupported) {
+      setClientError(`"${unsupported.name}" is not supported. Use JPG, PNG, or WebP images.`);
+      syncFileInput(fileInputRef.current, selectedImages);
+      return;
+    }
+
+    setIsCompressing(true);
+    try {
+      const processed: SelectedImage[] = [];
+      for (const file of candidates) {
+        const readyFile = await compressImageIfNeeded(file);
+        if (readyFile.size > MAX_TOTAL_BYTES) {
+          setClientError(`"${file.name}" stays larger than 4 MB even after compression. Choose a smaller photo.`);
+          continue;
+        }
+        processed.push({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          file: readyFile,
+          previewUrl: URL.createObjectURL(readyFile),
+        });
+      }
+
+      const nextList = [...selectedImages, ...processed].slice(0, MAX_PHOTOS);
+      const totalBytes = nextList.reduce((sum, item) => sum + item.file.size, 0);
+      if (totalBytes > MAX_TOTAL_BYTES) {
+        for (const item of processed) URL.revokeObjectURL(item.previewUrl);
+        setClientError("Total photo size exceeds 4 MB. Remove a photo or upload fewer images.");
+        syncFileInput(fileInputRef.current, selectedImages);
+        return;
+      }
+
+      setSelectedImages(nextList);
+      syncFileInput(fileInputRef.current, nextList);
+    } finally {
+      setIsCompressing(false);
+    }
+  };
+
+  const handleRemoveImage = (id: string) => {
+    setClientError(null);
+    const removed = selectedImages.find((item) => item.id === id);
+    if (removed?.previewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(removed.previewUrl);
+    }
+    const nextList = selectedImages.filter((item) => item.id !== id);
+    setSelectedImages(nextList);
+    syncFileInput(fileInputRef.current, nextList);
+  };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    setClientError(null);
+
+    if (!isAuthenticated) {
+      e.preventDefault();
+      setClientError("Please sign in with your @nitc.ac.in Google account before publishing a live listing.");
+      return;
+    }
+    if (listingType === "trade" && tradeWishlist.trim().length < 2) {
+      e.preventDefault();
+      setClientError("Please enter what item(s) you want to trade for in Step 1.");
+      return;
+    }
+    if (name.trim().length < 3) {
+      e.preventDefault();
+      setClientError("Item title must be at least 3 characters long.");
+      return;
+    }
+    if (!categoryId) {
+      e.preventDefault();
+      setClientError("Please select a category for your item.");
+      return;
+    }
+    if (description.trim().length < 10) {
+      e.preventDefault();
+      setClientError("Description must be at least 10 characters (add condition or hostel pickup details).");
+      return;
+    }
+    if (listingType === "sale") {
+      const cleanPrice = price.replace(/,/g, "").trim();
+      const parsedPrice = Number(cleanPrice);
+      if (!cleanPrice || !Number.isFinite(parsedPrice) || parsedPrice < 0) {
+        e.preventDefault();
+        setClientError("Please enter a valid listing price in INR.");
+        return;
+      }
+    }
+    const totalBytes = selectedImages.reduce((sum, item) => sum + item.file.size, 0);
+    if (totalBytes > MAX_TOTAL_BYTES) {
+      e.preventDefault();
+      setClientError("Total photo size must stay under 4 MB. Remove a photo and try again.");
+      return;
+    }
+
+    syncFileInput(fileInputRef.current, selectedImages);
   };
 
   const selectedCategoryName =
@@ -76,11 +278,27 @@ export function ListingForm({
       ? `₹${Number(price).toLocaleString("en-IN")}`
       : "₹0";
 
+  const displayError = clientError || actionState?.error;
+
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10 items-start">
       {/* LEFT FORM COLUMN (lg:col-span-7) */}
-      <div className="lg:col-span-7">
-        <form action={createListing} className="space-y-6">
+      <div className="lg:col-span-7 space-y-5">
+        {!isAuthenticated && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs sm:text-sm text-amber-950">
+            <span className="font-semibold">
+              Preview mode active — sign in with your NITC Google account to publish listings.
+            </span>
+            <Link
+              href="/auth/sign-in?next=%2Flistings%2Fnew"
+              className="rounded-full bg-[#241e14] px-4 py-1.5 text-xs font-bold text-white hover:bg-[#382f20] transition"
+            >
+              Sign in now
+            </Link>
+          </div>
+        )}
+
+        <form action={formAction} onSubmit={handleSubmit} noValidate className="space-y-6">
           {/* STEP 1: LISTING TYPE SELECTOR */}
           <div className="rounded-[26px] border border-white/80 bg-white/75 backdrop-blur-2xl p-6 sm:p-7 shadow-[0_15px_40px_-20px_rgba(36,30,20,0.06),_inset_0_1px_2px_rgba(255,255,255,0.95)]">
             <div className="flex items-center justify-between">
@@ -98,7 +316,6 @@ export function ListingForm({
             </div>
 
             <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-              {/* For Sale Option */}
               <button
                 type="button"
                 onClick={() => {
@@ -121,19 +338,14 @@ export function ListingForm({
                   >
                     <Tag size={18} />
                   </div>
-                  {listingType === "sale" && (
-                    <CheckCircle2 size={18} className="text-[#241e14]" />
-                  )}
+                  {listingType === "sale" && <CheckCircle2 size={18} className="text-[#241e14]" />}
                 </div>
                 <div className="mt-3">
                   <span className="block text-sm font-bold text-[#241e14]">For Sale</span>
-                  <span className="mt-0.5 block text-xs text-[#736b60]">
-                    Sell for cash or direct UPI
-                  </span>
+                  <span className="mt-0.5 block text-xs text-[#736b60]">Sell for cash or direct UPI</span>
                 </div>
               </button>
 
-              {/* Trade Option */}
               <button
                 type="button"
                 onClick={() => setListingType("trade")}
@@ -153,21 +365,14 @@ export function ListingForm({
                   >
                     <RefreshCw size={18} />
                   </div>
-                  {listingType === "trade" && (
-                    <CheckCircle2 size={18} className="text-[#8e7a63]" />
-                  )}
+                  {listingType === "trade" && <CheckCircle2 size={18} className="text-[#8e7a63]" />}
                 </div>
                 <div className="mt-3">
-                  <span className="block text-sm font-bold text-[#241e14]">
-                    Trade / Barter
-                  </span>
-                  <span className="mt-0.5 block text-xs text-[#736b60]">
-                    Swap items with peers
-                  </span>
+                  <span className="block text-sm font-bold text-[#241e14]">Trade / Barter</span>
+                  <span className="mt-0.5 block text-xs text-[#736b60]">Swap items with peers</span>
                 </div>
               </button>
 
-              {/* Free Giveaway Option */}
               <button
                 type="button"
                 onClick={() => {
@@ -190,24 +395,17 @@ export function ListingForm({
                   >
                     <Gift size={18} />
                   </div>
-                  {listingType === "giveaway" && (
-                    <CheckCircle2 size={18} className="text-emerald-700" />
-                  )}
+                  {listingType === "giveaway" && <CheckCircle2 size={18} className="text-emerald-700" />}
                 </div>
                 <div className="mt-3">
-                  <span className="block text-sm font-bold text-[#241e14]">
-                    Free Giveaway
-                  </span>
-                  <span className="mt-0.5 block text-xs text-[#736b60]">
-                    Senior campus donation
-                  </span>
+                  <span className="block text-sm font-bold text-[#241e14]">Free Giveaway</span>
+                  <span className="mt-0.5 block text-xs text-[#736b60]">Senior campus donation</span>
                 </div>
               </button>
             </div>
 
             <input type="hidden" name="listing_type" value={listingType} />
 
-            {/* Contextual Banner for Trade */}
             {listingType === "trade" && (
               <div className="mt-4 rounded-2xl border border-[#d0c1ab]/60 bg-[#eee9e2]/80 backdrop-blur-md p-4 space-y-2 animate-in fade-in duration-200 shadow-sm">
                 <div className="flex items-center gap-2 text-[#241e14] font-bold text-xs uppercase tracking-wider">
@@ -231,7 +429,6 @@ export function ListingForm({
               </div>
             )}
 
-            {/* Contextual Banner for Giveaway */}
             {listingType === "giveaway" && (
               <div className="mt-4 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/80 backdrop-blur-md p-4 text-xs text-emerald-950 animate-in fade-in duration-200 shadow-sm">
                 <Gift className="h-5 w-5 text-emerald-700 shrink-0 mt-0.5" />
@@ -248,18 +445,13 @@ export function ListingForm({
           {/* STEP 2: ITEM DETAILS */}
           <div className="rounded-[26px] border border-white/80 bg-white/75 backdrop-blur-2xl p-6 sm:p-7 shadow-[0_15px_40px_-20px_rgba(36,30,20,0.06),_inset_0_1px_2px_rgba(255,255,255,0.95)] space-y-4">
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-[.16em] text-[#8e7a63]">
-                Step 2
-              </span>
+              <span className="text-[10px] font-bold uppercase tracking-[.16em] text-[#8e7a63]">Step 2</span>
               <h2 className="mt-1 text-lg font-bold text-[#241e14]">Item Details</h2>
             </div>
 
-            {/* Title */}
             <div>
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold uppercase tracking-wider text-[#5f574d]">
-                  Item Title *
-                </label>
+                <label className="text-xs font-bold uppercase tracking-wider text-[#5f574d]">Item Title *</label>
                 <span className="text-[11px] text-[#736b60]">{name.length}/140</span>
               </div>
               <input
@@ -280,12 +472,9 @@ export function ListingForm({
               />
             </div>
 
-            {/* Category and Quantity Grid */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-[#5f574d]">
-                  Category *
-                </label>
+                <label className="text-xs font-bold uppercase tracking-wider text-[#5f574d]">Category *</label>
                 <select
                   className="mt-1.5 w-full rounded-xl border border-[#d0c1ab]/60 bg-white/80 backdrop-blur-sm px-3.5 py-2.5 text-sm text-[#241e14] outline-none transition focus:bg-white focus:border-[#241e14] focus:ring-4 focus:ring-[#d0c1ab]/30 shadow-inner cursor-pointer"
                   name="category_id"
@@ -318,7 +507,6 @@ export function ListingForm({
               </div>
             </div>
 
-            {/* Condition Selection Pills */}
             <div>
               <label className="text-xs font-bold uppercase tracking-wider text-[#5f574d] block mb-2">
                 Condition *
@@ -336,7 +524,11 @@ export function ListingForm({
                     }`}
                   >
                     <span className="block text-xs font-bold">{opt.label}</span>
-                    <span className={`mt-0.5 block text-[10px] leading-tight ${condition === opt.value ? "text-[#eee9e2]/80" : "text-[#736b60]"}`}>
+                    <span
+                      className={`mt-0.5 block text-[10px] leading-tight ${
+                        condition === opt.value ? "text-[#eee9e2]/80" : "text-[#736b60]"
+                      }`}
+                    >
                       {opt.desc}
                     </span>
                   </button>
@@ -345,13 +537,12 @@ export function ListingForm({
               <input type="hidden" name="item_condition" value={condition} />
             </div>
 
-            {/* Description */}
             <div>
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold uppercase tracking-wider text-[#5f574d]">
                   Description & Campus Pickup Details *
                 </label>
-                <span className="text-[11px] text-[#736b60]">{description.length}/5000</span>
+                <span className="text-[11px] text-[#736b60]">{description.length}/5000 (min 10)</span>
               </div>
               <textarea
                 className="mt-1.5 min-h-28 w-full rounded-xl border border-[#d0c1ab]/60 bg-white/80 backdrop-blur-sm p-3 text-sm text-[#241e14] outline-none transition placeholder:text-[#8e8579] focus:bg-white focus:border-[#241e14] focus:ring-4 focus:ring-[#d0c1ab]/30 resize-y shadow-inner"
@@ -368,9 +559,7 @@ export function ListingForm({
 
           {/* STEP 3: PRICING */}
           <div className="rounded-[26px] border border-white/80 bg-white/75 backdrop-blur-2xl p-6 sm:p-7 shadow-[0_15px_40px_-20px_rgba(36,30,20,0.06),_inset_0_1px_2px_rgba(255,255,255,0.95)]">
-            <span className="text-[10px] font-bold uppercase tracking-[.16em] text-[#8e7a63]">
-              Step 3
-            </span>
+            <span className="text-[10px] font-bold uppercase tracking-[.16em] text-[#8e7a63]">Step 3</span>
             <h2 className="mt-1 text-lg font-bold text-[#241e14]">
               {listingType === "giveaway"
                 ? "Free Item Notice"
@@ -427,15 +616,14 @@ export function ListingForm({
           <div className="rounded-[26px] border border-white/80 bg-white/75 backdrop-blur-2xl p-6 sm:p-7 shadow-[0_15px_40px_-20px_rgba(36,30,20,0.06),_inset_0_1px_2px_rgba(255,255,255,0.95)] space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-[.16em] text-[#8e7a63]">
-                  Step 4
-                </span>
-                <h2 className="mt-1 text-lg font-bold text-[#241e14]">Photos (Optional, up to 5 photos)</h2>
+                <span className="text-[10px] font-bold uppercase tracking-[.16em] text-[#8e7a63]">Step 4</span>
+                <h2 className="mt-1 text-lg font-bold text-[#241e14]">
+                  Photos (Optional, up to {MAX_PHOTOS} photos)
+                </h2>
               </div>
-              <span className="text-xs text-[#736b60]">JPG, PNG, or WebP</span>
+              <span className="text-xs text-[#736b60]">Auto-compressed · JPG, PNG, WebP</span>
             </div>
 
-            {/* Hidden native input */}
             <input
               ref={fileInputRef}
               name="images"
@@ -446,37 +634,43 @@ export function ListingForm({
               className="sr-only"
             />
 
-            {/* Drag & Drop Visual Area */}
             <div
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => !isCompressing && fileInputRef.current?.click()}
               className="group flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#d0c1ab] bg-white/50 backdrop-blur-md p-6 text-center transition hover:border-[#241e14] hover:bg-white/80 shadow-sm"
             >
               <div className="grid size-11 place-items-center rounded-2xl bg-[#eee9e2] text-[#241e14] shadow-sm group-hover:scale-105 transition-transform">
-                <UploadCloud size={22} />
+                {isCompressing ? <Loader2 size={22} className="animate-spin" /> : <UploadCloud size={22} />}
               </div>
               <p className="mt-2.5 text-sm font-bold text-[#241e14]">
-                Click to upload photos from your device
+                {isCompressing ? "Optimizing photos for fast upload..." : "Click to upload photos from your device"}
               </p>
               <p className="mt-1 text-xs text-[#736b60]">
-                High-quality photos get 3x faster responses on campus.
+                Large camera photos are automatically optimized ({selectedImages.length}/{MAX_PHOTOS} added).
               </p>
             </div>
 
-            {/* Photo Previews Grid */}
-            {imagePreviews.length > 0 && (
+            {selectedImages.length > 0 && (
               <div className="grid grid-cols-3 gap-3 sm:grid-cols-5 pt-1">
-                {imagePreviews.map((url, i) => (
+                {selectedImages.map((item, i) => (
                   <div
-                    key={i}
+                    key={item.id}
                     className="relative aspect-square overflow-hidden rounded-xl border border-[#d0c1ab]/50 bg-[#eee9e2] shadow-sm"
                   >
                     <Image
-                      src={url}
+                      src={item.previewUrl}
                       alt={`Photo ${i + 1}`}
                       fill
                       className="object-cover"
                       unoptimized
                     />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(item.id)}
+                      aria-label={`Remove photo ${i + 1}`}
+                      className="absolute right-1 top-1 grid size-6 place-items-center rounded-full bg-black/70 text-white hover:bg-rose-700 transition cursor-pointer"
+                    >
+                      <X size={12} />
+                    </button>
                     {i === 0 && (
                       <span className="absolute bottom-1 left-1 rounded bg-[#241e14]/80 px-1.5 py-0.5 text-[9px] font-bold text-white">
                         Cover
@@ -488,15 +682,35 @@ export function ListingForm({
             )}
           </div>
 
+          {displayError && (
+            <div
+              role="alert"
+              className="flex items-start gap-2.5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3.5 text-sm font-semibold text-rose-900 shadow-xs"
+            >
+              <AlertCircle size={18} className="mt-0.5 shrink-0 text-rose-700" />
+              <span>{displayError}</span>
+            </div>
+          )}
+
           {/* SUBMIT BUTTON */}
           <div className="space-y-2.5 pt-1">
             <Button
-              className="w-full h-12 rounded-full bg-[#241e14] hover:bg-[#382f20] text-white text-sm font-bold shadow-md shadow-[#241e14]/20 transition cursor-pointer"
+              className="w-full h-12 rounded-full bg-[#241e14] hover:bg-[#382f20] text-white text-sm font-bold shadow-md shadow-[#241e14]/20 transition cursor-pointer disabled:opacity-60"
               size="lg"
               type="submit"
+              disabled={isPending || isCompressing}
             >
-              <ShieldCheck size={18} className="mr-2" />
-              Publish Listing to Campus Loop
+              {isPending ? (
+                <>
+                  <Loader2 size={18} className="mr-2 animate-spin" />
+                  Publishing Listing...
+                </>
+              ) : (
+                <>
+                  <ShieldCheck size={18} className="mr-2" />
+                  Publish Listing to Campus Loop
+                </>
+              )}
             </Button>
             <p className="text-center text-xs text-[#736b60]">
               Protected by NIT Calicut member authentication · 0% commission on peer exchanges
@@ -521,14 +735,13 @@ export function ListingForm({
             <span className="text-[11px] font-medium text-[#736b60]">Buyer view</span>
           </div>
 
-          {/* RENDER LIVE PRODUCT CARD */}
           <div className="mt-4">
             <article className="overflow-hidden rounded-[24px] border border-white/80 bg-white/80 backdrop-blur-xl shadow-sm transition hover:shadow-md">
               <div className="relative aspect-[1.25/1] overflow-hidden bg-gradient-to-br from-[#eee9e2] to-[#e4ded5]">
-                {imagePreviews.length > 0 ? (
+                {selectedImages.length > 0 ? (
                   <Image
                     className="object-cover"
-                    src={imagePreviews[0]}
+                    src={selectedImages[0].previewUrl}
                     alt={name || "Listing preview"}
                     fill
                     unoptimized
@@ -538,12 +751,10 @@ export function ListingForm({
                     <PackageOpen size={38} strokeWidth={1.2} />
                   </div>
                 )}
-                {/* Condition Tag */}
                 <span className="absolute left-3 top-3 rounded-full border border-white/80 bg-white/85 px-2.5 py-1 text-[11px] font-bold text-[#241e14] shadow-sm backdrop-blur-md">
                   {conditionOptions.find((c) => c.value === condition)?.label}
                 </span>
 
-                {/* Listing Mode Badges */}
                 {listingType === "giveaway" ? (
                   <span className="absolute right-3 top-3 rounded-full border border-emerald-400/30 bg-emerald-700/95 px-2.5 py-1 text-[11px] font-bold text-white shadow-md backdrop-blur-md flex items-center gap-1">
                     <Gift size={11} /> FREE
@@ -590,16 +801,13 @@ export function ListingForm({
                       {sellerName}
                     </span>
                   </div>
-                  <span className="text-[11px] text-[#8e8579]">
-                    {quantity} available
-                  </span>
+                  <span className="text-[11px] text-[#8e8579]">{quantity} available</span>
                 </div>
               </div>
             </article>
           </div>
         </div>
 
-        {/* CAMPUS SELLER ADVICE CARD */}
         <div className="rounded-[26px] border border-white/80 bg-white/70 backdrop-blur-xl p-5 shadow-sm space-y-2.5">
           <div className="flex items-center gap-2 text-[#241e14] font-bold text-xs uppercase tracking-wider">
             <Sparkles size={15} className="text-[#8e7a63]" />

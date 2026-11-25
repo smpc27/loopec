@@ -44,7 +44,7 @@ export async function syncProductToFirestore(payload: FirestoreListingSyncPayloa
         quantity: Number(payload.quantity) || 1,
         category_id: payload.category_id,
         categoryName: payload.categoryName || "Campus Finds",
-        categorySlug: payload.categorySlug || undefined,
+        ...(payload.categorySlug ? { categorySlug: payload.categorySlug } : {}),
         seller_id: payload.seller_id,
         sellerName: payload.sellerName || "Campus Member",
         sellerHandle: payload.sellerHandle || "member",

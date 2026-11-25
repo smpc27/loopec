@@ -4,7 +4,7 @@ import { z } from "zod";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { requireApprovedMember } from "@/lib/auth/member";
+import { getCurrentMember, NITC_COLLEGE_ID, requireApprovedMember } from "@/lib/auth/member";
 import { createStorageAdminClient } from "@/lib/supabase/admin";
 import {
   deleteProductFromFirestore,
@@ -12,19 +12,28 @@ import {
   syncProductToFirestore,
 } from "@/lib/firebase/sync";
 
+export type CreateListingState = {
+  error: string | null;
+  code?: string;
+};
+
 const listingFields = z.object({
-  categoryId: z.uuid(),
-  name: z.string().trim().min(3).max(140),
-  description: z.string().trim().min(10).max(5000),
-  price: z.string().regex(/^\d{1,10}(?:\.\d{1,2})?$/).transform(Number).refine((value) => value <= 9_999_999_999.99),
-  condition: z.enum(["new", "like_new", "good", "used"]),
-  quantity: z.coerce.number().int().min(1).max(1000),
+  categoryId: z.uuid({ message: "Please select a valid category." }),
+  name: z.string().trim().min(3, "Item title must be at least 3 characters.").max(140, "Item title must be 140 characters or fewer."),
+  description: z.string().trim().min(10, "Description must be at least 10 characters.").max(5000, "Description must be 5000 characters or fewer."),
+  price: z
+    .string()
+    .regex(/^\d{1,10}(?:\.\d{1,2})?$/, "Enter a valid non-negative price (up to 2 decimal places).")
+    .transform(Number)
+    .refine((value) => value <= 9_999_999_999.99, "Price exceeds the maximum allowed limit."),
+  condition: z.enum(["new", "like_new", "good", "used"], { message: "Please choose an item condition." }),
+  quantity: z.coerce.number().int().min(1, "Quantity must be at least 1.").max(1000, "Quantity cannot exceed 1000."),
 });
 
 function readFields(formData: FormData) {
   const listingType = String(formData.get("listing_type") ?? "sale");
   const tradeWishlist = String(formData.get("trade_wishlist") ?? "").trim();
-  let priceStr = String(formData.get("price") ?? "").trim();
+  let priceStr = String(formData.get("price") ?? "").replace(/,/g, "").trim().replace(/\.$/, "");
   if (listingType === "giveaway" || (!priceStr && listingType === "trade")) {
     priceStr = "0";
   }
@@ -142,28 +151,66 @@ async function resolveFirstImageUrl(supabase: SupabaseClient, storageAdmin: Supa
   return data?.signedUrl ?? null;
 }
 
-export async function createListing(formData: FormData) {
+async function executeCreateListing(formData: FormData): Promise<{ error: string; code: string } | never> {
   const fields = readFields(formData);
   const files = getImageFiles(formData);
-  if (!fields.success || files.length > 5) redirect("/listings/new?error=invalid");
-  const previewMode = process.env.NODE_ENV === "development" && process.env.LOOPEC_DEV_BYPASS_AUTH === "true";
-  const { supabase, userId, profile } = await requireApprovedMember();
+  if (!fields.success) {
+    return { error: fields.error.issues[0]?.message || "Please check all required fields and try again.", code: "invalid" };
+  }
+  if (files.length > 5) {
+    return { error: "You can attach up to 5 photos per listing.", code: "invalid" };
+  }
+
+  // Validate image sizes and formats before writing a product row so invalid images never create partial drafts
+  for (const file of files) {
+    if (file.size > 4 * 1024 * 1024) {
+      return { error: `Photo "${file.name}" is larger than 4 MB. Please compress or pick a smaller photo.`, code: "size" };
+    }
+    const header = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+    if (!detectImage(header)) {
+      return { error: `Photo "${file.name}" is not a supported JPG, PNG, or WebP image.`, code: "type" };
+    }
+  }
+
+  const currentMember = await getCurrentMember();
+  if (!currentMember.userId) {
+    return {
+      error: "Please sign in with your @nitc.ac.in Google account before publishing a live listing.",
+      code: "session",
+    };
+  }
+
+  const { supabase, userId, profile } = await requireApprovedMember("/listings/new");
   const storageAdmin = createStorageAdminClient();
-  if (!profile.college_id) redirect("/listings/new?error=invalid");
-  const { data: category } = await supabase
+  const collegeId = profile.college_id || NITC_COLLEGE_ID;
+
+  let categoryRes = await supabase
     .from("categories")
     .select("id, name, slug")
     .eq("id", fields.data.categoryId)
     .eq("is_active", true)
     .maybeSingle();
-  if (!category && !previewMode) redirect("/listings/new?error=invalid");
 
-  const { data: product, error } = await supabase
+  if (!categoryRes.data && storageAdmin) {
+    categoryRes = await storageAdmin
+      .from("categories")
+      .select("id, name, slug")
+      .eq("id", fields.data.categoryId)
+      .eq("is_active", true)
+      .maybeSingle();
+  }
+
+  const category = categoryRes.data;
+  if (!category) {
+    return { error: "Selected category is not available. Refresh the page and try again.", code: "invalid" };
+  }
+
+  let insertRes = await supabase
     .from("products")
     .insert({
-      college_id: profile.college_id,
+      college_id: collegeId,
       seller_id: userId,
-      category_id: fields.data.categoryId,
+      category_id: category.id,
       name: fields.data.name,
       description: fields.data.description,
       price: fields.data.price,
@@ -172,15 +219,63 @@ export async function createListing(formData: FormData) {
     })
     .select("id")
     .single();
-  if (isRateLimitError(error)) redirect("/listings/new?error=rate_limit");
-  if (error || !product) redirect("/listings/new?error=save");
 
+  if (insertRes.error?.code === "42501" && storageAdmin) {
+    await storageAdmin
+      .from("profiles")
+      .update({ college_id: collegeId, verification_status: "approved" })
+      .eq("id", userId);
+
+    insertRes = await supabase
+      .from("products")
+      .insert({
+        college_id: collegeId,
+        seller_id: userId,
+        category_id: category.id,
+        name: fields.data.name,
+        description: fields.data.description,
+        price: fields.data.price,
+        item_condition: fields.data.condition,
+        quantity: fields.data.quantity,
+      })
+      .select("id")
+      .single();
+  }
+
+  if (isRateLimitError(insertRes.error)) {
+    return { error: "You have reached today's listing limit. Please wait a little before posting another item.", code: "rate_limit" };
+  }
+  if (insertRes.error || !insertRes.data) {
+    console.error("createListing insert error:", insertRes.error);
+    return {
+      error: "Could not save your listing right now. Please sign out and back in or try again shortly.",
+      code: "save",
+    };
+  }
+
+  const product = insertRes.data;
   let firstImageStoragePath: string | null = null;
   if (files.length > 0) {
-    const uploaded = await uploadImages({ supabase, storageAdmin, files, userId, productId: product.id, productName: fields.data.name, sortOffset: 0 });
+    const uploaded = await uploadImages({
+      supabase,
+      storageAdmin,
+      files,
+      userId,
+      productId: product.id,
+      productName: fields.data.name,
+      sortOffset: 0,
+    });
     if (uploaded.error && !uploaded.records.length) {
-      console.warn("Image upload issue during listing creation:", uploaded.error);
-    } else if (uploaded.records.length > 0) {
+      await (storageAdmin || supabase).from("products").delete().eq("id", product.id);
+      return {
+        error:
+          uploaded.error === "rate_limit"
+            ? "Image upload rate limit reached. Please wait a little and try again."
+            : "We could not upload your product photos. Check the images and try again.",
+        code: uploaded.error,
+      };
+    }
+    if (uploaded.records.length > 0) {
       firstImageStoragePath = uploaded.records[0].storage_path;
     }
   }
@@ -192,17 +287,24 @@ export async function createListing(formData: FormData) {
 
   const nowIso = new Date().toISOString();
   if (storageAdmin) {
-    await storageAdmin.from("products").update({
-      status: "approved",
-      published_at: nowIso,
-      updated_at: nowIso,
-    }).eq("id", product.id);
+    await storageAdmin
+      .from("products")
+      .update({
+        status: "approved",
+        published_at: nowIso,
+        updated_at: nowIso,
+      })
+      .eq("id", product.id);
 
-    await storageAdmin.from("products").update({
-      status: "approved",
-      published_at: nowIso,
-      updated_at: nowIso,
-    }).eq("seller_id", userId).eq("status", "pending");
+    await storageAdmin
+      .from("products")
+      .update({
+        status: "approved",
+        published_at: nowIso,
+        updated_at: nowIso,
+      })
+      .eq("seller_id", userId)
+      .eq("status", "pending");
   }
 
   const firstImageUrl = await resolveFirstImageUrl(supabase, storageAdmin, firstImageStoragePath);
@@ -214,14 +316,14 @@ export async function createListing(formData: FormData) {
     price: fields.data.price,
     item_condition: fields.data.condition,
     quantity: fields.data.quantity,
-    category_id: fields.data.categoryId,
-    categoryName: category?.name ?? "Campus Finds",
-    categorySlug: category?.slug ?? undefined,
+    category_id: category.id,
+    categoryName: category.name ?? "Campus Finds",
+    categorySlug: category.slug ?? undefined,
     seller_id: userId,
     sellerName: profile.full_name || "Campus Member",
     sellerHandle: profile.handle || "member",
     sellerPhone: profile.phone || null,
-    college_id: profile.college_id,
+    college_id: collegeId,
     status: "approved",
     is_featured: false,
     imageUrl: firstImageUrl,
@@ -234,6 +336,19 @@ export async function createListing(formData: FormData) {
   revalidatePath("/listings");
   revalidatePath("/dashboard");
   redirect("/marketplace?submitted=1");
+}
+
+export async function createListingAction(
+  _prevState: CreateListingState,
+  formData: FormData
+): Promise<CreateListingState> {
+  const result = await executeCreateListing(formData);
+  return { error: result.error, code: result.code };
+}
+
+export async function createListing(formData: FormData) {
+  const result = await executeCreateListing(formData);
+  redirect(`/listings/new?error=${encodeURIComponent(result.code)}`);
 }
 
 export async function updateListing(formData: FormData) {

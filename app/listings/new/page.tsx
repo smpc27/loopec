@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { ArrowLeft, ChevronRight, GraduationCap, PackagePlus, ShieldCheck } from "lucide-react";
 import { connection } from "next/server";
-import { requireApprovedMember } from "@/lib/auth/member";
+import { getCurrentMember, requireApprovedMember } from "@/lib/auth/member";
 import { authMessage } from "@/lib/auth/messages";
+import { createStorageAdminClient } from "@/lib/supabase/admin";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { ListingForm } from "@/components/listings/listing-form";
 import { BrandMark } from "@/components/brand-mark";
 
@@ -27,13 +29,37 @@ export default async function NewListingPage({
   await connection();
   const params = await searchParams;
   const errorCode = Array.isArray(params.error) ? params.error[0] : params.error;
-  const previewMode =
-    process.env.NODE_ENV === "development" && process.env.LOOPEC_DEV_BYPASS_AUTH === "true";
-  const { supabase, profile } = await requireApprovedMember();
-  const { data } = previewMode
-    ? { data: previewCategories }
-    : await supabase.from("categories").select("id, name").eq("is_active", true).order("sort_order");
-  const categories = (data && data.length > 0 ? data : previewCategories) as Category[];
+  const { supabase, profile } = await requireApprovedMember("/listings/new");
+  const currentMember = await getCurrentMember();
+  const isRealSession = Boolean(currentMember.userId);
+
+  let categoryRows: Category[] | null = null;
+  if (isSupabaseConfigured()) {
+    // Always fetch real Supabase category UUIDs (even when local LOOPEC_DEV_BYPASS_AUTH is enabled)
+    // using the signed-in client or admin fallback so submits never fail foreign-key checks.
+    const { data } = await supabase
+      .from("categories")
+      .select("id, name")
+      .eq("is_active", true)
+      .order("sort_order");
+    if (data && data.length > 0) {
+      categoryRows = data as Category[];
+    } else {
+      const adminDb = createStorageAdminClient();
+      if (adminDb) {
+        const { data: adminCats } = await adminDb
+          .from("categories")
+          .select("id, name")
+          .eq("is_active", true)
+          .order("sort_order");
+        if (adminCats && adminCats.length > 0) {
+          categoryRows = adminCats as Category[];
+        }
+      }
+    }
+  }
+
+  const categories = (categoryRows && categoryRows.length > 0 ? categoryRows : previewCategories) as Category[];
   const errorMessage = errorCode ? authMessage(errorCode) : null;
 
   return (
@@ -118,6 +144,7 @@ export default async function NewListingPage({
           <ListingForm
             categories={categories}
             sellerName={profile.full_name || "Verified NITC Member"}
+            isAuthenticated={isRealSession}
           />
         </div>
       </div>
