@@ -53,11 +53,22 @@ export async function getCurrentMember() {
     return { supabase, userId: null, profile: null };
   }
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("profiles")
     .select("id, full_name, handle, phone, bio, college_id, role, verification_status, suspended_at, upi_id")
     .eq("id", userId)
     .maybeSingle();
+
+  // Resilient fallback if profiles.upi_id migration hasn't been applied in Supabase yet
+  if (error && (error.code === "42703" || error.message?.includes("upi_id"))) {
+    const fallbackRes = await supabase
+      .from("profiles")
+      .select("id, full_name, handle, phone, bio, college_id, role, verification_status, suspended_at")
+      .eq("id", userId)
+      .maybeSingle();
+    data = fallbackRes.data ? { ...fallbackRes.data, upi_id: null } : null;
+    error = fallbackRes.error;
+  }
 
   let profile = (error || !data) ? null : (data as MemberProfile);
 
@@ -89,11 +100,11 @@ export async function getCurrentMember() {
           },
           { onConflict: "id" }
         )
-        .select("id, full_name, handle, phone, bio, college_id, role, verification_status, suspended_at, upi_id")
+        .select("id, full_name, handle, phone, bio, college_id, role, verification_status, suspended_at")
         .maybeSingle();
 
       if (created) {
-        profile = created as MemberProfile;
+        profile = { ...created, upi_id: null } as MemberProfile;
       }
     } catch {}
 

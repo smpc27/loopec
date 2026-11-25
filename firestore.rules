@@ -1,0 +1,13 @@
+rules_version = '2';
+
+// LOOPEC uses Supabase Auth for member sessions and Firebase Admin SDK on
+// protected Next.js server actions/routes for writes.
+// Catalog reads stay readable for marketplace/search while all client writes are blocked.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

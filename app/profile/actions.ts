@@ -28,7 +28,7 @@ export async function updateProfile(formData: FormData) {
     redirect("/auth/sign-in?error=session");
   }
 
-  const { error } = await member.supabase
+  let { error } = await member.supabase
     .from("profiles")
     .update({
       full_name: parsed.data.fullName,
@@ -38,6 +38,19 @@ export async function updateProfile(formData: FormData) {
       upi_id: parsed.data.upiId || null,
     })
     .eq("id", member.userId);
+
+  if (error && (error.code === "42703" || error.message?.includes("upi_id") || error.code === "42501")) {
+    const fallback = await member.supabase
+      .from("profiles")
+      .update({
+        full_name: parsed.data.fullName,
+        handle: parsed.data.handle,
+        phone: parsed.data.phone || null,
+        bio: parsed.data.bio || null,
+      })
+      .eq("id", member.userId);
+    error = fallback.error;
+  }
 
   if (error) {
     redirect(error.code === "23505" ? "/profile?error=handle" : "/profile?error=invalid");

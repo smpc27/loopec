@@ -45,3 +45,6 @@ next-env.d.ts
 # mobile dist
 /downloads-test/
 /dist-mobile/
+
+.vercel
+.env*

@@ -55,11 +55,18 @@ export default async function AdminPayoutsPage() {
   const orders = (orderData ?? []) as CompletedOrder[];
   const sellerIds = [...new Set(orders.map((o) => o.seller_id))];
 
-  const { data: profileData } = sellerIds.length
-    ? await member.supabase.from("profiles").select("id, full_name, handle, phone, upi_id").in("id", sellerIds)
-    : { data: [] };
+  let profileData: Profile[] = [];
+  if (sellerIds.length) {
+    const res = await member.supabase.from("profiles").select("id, full_name, handle, phone, upi_id").in("id", sellerIds);
+    if (res.error && (res.error.code === "42703" || res.error.message?.includes("upi_id"))) {
+      const fb = await member.supabase.from("profiles").select("id, full_name, handle, phone").in("id", sellerIds);
+      profileData = ((fb.data ?? []) as Omit<Profile, "upi_id">[]).map((p) => ({ ...p, upi_id: null }));
+    } else {
+      profileData = (res.data ?? []) as Profile[];
+    }
+  }
 
-  const sellers = new Map(((profileData ?? []) as Profile[]).map((p) => [p.id, p]));
+  const sellers = new Map(profileData.map((p) => [p.id, p]));
 
   let totalGrossVolume = 0;
   let totalPlatformCommission = 0;

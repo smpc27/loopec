@@ -53,7 +53,7 @@ export default async function OrderDetailsPage({ params, searchParams }: PagePro
   const buyerView = order.buyer_id === userId;
   if (!buyerView && order.seller_id !== userId && process.env.LOOPEC_DEV_BYPASS_AUTH !== "true") notFound();
   const otherId = buyerView ? order.seller_id : order.buyer_id;
-  const [{ data: itemData }, { data: paymentData }, { data: personData }, { data: pickupData }, { data: conversationData }, { data: reviewData }] = await Promise.all([
+  const [{ data: itemData }, { data: paymentData }, personResult, { data: pickupData }, { data: conversationData }, { data: reviewData }] = await Promise.all([
     supabase.from("order_items").select("id, product_name, unit_price, quantity, line_total").eq("order_id", order.id),
     supabase.from("payments").select("id, method, provider, status, amount, provider_payment_id, review_note, verified_at").eq("order_id", order.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("profiles").select("id, full_name, handle, phone, upi_id").eq("id", otherId).maybeSingle(),
@@ -61,6 +61,11 @@ export default async function OrderDetailsPage({ params, searchParams }: PagePro
     supabase.from("conversations").select("id").eq("order_id", order.id).maybeSingle(),
     supabase.from("reviews").select("id, rating, comment").eq("order_id", order.id).eq("reviewer_id", userId).maybeSingle(),
   ]);
+  let personData = personResult.data as { id: string; full_name: string; handle: string; phone?: string | null; upi_id?: string | null } | null;
+  if (personResult.error && (personResult.error.code === "42703" || personResult.error.message?.includes("upi_id"))) {
+    const fallbackPerson = await supabase.from("profiles").select("id, full_name, handle, phone").eq("id", otherId).maybeSingle();
+    personData = fallbackPerson.data ? { ...fallbackPerson.data, upi_id: null } : null;
+  }
   const items = (itemData ?? []) as OrderItem[];
   const payment = paymentData as Payment | null;
   const person = personData as { id: string; full_name: string; handle: string; phone?: string | null; upi_id?: string | null } | null;
