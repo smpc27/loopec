@@ -5,6 +5,7 @@ import { ProductCard, type MarketplaceProduct } from "@/components/marketplace/p
 import { MarketplaceFilterDock } from "@/components/marketplace/marketplace-filter-dock";
 import { requireApprovedMember } from "@/lib/auth/member";
 import { SiteHeader } from "@/components/navigation/site-header";
+import { getFirestoreProducts } from "@/lib/firebase/firestore";
 
 export const instant = false;
 
@@ -222,6 +223,43 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
       imageUrl: imagePath ? imageUrls.get(imagePath) ?? null : null,
     };
   });
+
+  // Fetch approved items from Google Firestore database
+  try {
+    const firestoreProducts = await getFirestoreProducts({
+      categoryId,
+      search,
+      minPrice,
+      maxPrice,
+      sort,
+      listingType,
+    });
+
+    const existingCardIds = new Set(cards.map((c) => c.id));
+    for (const fp of firestoreProducts) {
+      if (!existingCardIds.has(fp.id)) {
+        cards.push({
+          id: fp.id,
+          seller_id: fp.seller_id,
+          category_id: fp.category_id,
+          name: fp.name,
+          description: fp.description,
+          price: fp.price,
+          item_condition: fp.item_condition,
+          quantity: fp.quantity,
+          is_featured: fp.is_featured,
+          published_at: fp.published_at,
+          categoryName: fp.categoryName,
+          sellerName: fp.sellerName,
+          sellerHandle: fp.sellerHandle,
+          imageUrl: fp.imageUrl,
+        });
+        existingCardIds.add(fp.id);
+      }
+    }
+  } catch (err) {
+    console.warn("Firestore fetch notice:", err);
+  }
   const selectedCategory = categories.find((category) => category.id === categoryId);
   const pickupName = (pickupData?.[0] as { name?: string } | undefined)?.name;
 

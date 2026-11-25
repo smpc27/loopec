@@ -19,6 +19,7 @@ import { toggleWishlistDirect } from "@/app/marketplace/actions";
 export type MarketplaceProduct = {
   id: string;
   seller_id: string;
+  category_id?: string;
   name: string;
   description: string;
   price: number | string;

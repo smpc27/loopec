@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireApprovedMember } from "@/lib/auth/member";
 import { createStorageAdminClient } from "@/lib/supabase/admin";
+import { getFirebaseAdminDb } from "@/lib/firebase/admin";
 
 const listingFields = z.object({
   categoryId: z.uuid(),
@@ -186,6 +187,31 @@ export async function createListing(formData: FormData) {
       published_at: nowIso,
       updated_at: nowIso,
     }).eq("seller_id", userId).eq("status", "pending");
+  }
+
+  // Sync to Google Firebase (Firestore)
+  try {
+    const adminDb = getFirebaseAdminDb();
+    if (adminDb) {
+      await adminDb.collection("products").doc(product.id).set({
+        name: fields.data.name,
+        description: fields.data.description,
+        price: fields.data.price,
+        item_condition: fields.data.condition,
+        quantity: fields.data.quantity,
+        category_id: fields.data.categoryId,
+        seller_id: userId,
+        sellerName: profile.full_name || "Campus Member",
+        sellerHandle: profile.handle || "member",
+        college_id: profile.college_id,
+        status: "approved",
+        is_featured: false,
+        published_at: nowIso,
+        created_at: nowIso,
+      });
+    }
+  } catch (firebaseErr) {
+    console.warn("Firebase sync notice:", firebaseErr);
   }
 
   redirect("/marketplace?submitted=1");
