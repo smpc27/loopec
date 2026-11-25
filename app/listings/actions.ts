@@ -203,6 +203,7 @@ export async function createListing(formData: FormData) {
         seller_id: userId,
         sellerName: profile.full_name || "Campus Member",
         sellerHandle: profile.handle || "member",
+        sellerPhone: profile.phone || null,
         college_id: profile.college_id,
         status: "approved",
         is_featured: false,

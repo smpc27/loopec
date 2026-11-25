@@ -6,6 +6,7 @@ import { ProductCard, type MarketplaceProduct } from "@/components/marketplace/p
 import { requireApprovedMember } from "@/lib/auth/member";
 import { addToCart, buyNow, reportListing, startConversation, toggleWishlist } from "@/app/marketplace/actions";
 import { SiteHeader } from "@/components/navigation/site-header";
+import { getFirestoreProductById } from "@/lib/firebase/firestore";
 
 export const instant = false;
 
@@ -26,28 +27,96 @@ type Product = {
 const currency = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
 const conditionLabels: Record<Product["item_condition"], string> = { new: "New", like_new: "Like new", good: "Good", used: "Used" };
 
+function isValidUuid(id?: string | null): boolean {
+  if (!id) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+}
+
 export default async function ProductDetailsPage({ params, searchParams }: PageProps<"/marketplace/[productId]">) {
   const [{ productId }, search] = await Promise.all([params, searchParams]);
   const { supabase, userId, profile } = await requireApprovedMember();
-  const { data: productData } = await supabase
-    .from("products")
-    .select("id, seller_id, college_id, category_id, name, description, price, item_condition, quantity, is_featured, published_at")
-    .eq("id", productId)
-    .eq("status", "approved")
-    .eq("college_id", profile.college_id ?? "00000000-0000-0000-0000-000000000000")
-    .maybeSingle();
-  if (!productData) notFound();
-  const product = productData as Product;
-  const [{ data: sellerData }, { data: categoryData }, { data: imageData }, { data: savedData }, { data: reviewData }, { data: relatedData }] = await Promise.all([
-    supabase.from("profiles").select("id, full_name, handle, role, verification_status, phone").eq("id", product.seller_id).maybeSingle(),
-    supabase.from("categories").select("name, slug").eq("id", product.category_id).maybeSingle(),
-    supabase.from("product_images").select("id, storage_path, alt_text, sort_order").eq("product_id", product.id).order("sort_order"),
-    supabase.from("wishlists").select("product_id").eq("user_id", userId).eq("product_id", product.id).maybeSingle(),
-    supabase.from("reviews").select("rating").eq("reviewed_user_id", product.seller_id).limit(100),
-    supabase.from("products").select("id, seller_id, category_id, name, description, price, item_condition, quantity, is_featured, published_at").eq("college_id", product.college_id).eq("category_id", product.category_id).eq("status", "approved").gt("quantity", 0).neq("id", product.id).order("published_at", { ascending: false, nullsFirst: false }).limit(4),
+
+  let productData: Product | null = null;
+  if (isValidUuid(productId)) {
+    const { data } = await supabase
+      .from("products")
+      .select("id, seller_id, college_id, category_id, name, description, price, item_condition, quantity, is_featured, published_at")
+      .eq("id", productId)
+      .eq("status", "approved")
+      .eq("college_id", profile.college_id ?? "00000000-0000-0000-0000-000000000000")
+      .maybeSingle();
+    productData = data as Product | null;
+  }
+
+  // If not found in Supabase, check Google Firestore
+  let firestoreDoc = null;
+  if (!productData) {
+    firestoreDoc = await getFirestoreProductById(productId);
+    if (!firestoreDoc) notFound();
+  }
+
+  const product: Product = productData
+    ? productData
+    : {
+        id: firestoreDoc!.id,
+        seller_id: firestoreDoc!.seller_id,
+        college_id: profile.college_id || "nit-calicut",
+        category_id: firestoreDoc!.category_id,
+        name: firestoreDoc!.name,
+        description: firestoreDoc!.description,
+        price: firestoreDoc!.price,
+        item_condition: firestoreDoc!.item_condition,
+        quantity: firestoreDoc!.quantity,
+        is_featured: firestoreDoc!.is_featured,
+        published_at: firestoreDoc!.published_at,
+      };
+
+  const isProdUuid = isValidUuid(product.id);
+  const isSellerUuid = isValidUuid(product.seller_id);
+  const isCatUuid = isValidUuid(product.category_id);
+
+  const [
+    { data: sellerData },
+    { data: categoryData },
+    { data: imageData },
+    { data: savedData },
+    { data: reviewData },
+    { data: relatedData },
+  ] = await Promise.all([
+    isSellerUuid
+      ? supabase.from("profiles").select("id, full_name, handle, role, verification_status, phone").eq("id", product.seller_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    isCatUuid
+      ? supabase.from("categories").select("name, slug").eq("id", product.category_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    isProdUuid
+      ? supabase.from("product_images").select("id, storage_path, alt_text, sort_order").eq("product_id", product.id).order("sort_order")
+      : Promise.resolve({ data: [] }),
+    isProdUuid
+      ? supabase.from("wishlists").select("product_id").eq("user_id", userId).eq("product_id", product.id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    isSellerUuid
+      ? supabase.from("reviews").select("rating").eq("reviewed_user_id", product.seller_id).limit(100)
+      : Promise.resolve({ data: [] }),
+    isCatUuid && isProdUuid
+      ? supabase.from("products").select("id, seller_id, category_id, name, description, price, item_condition, quantity, is_featured, published_at").eq("college_id", product.college_id).eq("category_id", product.category_id).eq("status", "approved").gt("quantity", 0).neq("id", product.id).order("published_at", { ascending: false, nullsFirst: false }).limit(4)
+      : Promise.resolve({ data: [] }),
   ]);
-  const seller = sellerData as { id: string; full_name: string; handle: string; role: string; verification_status: string; phone?: string | null } | null;
-  const category = categoryData as { name: string; slug: string } | null;
+
+  const seller = (sellerData as { id: string; full_name: string; handle: string; role: string; verification_status: string; phone?: string | null } | null) || (firestoreDoc ? {
+    id: firestoreDoc.seller_id,
+    full_name: firestoreDoc.sellerName || "Campus Peer",
+    handle: firestoreDoc.sellerHandle || "member",
+    role: "student",
+    verification_status: "approved",
+    phone: firestoreDoc.sellerPhone || null,
+  } : null);
+
+  const category = (categoryData as { name: string; slug: string } | null) || (firestoreDoc ? {
+    name: firestoreDoc.categoryName || "Campus item",
+    slug: firestoreDoc.category_id || "campus-item",
+  } : null);
+
   const images = (imageData ?? []) as { id: string; storage_path: string; alt_text: string; sort_order: number }[];
   const reviewRatings = (reviewData ?? []).map((item) => Number((item as { rating: number }).rating));
   const averageRating = reviewRatings.length ? reviewRatings.reduce((sum, rating) => sum + rating, 0) / reviewRatings.length : null;
@@ -55,6 +124,16 @@ export default async function ProductDetailsPage({ params, searchParams }: PageP
     const { data } = await supabase.storage.from("product-images").createSignedUrl(image.storage_path, 15 * 60);
     return { ...image, url: data?.signedUrl ?? null };
   }));
+
+  if (imageUrls.length === 0 && firestoreDoc?.imageUrl) {
+    imageUrls.push({
+      id: "firestore-img-1",
+      storage_path: "",
+      alt_text: firestoreDoc.name,
+      sort_order: 0,
+      url: firestoreDoc.imageUrl,
+    });
+  }
   const otherProducts = (relatedData ?? []) as Product[];
   const relatedSellerIds = [...new Set(otherProducts.map((item) => item.seller_id))];
   const [{ data: relatedSellers }, { data: relatedImages }, { data: relatedSaved }] = await Promise.all([
@@ -216,21 +295,23 @@ export default async function ProductDetailsPage({ params, searchParams }: PageP
                         <span>Claim Free Giveaway on WhatsApp</span>
                       </a>
                     ) : null}
-                    <div className="flex gap-2 sm:col-span-2">
-                      <form action={startConversation} className="flex-1">
-                        <input type="hidden" name="product_id" value={product.id} />
-                        <button className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-[#d0c1ab] bg-white/90 backdrop-blur-md px-4 text-sm font-semibold text-[#241e14] shadow-xs transition hover:bg-[#eee9e2]/50 hover:border-[#8e7a63]" type="submit">
-                          <MessageCircle size={16} /> Message to claim pickup
-                        </button>
-                      </form>
-                      <form action={toggleWishlist}>
-                        <input type="hidden" name="product_id" value={product.id} />
-                        <input type="hidden" name="return_to" value={`/marketplace/${product.id}`} />
-                        <button className="grid size-12 shrink-0 place-items-center rounded-full border border-[#d0c1ab] bg-white/90 backdrop-blur-md text-[#241e14] shadow-xs transition hover:bg-[#eee9e2]/50 hover:border-[#8e7a63]" type="submit" title={savedData ? "Remove from wishlist" : "Save to wishlist"} aria-label={savedData ? "Remove from wishlist" : "Save to wishlist"}>
-                          <Bookmark size={17} fill={savedData ? "currentColor" : "none"} />
-                        </button>
-                      </form>
-                    </div>
+                    {isProdUuid ? (
+                      <div className="flex gap-2 sm:col-span-2">
+                        <form action={startConversation} className="flex-1">
+                          <input type="hidden" name="product_id" value={product.id} />
+                          <button className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-[#d0c1ab] bg-white/90 backdrop-blur-md px-4 text-sm font-semibold text-[#241e14] shadow-xs transition hover:bg-[#eee9e2]/50 hover:border-[#8e7a63]" type="submit">
+                            <MessageCircle size={16} /> Message to claim pickup
+                          </button>
+                        </form>
+                        <form action={toggleWishlist}>
+                          <input type="hidden" name="product_id" value={product.id} />
+                          <input type="hidden" name="return_to" value={`/marketplace/${product.id}`} />
+                          <button className="grid size-12 shrink-0 place-items-center rounded-full border border-[#d0c1ab] bg-white/90 backdrop-blur-md text-[#241e14] shadow-xs transition hover:bg-[#eee9e2]/50 hover:border-[#8e7a63]" type="submit" title={savedData ? "Remove from wishlist" : "Save to wishlist"} aria-label={savedData ? "Remove from wishlist" : "Save to wishlist"}>
+                            <Bookmark size={17} fill={savedData ? "currentColor" : "none"} />
+                          </button>
+                        </form>
+                      </div>
+                    ) : null}
                   </>
                 ) : isTrade ? (
                   <>
@@ -245,24 +326,30 @@ export default async function ProductDetailsPage({ params, searchParams }: PageP
                         <span>Propose Trade on WhatsApp</span>
                       </a>
                     ) : null}
-                    <div className="flex gap-2 sm:col-span-2">
-                      <form action={startConversation} className="flex-1">
-                        <input type="hidden" name="product_id" value={product.id} />
-                        <button className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-[#d0c1ab] bg-white/90 backdrop-blur-md px-4 text-sm font-semibold text-[#241e14] shadow-xs transition hover:bg-[#eee9e2]/50 hover:border-[#8e7a63]" type="submit">
-                          <MessageCircle size={16} /> Message to propose swap
-                        </button>
-                      </form>
-                      <form action={toggleWishlist}>
-                        <input type="hidden" name="product_id" value={product.id} />
-                        <input type="hidden" name="return_to" value={`/marketplace/${product.id}`} />
-                        <button className="grid size-12 shrink-0 place-items-center rounded-full border border-[#d0c1ab] bg-white/90 backdrop-blur-md text-[#241e14] shadow-xs transition hover:bg-[#eee9e2]/50 hover:border-[#8e7a63]" type="submit" title={savedData ? "Remove from wishlist" : "Save to wishlist"} aria-label={savedData ? "Remove from wishlist" : "Save to wishlist"}><Bookmark size={17} fill={savedData ? "currentColor" : "none"} /></button>
-                      </form>
-                    </div>
+                    {isProdUuid ? (
+                      <div className="flex gap-2 sm:col-span-2">
+                        <form action={startConversation} className="flex-1">
+                          <input type="hidden" name="product_id" value={product.id} />
+                          <button className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-[#d0c1ab] bg-white/90 backdrop-blur-md px-4 text-sm font-semibold text-[#241e14] shadow-xs transition hover:bg-[#eee9e2]/50 hover:border-[#8e7a63]" type="submit">
+                            <MessageCircle size={16} /> Message to propose swap
+                          </button>
+                        </form>
+                        <form action={toggleWishlist}>
+                          <input type="hidden" name="product_id" value={product.id} />
+                          <input type="hidden" name="return_to" value={`/marketplace/${product.id}`} />
+                          <button className="grid size-12 shrink-0 place-items-center rounded-full border border-[#d0c1ab] bg-white/90 backdrop-blur-md text-[#241e14] shadow-xs transition hover:bg-[#eee9e2]/50 hover:border-[#8e7a63]" type="submit" title={savedData ? "Remove from wishlist" : "Save to wishlist"} aria-label={savedData ? "Remove from wishlist" : "Save to wishlist"}><Bookmark size={17} fill={savedData ? "currentColor" : "none"} /></button>
+                        </form>
+                      </div>
+                    ) : null}
                   </>
                 ) : (
                   <>
-                    <form action={addToCart}><input type="hidden" name="product_id" value={product.id} /><button className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-[#d0c1ab] bg-white/90 backdrop-blur-md px-5 text-sm font-semibold text-[#241e14] shadow-xs transition hover:bg-[#eee9e2]/50 hover:border-[#8e7a63]" type="submit"><ShoppingBag size={16} /> Add to cart</button></form>
-                    <form action={buyNow}><input type="hidden" name="product_id" value={product.id} /><button className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#241e14] px-5 text-sm font-semibold text-[#eee9e2] shadow-sm transition hover:bg-[#382f20]" type="submit">Buy now <ShoppingBag size={16} /></button></form>
+                    {isProdUuid ? (
+                      <>
+                        <form action={addToCart}><input type="hidden" name="product_id" value={product.id} /><button className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-[#d0c1ab] bg-white/90 backdrop-blur-md px-5 text-sm font-semibold text-[#241e14] shadow-xs transition hover:bg-[#eee9e2]/50 hover:border-[#8e7a63]" type="submit"><ShoppingBag size={16} /> Add to cart</button></form>
+                        <form action={buyNow}><input type="hidden" name="product_id" value={product.id} /><button className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#241e14] px-5 text-sm font-semibold text-[#eee9e2] shadow-sm transition hover:bg-[#382f20]" type="submit">Buy now <ShoppingBag size={16} /></button></form>
+                      </>
+                    ) : null}
 
                     {waInquiryLink ? (
                       <a
@@ -272,14 +359,16 @@ export default async function ProductDetailsPage({ params, searchParams }: PageP
                         className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#25D366] px-5 text-sm font-bold text-white shadow-sm transition hover:bg-[#20ba59] sm:col-span-2"
                       >
                         <MessageCircle size={18} />
-                        <span>Chat & Pay on WhatsApp ({seller?.phone || "Seller"})</span>
+                        <span>Chat & Buy on WhatsApp ({seller?.phone || "Seller"})</span>
                       </a>
                     ) : null}
 
-                    <div className="flex gap-2 sm:col-span-2">
-                      <form action={startConversation} className="flex-1"><input type="hidden" name="product_id" value={product.id} /><button className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-[#d0c1ab] bg-white/90 backdrop-blur-md px-4 text-sm font-semibold text-[#241e14] shadow-xs transition hover:bg-[#eee9e2]/50 hover:border-[#8e7a63]" type="submit"><MessageCircle size={16} /> In-app message</button></form>
-                      <form action={toggleWishlist}><input type="hidden" name="product_id" value={product.id} /><input type="hidden" name="return_to" value={`/marketplace/${product.id}`} /><button className="grid size-12 shrink-0 place-items-center rounded-full border border-[#d0c1ab] bg-white/90 backdrop-blur-md text-[#241e14] shadow-xs transition hover:bg-[#eee9e2]/50 hover:border-[#8e7a63]" type="submit" title={savedData ? "Remove from wishlist" : "Save to wishlist"} aria-label={savedData ? "Remove from wishlist" : "Save to wishlist"}><Bookmark size={17} fill={savedData ? "currentColor" : "none"} /></button></form>
-                    </div>
+                    {isProdUuid ? (
+                      <div className="flex gap-2 sm:col-span-2">
+                        <form action={startConversation} className="flex-1"><input type="hidden" name="product_id" value={product.id} /><button className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-[#d0c1ab] bg-white/90 backdrop-blur-md px-4 text-sm font-semibold text-[#241e14] shadow-xs transition hover:bg-[#eee9e2]/50 hover:border-[#8e7a63]" type="submit"><MessageCircle size={16} /> In-app message</button></form>
+                        <form action={toggleWishlist}><input type="hidden" name="product_id" value={product.id} /><input type="hidden" name="return_to" value={`/marketplace/${product.id}`} /><button className="grid size-12 shrink-0 place-items-center rounded-full border border-[#d0c1ab] bg-white/90 backdrop-blur-md text-[#241e14] shadow-xs transition hover:bg-[#eee9e2]/50 hover:border-[#8e7a63]" type="submit" title={savedData ? "Remove from wishlist" : "Save to wishlist"} aria-label={savedData ? "Remove from wishlist" : "Save to wishlist"}><Bookmark size={17} fill={savedData ? "currentColor" : "none"} /></button></form>
+                      </div>
+                    ) : null}
                   </>
                 )}
               </div>

@@ -27,6 +27,7 @@ export type FirestoreProduct = {
   seller_id: string;
   sellerName: string;
   sellerHandle: string;
+  sellerPhone?: string | null;
   college_id: string;
   status: "approved" | "pending" | "sold" | "rejected";
   is_featured: boolean;
@@ -153,6 +154,42 @@ export async function getFirestoreProducts({
   } catch (error) {
     console.error("Firestore getFirestoreProducts error:", error);
     return [];
+  }
+}
+
+/**
+ * Fetch a single product from Google Firestore by its ID
+ */
+export async function getFirestoreProductById(productId: string): Promise<FirestoreProduct | null> {
+  if (!isFirebaseConfigured() || !productId) return null;
+  try {
+    const db = getFirebaseDb();
+    const docRef = doc(db, "products", productId);
+    const snap = await getDoc(docRef);
+    if (!snap.exists()) return null;
+    const data = snap.data();
+    return {
+      id: snap.id,
+      name: data.name || "",
+      description: data.description || "",
+      price: Number(data.price) || 0,
+      item_condition: data.item_condition || "good",
+      quantity: Number(data.quantity) || 1,
+      category_id: data.category_id || "",
+      categoryName: data.categoryName || "Campus Item",
+      seller_id: data.seller_id || "",
+      sellerName: data.sellerName || "Campus Peer",
+      sellerHandle: data.sellerHandle || "member",
+      sellerPhone: data.sellerPhone || null,
+      college_id: data.college_id || "nit-calicut",
+      status: data.status || "approved",
+      is_featured: Boolean(data.is_featured),
+      imageUrl: data.imageUrl || null,
+      published_at: data.published_at || new Date().toISOString(),
+    };
+  } catch (err) {
+    console.error("Firestore getFirestoreProductById error:", err);
+    return null;
   }
 }
 
