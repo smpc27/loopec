@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { requireApprovedMember } from "@/lib/auth/member";
+import { verifyHumanRequest } from "@/lib/security/botid";
 import { createStorageAdminClient } from "@/lib/supabase/admin";
 
 const feedbackSchema = z.object({
@@ -14,6 +15,9 @@ const feedbackSchema = z.object({
 });
 
 export async function submitPlatformFeedback(formData: FormData) {
+  const botCheck = await verifyHumanRequest();
+  if (!botCheck.allowed) redirect("/feedback?error=unauthorized");
+
   const { supabase, userId, profile } = await requireApprovedMember();
 
   const parsed = feedbackSchema.safeParse({

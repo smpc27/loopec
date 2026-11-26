@@ -4,6 +4,7 @@ import { z } from "zod";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireApprovedMember } from "@/lib/auth/member";
+import { verifyHumanRequest } from "@/lib/security/botid";
 import { createStorageAdminClient } from "@/lib/supabase/admin";
 
 const fallbackPickupMetadata: Record<string, { name: string; address: string; instructions: string; sort_order: number }> = {
@@ -34,6 +35,9 @@ const fallbackPickupMetadata: Record<string, { name: string; address: string; in
 };
 
 export async function createOrders(formData: FormData) {
+  const botCheck = await verifyHumanRequest();
+  if (!botCheck.allowed) redirect("/checkout?error=unauthorized");
+
   const rawProductId = formData.get("product_id");
   const parsed = z.object({ pickupLocationId: z.uuid(), idempotencyKey: z.uuid(), productId: z.uuid().optional() }).safeParse({
     pickupLocationId: formData.get("pickup_location_id"),

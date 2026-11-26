@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getCurrentMember, NITC_COLLEGE_ID, requireApprovedMember } from "@/lib/auth/member";
+import { verifyHumanRequest } from "@/lib/security/botid";
 import { createStorageAdminClient } from "@/lib/supabase/admin";
 import {
   deleteProductFromFirestore,
@@ -152,6 +153,11 @@ async function resolveFirstImageUrl(supabase: SupabaseClient, storageAdmin: Supa
 }
 
 async function executeCreateListing(formData: FormData): Promise<{ error: string; code: string } | never> {
+  const botCheck = await verifyHumanRequest();
+  if (!botCheck.allowed) {
+    return { error: "Automated requests are not permitted. Refresh the page and try again.", code: "unauthorized" };
+  }
+
   const fields = readFields(formData);
   const files = getImageFiles(formData);
   if (!fields.success) {
