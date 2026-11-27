@@ -6,6 +6,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { signIn, signOut } from "@/app/auth/actions";
 import { authMessage } from "@/lib/auth/messages";
 import { FormNotice } from "@/components/auth/auth-shell";
+import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 
 export const instant = false;
 
@@ -116,62 +117,74 @@ export default async function AdminLoginPage({
               </div>
             </div>
           ) : (
-            <form action={signIn} className="space-y-4">
-              <input type="hidden" name="next" value="/admin" />
-              <input type="hidden" name="redirect_to" value="/admin/login" />
+            <div className="space-y-5">
+              <GoogleSignInButton nextPath="/admin" label="Continue with Google Admin Account" />
 
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#524a40] mb-1.5">
-                  Admin Email
-                </label>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#736b60]">
-                    <Mail size={16} />
-                  </span>
-                  <input
-                    type="email"
-                    name="email"
-                    required
-                    placeholder="admin@nitc.ac.in"
-                    className="w-full rounded-2xl border border-[#d0c1ab] bg-white pl-10 pr-4 py-3 text-sm text-[#241e14] placeholder-[#736b60]/50 outline-none focus:border-[#241e14] focus:ring-2 focus:ring-[#241e14]/10 transition-all"
-                  />
-                </div>
+              <div className="relative flex items-center py-1">
+                <div className="flex-grow border-t border-[#d0c1ab]/50" />
+                <span className="mx-3 shrink-0 text-[10px] font-bold uppercase tracking-widest text-[#8e7a63]">
+                  or email & password
+                </span>
+                <div className="flex-grow border-t border-[#d0c1ab]/50" />
               </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-[#524a40]">
-                    Password
+              <form action={signIn} className="space-y-4">
+                <input type="hidden" name="next" value="/admin" />
+                <input type="hidden" name="redirect_to" value="/admin/login" />
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-[#524a40] mb-1.5">
+                    Admin Email
                   </label>
-                  <Link
-                    href="/auth/forgot-password"
-                    className="text-xs font-semibold text-[#8e7a63] hover:text-[#241e14]"
-                  >
-                    Forgot?
-                  </Link>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#736b60]">
+                      <Mail size={16} />
+                    </span>
+                    <input
+                      type="email"
+                      name="email"
+                      required
+                      placeholder="admin@nitc.ac.in"
+                      className="w-full rounded-2xl border border-[#d0c1ab] bg-white pl-10 pr-4 py-3 text-sm text-[#241e14] placeholder-[#736b60]/50 outline-none focus:border-[#241e14] focus:ring-2 focus:ring-[#241e14]/10 transition-all"
+                    />
+                  </div>
                 </div>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#736b60]">
-                    <Lock size={16} />
-                  </span>
-                  <input
-                    type="password"
-                    name="password"
-                    required
-                    placeholder="••••••••••••"
-                    className="w-full rounded-2xl border border-[#d0c1ab] bg-white pl-10 pr-4 py-3 text-sm text-[#241e14] placeholder-[#736b60]/50 outline-none focus:border-[#241e14] focus:ring-2 focus:ring-[#241e14]/10 transition-all"
-                  />
-                </div>
-              </div>
 
-              <button
-                type="submit"
-                className="w-full mt-2 inline-flex items-center justify-center gap-2 rounded-full bg-[#241e14] px-6 py-3.5 text-sm font-bold text-white shadow-md hover:bg-[#382f20] active:scale-[0.99] transition-all"
-              >
-                Sign in to Admin Console
-                <ArrowRight size={16} />
-              </button>
-            </form>
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-[#524a40]">
+                      Password
+                    </label>
+                    <Link
+                      href="/auth/forgot-password"
+                      className="text-xs font-semibold text-[#8e7a63] hover:text-[#241e14]"
+                    >
+                      Forgot?
+                    </Link>
+                  </div>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#736b60]">
+                      <Lock size={16} />
+                    </span>
+                    <input
+                      type="password"
+                      name="password"
+                      required
+                      placeholder="••••••••••••"
+                      className="w-full rounded-2xl border border-[#d0c1ab] bg-white pl-10 pr-4 py-3 text-sm text-[#241e14] placeholder-[#736b60]/50 outline-none focus:border-[#241e14] focus:ring-2 focus:ring-[#241e14]/10 transition-all"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full mt-2 inline-flex items-center justify-center gap-2 rounded-full bg-[#241e14] px-6 py-3.5 text-sm font-bold text-white shadow-md hover:bg-[#382f20] active:scale-[0.99] transition-all cursor-pointer"
+                >
+                  Sign in to Admin Console
+                  <ArrowRight size={16} />
+                </button>
+              </form>
+            </div>
           )}
 
           <div className="mt-6 pt-6 border-t border-[#d0c1ab]/40 text-center">
