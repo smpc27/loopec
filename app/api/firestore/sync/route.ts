@@ -1,5 +1,7 @@
+import { timingSafeEqual } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import type { NextRequest } from "next/server";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 /**
  * POST /api/firestore/sync
@@ -15,14 +17,26 @@ export async function POST(req: NextRequest) {
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
   const secret = process.env.SUPABASE_SECRET_KEY?.trim();
 
-  if (!secret || token !== secret) {
+  if (!secret || !token) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const tokenBuf = Buffer.from(token, "utf8");
+  const secretBuf = Buffer.from(secret, "utf8");
+  if (tokenBuf.length !== secretBuf.length || !timingSafeEqual(tokenBuf, secretBuf)) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!isSupabaseConfigured()) {
+    return Response.json({ error: "Supabase environment not configured" }, { status: 500 });
   }
 
   let batchLimit = 50;
   try {
     const body = await req.json();
-    if (typeof body?.limit === "number") batchLimit = Math.min(Math.max(body.limit, 1), 200);
+    if (typeof body?.limit === "number" && Number.isFinite(body.limit)) {
+      batchLimit = Math.min(Math.max(Math.trunc(body.limit), 1), 200);
+    }
   } catch {
     // Use default batch limit
   }
@@ -145,7 +159,7 @@ export async function POST(req: NextRequest) {
             quantity: Number(p.quantity) || 1,
             category_id: p.category_id ?? "",
             categoryName: p.category?.name ?? "Campus Finds",
-            categorySlug: p.category?.slug ?? undefined,
+            ...(p.category?.slug ? { categorySlug: p.category.slug } : {}),
             seller_id: p.seller?.id ?? "",
             sellerName: p.seller?.full_name ?? "Member",
             sellerHandle: p.seller?.handle ?? "member",

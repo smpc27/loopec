@@ -5,6 +5,7 @@ import { requireApprovedMember } from "@/lib/auth/member";
 import { submitPlatformFeedback } from "@/app/feedback/actions";
 import { Button } from "@/components/ui/button";
 import { SiteHeader } from "@/components/navigation/site-header";
+import { authMessage } from "@/lib/auth/messages";
 
 export const instant = false;
 
@@ -57,7 +58,7 @@ export default async function FeedbackPage({
               Direct Administrator Delivery
             </p>
             <p className="mt-1 text-[#736b60] leading-relaxed">
-              Every submission is delivered directly as a message & notification to campus admins (@smsandep27).
+              Every submission is logged in the Admin Feedback Queue and alerts your campus administrators.
             </p>
           </div>
         </div>
@@ -92,7 +93,7 @@ export default async function FeedbackPage({
 
         {error ? (
           <div className="mt-6 rounded-xl border border-rose-200/80 bg-rose-50/80 backdrop-blur-md p-4 text-xs font-semibold text-rose-800 shadow-sm">
-            Please make sure all fields are filled out accurately.
+            {authMessage(error) ?? "Please make sure all fields are filled out accurately."}
           </div>
         ) : null}
 

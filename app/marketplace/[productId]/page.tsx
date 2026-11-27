@@ -125,10 +125,13 @@ export default async function ProductDetailsPage({ params, searchParams }: PageP
   }));
 
   if (imageUrls.length === 0 && firestoreDoc) {
-    let resolvedUrl = firestoreDoc.imageUrl;
-    if (!resolvedUrl && firestoreDoc.imageStoragePath) {
+    let resolvedUrl: string | null = null;
+    if (firestoreDoc.imageStoragePath) {
       const { data } = await supabase.storage.from("product-images").createSignedUrl(firestoreDoc.imageStoragePath, 15 * 60);
       resolvedUrl = data?.signedUrl ?? null;
+    }
+    if (!resolvedUrl) {
+      resolvedUrl = firestoreDoc.imageUrl;
     }
     if (resolvedUrl) {
       imageUrls.push({
@@ -169,26 +172,34 @@ export default async function ProductDetailsPage({ params, searchParams }: PageP
   });
 
   if (relatedCards.length === 0) {
-    const fsRelated = await getFirestoreProducts().catch(() => []);
-    relatedCards = fsRelated
-      .filter((fp) => fp.id !== product.id)
-      .slice(0, 4)
-      .map((fp) => ({
-        id: fp.id,
-        seller_id: fp.seller_id,
-        category_id: fp.category_id,
-        name: fp.name,
-        description: fp.description,
-        price: fp.price,
-        item_condition: fp.item_condition,
-        quantity: fp.quantity,
-        is_featured: fp.is_featured,
-        published_at: fp.published_at,
-        categoryName: fp.categoryName,
-        sellerName: fp.sellerName,
-        sellerHandle: fp.sellerHandle,
-        imageUrl: fp.imageUrl,
-      }));
+    const fsRelated = await getFirestoreProducts({ collegeId: profile.college_id ?? undefined }).catch(() => []);
+    const filteredFs = fsRelated.filter((fp) => fp.id !== product.id).slice(0, 4);
+    const fsPaths = filteredFs
+      .map((fp) => fp.imageStoragePath)
+      .filter((path): path is string => Boolean(path));
+    const fsSignedMap = new Map<string, string>();
+    if (fsPaths.length > 0) {
+      const { data: signedFs } = await supabase.storage.from("product-images").createSignedUrls(fsPaths, 900);
+      for (const s of signedFs ?? []) {
+        if (s.path && s.signedUrl) fsSignedMap.set(s.path, s.signedUrl);
+      }
+    }
+    relatedCards = filteredFs.map((fp) => ({
+      id: fp.id,
+      seller_id: fp.seller_id,
+      category_id: fp.category_id,
+      name: fp.name,
+      description: fp.description,
+      price: fp.price,
+      item_condition: fp.item_condition,
+      quantity: fp.quantity,
+      is_featured: fp.is_featured,
+      published_at: fp.published_at,
+      categoryName: fp.categoryName,
+      sellerName: fp.sellerName,
+      sellerHandle: fp.sellerHandle,
+      imageUrl: (fp.imageStoragePath ? fsSignedMap.get(fp.imageStoragePath) : null) ?? fp.imageUrl,
+    }));
   }
 
   const query = await search;
@@ -196,8 +207,8 @@ export default async function ProductDetailsPage({ params, searchParams }: PageP
   const savedRelated = new Set((relatedSaved ?? []).map((item) => (item as { product_id: string }).product_id));
   const sellerRole = seller?.role === "faculty" ? "Faculty" : seller?.role === "staff" ? "College staff" : "Student";
 
-  const isGiveaway = Number(product.price) === 0 || product.description.includes("[GIVEAWAY]");
   const isTrade = product.description.includes("[TRADE") || product.name.toLowerCase().includes("trade");
+  const isGiveaway = !isTrade && (Number(product.price) === 0 || product.description.includes("[GIVEAWAY]"));
   let tradeWishlist: string | null = null;
   if (isTrade) {
     const match = product.description.match(/\[TRADE:\s*([^\]]+)\]/i);
@@ -209,7 +220,13 @@ export default async function ProductDetailsPage({ params, searchParams }: PageP
     .trim();
 
   const rawSellerPhone = (seller?.phone || "").replace(/\D/g, "");
-  const waSellerPhone = rawSellerPhone.length === 10 ? `91${rawSellerPhone}` : rawSellerPhone;
+  const normalizedPhone =
+    rawSellerPhone.length === 11 && rawSellerPhone.startsWith("0")
+      ? `91${rawSellerPhone.slice(1)}`
+      : rawSellerPhone.length === 10
+      ? `91${rawSellerPhone}`
+      : rawSellerPhone;
+  const waSellerPhone = normalizedPhone.length >= 10 ? normalizedPhone : "";
 
   let waText = `Hi ${seller?.full_name || "there"}! I saw your listing for "${product.name}" (₹${product.price}) on LOOPEC. Is it still available for campus pickup?`;
   if (isGiveaway) {

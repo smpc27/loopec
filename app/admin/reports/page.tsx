@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, Flag, ShieldAlert } from "lucide-react";
 import { AuthShell, FormNotice } from "@/components/auth/auth-shell";
 import { authMessage } from "@/lib/auth/messages";
-import { getCurrentMember } from "@/lib/auth/member";
+import { getCurrentMember, isAdminProfile } from "@/lib/auth/member";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { AdminHeader } from "@/components/admin/admin-header";
 import { reviewReport } from "@/app/admin/actions";
@@ -17,25 +17,39 @@ export default async function AdminReportsPage({ searchParams }: PageProps<"/adm
   const errorCode = Array.isArray(params.error) ? params.error[0] : params.error;
   if (!isSupabaseConfigured()) return <AuthShell eyebrow="Community reports" title="Pilot setup is incomplete" description="Report review will be available after the pilot database is connected."><Link href="/setup" className="font-semibold text-violet-800">View setup details</Link></AuthShell>;
   const member = await getCurrentMember();
-  if (!member.userId || !member.profile || !["college_admin", "super_admin"].includes(member.profile.role) || member.profile.suspended_at) {
-    return <AuthShell eyebrow="Restricted area" title="College administrators only" description="Your account does not have access to reports."><Link href="/" className="font-semibold text-violet-800">Return to home</Link></AuthShell>;
+  if (!member.userId || !isAdminProfile(member.profile)) {
+    return <AuthShell eyebrow="Restricted area" title="College administrators only" description="Your account does not have access to reports."><Link href="/admin/login" className="font-semibold text-violet-800">Admin sign in</Link></AuthShell>;
   }
-  const query = member.supabase.from("reports").select("id, reporter_id, product_id, reported_user_id, reason, details, status, created_at").in("status", ["open", "under_review"]).order("created_at", { ascending: true });
+  const adminProfile = member.profile!;
+  const query = member.supabase.from("reports").select("id, reporter_id, product_id, reported_user_id, reason, details, status, created_at").in("status", ["open", "under_review"]).order("created_at", { ascending: true }).limit(100);
   const { data, error } = await query;
-  const reports = (data ?? []) as Report[];
-  const userIds = [...new Set(reports.flatMap((report) => [report.reporter_id, report.reported_user_id].filter((id): id is string => Boolean(id))))];
-  const productIds = [...new Set(reports.map((report) => report.product_id).filter((id): id is string => Boolean(id)))];
+  const rawReports = (data ?? []) as Report[];
+  const userIds = [...new Set(rawReports.flatMap((report) => [report.reporter_id, report.reported_user_id].filter((id): id is string => Boolean(id))))];
+  const productIds = [...new Set(rawReports.map((report) => report.product_id).filter((id): id is string => Boolean(id)))];
   const [{ data: profileData }, { data: productData }] = await Promise.all([
-    userIds.length ? member.supabase.from("profiles").select("id, full_name, handle").in("id", userIds) : Promise.resolve({ data: [] }),
-    productIds.length ? member.supabase.from("products").select("id, name, seller_id").in("id", productIds) : Promise.resolve({ data: [] }),
+    userIds.length ? member.supabase.from("profiles").select("id, full_name, handle, college_id").in("id", userIds) : Promise.resolve({ data: [] }),
+    productIds.length ? member.supabase.from("products").select("id, name, seller_id, college_id").in("id", productIds) : Promise.resolve({ data: [] }),
   ]);
-  const profiles = new Map(((profileData ?? []) as { id: string; full_name: string; handle: string }[]).map((profile) => [profile.id, profile]));
-  const products = new Map(((productData ?? []) as { id: string; name: string; seller_id: string }[]).map((product) => [product.id, product]));
+  const profiles = new Map(((profileData ?? []) as { id: string; full_name: string; handle: string; college_id?: string | null }[]).map((profile) => [profile.id, profile]));
+  const products = new Map(((productData ?? []) as { id: string; name: string; seller_id: string; college_id?: string | null }[]).map((product) => [product.id, product]));
+  const reports =
+    adminProfile.role === "super_admin" || !adminProfile.college_id
+      ? rawReports
+      : rawReports.filter((r) => {
+          const prodCollege = r.product_id ? products.get(r.product_id)?.college_id : null;
+          const reportedCollege = r.reported_user_id ? profiles.get(r.reported_user_id)?.college_id : null;
+          const reporterCollege = profiles.get(r.reporter_id)?.college_id;
+          return (
+            prodCollege === adminProfile.college_id ||
+            reportedCollege === adminProfile.college_id ||
+            reporterCollege === adminProfile.college_id
+          );
+        });
   const errorMessage = errorCode === "review" ? authMessage("report_review") : authMessage(errorCode);
 
   return (
     <main className="min-h-screen bg-[#eee9e2] px-5 py-8 sm:px-8 text-[#241e14]">
-      <AdminHeader adminName={member.profile.full_name} isSuperAdmin={member.profile.role === "super_admin"} />
+      <AdminHeader adminName={adminProfile.full_name} isSuperAdmin={adminProfile.role === "super_admin"} />
       <section className="mx-auto mt-11 max-w-6xl">
         <Link href="/admin" className="inline-flex items-center gap-2 text-xs font-semibold text-[#77717e] hover:text-violet-900"><ArrowLeft size={14} /> Admin home</Link>
         <div className="mt-5 flex flex-wrap items-end justify-between gap-5 border-b border-[#e8e5e2] pb-7"><div><p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.15em] text-violet-700"><ShieldAlert size={14} /> Community care</p><h1 className="mt-2 font-serif text-4xl tracking-[-.05em] text-[#28232f]">Member reports</h1><p className="mt-2 text-sm leading-6 text-[#77717e]">Review reports about campus listings and member safety.</p></div><span className="rounded-full border border-[#e8e3ec] bg-white px-4 py-2 text-xs font-semibold text-[#5e5765]">{reports.length} open</span></div>

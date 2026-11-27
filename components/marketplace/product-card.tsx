@@ -124,8 +124,8 @@ export function ProductCard({
     };
   }, [isUuid, product.id]);
 
-  const isGiveaway = Number(product.price) === 0 || product.description?.includes("[GIVEAWAY]");
-  const isTrade = product.description?.includes("[TRADE") || product.name.toLowerCase().includes("trade");
+  const isTrade = Boolean(product.description?.includes("[TRADE") || product.name.toLowerCase().includes("trade"));
+  const isGiveaway = !isTrade && (Number(product.price) === 0 || Boolean(product.description?.includes("[GIVEAWAY]")));
   const badge = conditionBadges[product.item_condition] || conditionBadges.good;
 
   const handleToggleWishlist = (e: React.MouseEvent) => {
@@ -262,7 +262,7 @@ export function ProductCard({
               </p>
             )}
             {showSeller ? (
-              previewMode && product.sellerHandle === "member" ? (
+              !product.sellerHandle || product.sellerHandle === "member" ? (
                 <span className="mt-1 block max-w-[160px] truncate text-xs font-semibold text-[#524a40]">
                   {product.sellerName}
                 </span>

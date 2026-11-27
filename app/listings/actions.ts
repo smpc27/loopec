@@ -33,17 +33,27 @@ const listingFields = z.object({
 
 function readFields(formData: FormData) {
   const listingType = String(formData.get("listing_type") ?? "sale");
-  const tradeWishlist = String(formData.get("trade_wishlist") ?? "").trim();
+  const tradeWishlist = String(formData.get("trade_wishlist") ?? "").trim().slice(0, 120);
   let priceStr = String(formData.get("price") ?? "").replace(/,/g, "").trim().replace(/\.$/, "");
   if (listingType === "giveaway" || (!priceStr && listingType === "trade")) {
     priceStr = "0";
   }
 
-  let description = String(formData.get("description") ?? "").trim();
+  const rawDescription = String(formData.get("description") ?? "").trim();
+  const baseDescCheck = z
+    .string()
+    .min(10, "Description must be at least 10 characters.")
+    .max(4800, "Description must be 4800 characters or fewer.")
+    .safeParse(rawDescription);
+  if (!baseDescCheck.success) {
+    return baseDescCheck as unknown as ReturnType<typeof listingFields.safeParse>;
+  }
+
+  let description = rawDescription;
   if (listingType === "giveaway" && !description.includes("[GIVEAWAY]")) {
     description = `[GIVEAWAY] ${description}`;
-  } else if (listingType === "trade" && tradeWishlist && !description.includes("[TRADE")) {
-    description = `[TRADE: ${tradeWishlist}] ${description}`;
+  } else if (listingType === "trade" && !description.includes("[TRADE")) {
+    description = `[TRADE: ${tradeWishlist || "Open to campus offers"}] ${description}`;
   }
 
   return listingFields.safeParse({

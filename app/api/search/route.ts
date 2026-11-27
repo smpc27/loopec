@@ -2,6 +2,9 @@ import type { NextRequest } from "next/server";
 import { getFirestoreProducts } from "@/lib/firebase/firestore";
 import { getCurrentMember, NITC_COLLEGE_ID } from "@/lib/auth/member";
 import { createClient as createServerClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type SearchResultItem = {
   id: string;
@@ -45,6 +48,10 @@ export async function GET(req: NextRequest) {
   const previewMode =
     process.env.NODE_ENV === "development" && process.env.LOOPEC_DEV_BYPASS_AUTH === "true";
 
+  if (!isSupabaseConfigured() && !previewMode) {
+    return Response.json({ error: "Service unavailable" }, { status: 503 });
+  }
+
   const member = await getCurrentMember().catch(() => null);
   const isAuthorized = Boolean(
     (member?.userId && member?.profile && !member.profile.suspended_at) || previewMode
@@ -57,17 +64,20 @@ export async function GET(req: NextRequest) {
   const collegeId = member?.profile?.college_id || NITC_COLLEGE_ID;
   const supabase = member?.supabase ?? (await createServerClient());
 
-  let categorySlug: string | undefined;
+  let resolvedCategoryId = categoryId && UUID_REGEX.test(categoryId) ? categoryId : undefined;
+  let categorySlug: string | undefined = categoryId && !UUID_REGEX.test(categoryId) ? categoryId : undefined;
   let categoryName: string | undefined;
   if (categoryId) {
     try {
-      const { data: catRow } = await supabase
-        .from("categories")
-        .select("slug, name")
-        .eq("id", categoryId)
-        .maybeSingle();
-      categorySlug = catRow?.slug ?? undefined;
-      categoryName = catRow?.name ?? undefined;
+      const catQuery = UUID_REGEX.test(categoryId)
+        ? supabase.from("categories").select("id, slug, name").eq("id", categoryId).maybeSingle()
+        : supabase.from("categories").select("id, slug, name").eq("slug", categoryId).maybeSingle();
+      const { data: catRow } = await catQuery;
+      if (catRow) {
+        resolvedCategoryId = catRow.id;
+        categorySlug = catRow.slug ?? categorySlug;
+        categoryName = catRow.name ?? undefined;
+      }
     } catch {
       // ignore if dev bypass without DB table
     }
@@ -75,7 +85,7 @@ export async function GET(req: NextRequest) {
 
   // --- 1. Supabase full-text / substring search ---
   const supabasePromise = (async (): Promise<SearchResultItem[]> => {
-    if (!member?.userId && previewMode) return [];
+    if ((!member?.userId && previewMode) || (categoryId && !resolvedCategoryId)) return [];
     try {
       let query = supabase
         .from("products")
@@ -92,7 +102,7 @@ export async function GET(req: NextRequest) {
       if (q) {
         query = query.textSearch("search_vector", q, { type: "plain", config: "simple" });
       }
-      if (categoryId) query = query.eq("category_id", categoryId);
+      if (resolvedCategoryId) query = query.eq("category_id", resolvedCategoryId);
       if (minPrice !== null) query = query.gte("price", minPrice);
       if (maxPrice !== null) query = query.lte("price", maxPrice);
 
@@ -100,7 +110,7 @@ export async function GET(req: NextRequest) {
 
       // Partial-word substring fallback when full-word stem search finds nothing
       if (!error && (!data || data.length === 0) && q.length >= 2) {
-        const sanitized = q.replace(/[%_,]/g, "");
+        const sanitized = q.replace(/[%_,()\\]/g, "").trim();
         if (sanitized.length >= 2) {
           let ilikeQuery = supabase
             .from("products")
@@ -115,7 +125,7 @@ export async function GET(req: NextRequest) {
             .or(`name.ilike.%${sanitized}%,description.ilike.%${sanitized}%`)
             .limit(maxResults);
 
-          if (categoryId) ilikeQuery = ilikeQuery.eq("category_id", categoryId);
+          if (resolvedCategoryId) ilikeQuery = ilikeQuery.eq("category_id", resolvedCategoryId);
           if (minPrice !== null) ilikeQuery = ilikeQuery.gte("price", minPrice);
           if (maxPrice !== null) ilikeQuery = ilikeQuery.lte("price", maxPrice);
 
@@ -135,8 +145,8 @@ export async function GET(req: NextRequest) {
         const price = Number(row.price) || 0;
         const desc = String(row.description || "");
         const title = String(row.name || "");
-        const isGiveaway = price === 0 || desc.includes("[GIVEAWAY]");
         const isTrade = desc.includes("[TRADE") || title.toLowerCase().includes("trade");
+        const isGiveaway = !isTrade && (price === 0 || desc.includes("[GIVEAWAY]"));
         if (listingType === "giveaway") return isGiveaway;
         if (listingType === "trade") return isTrade;
         if (listingType === "sale") return !isGiveaway && !isTrade;
@@ -198,7 +208,8 @@ export async function GET(req: NextRequest) {
 
   // --- 2. Firestore search ---
   const firestorePromise = getFirestoreProducts({
-    categoryId,
+    collegeId,
+    categoryId: resolvedCategoryId ?? categoryId,
     categorySlug,
     categoryName,
     search: q || undefined,
@@ -217,24 +228,40 @@ export async function GET(req: NextRequest) {
   ]);
 
   const seenIds = new Set(supabaseResults.map((r) => r.id));
-  const firestoreMapped: SearchResultItem[] = firestoreResults
-    .filter((p) => !seenIds.has(p.id))
-    .map((p) => ({
-      id: p.id,
-      source: "firestore" as const,
-      name: p.name,
-      description: p.description,
-      price: p.price,
-      item_condition: p.item_condition,
-      quantity: p.quantity,
-      status: p.status,
-      is_featured: p.is_featured,
-      published_at: p.published_at,
-      imageUrl: p.imageUrl,
-      sellerName: p.sellerName,
-      sellerHandle: p.sellerHandle,
-      categoryName: p.categoryName,
-    }));
+  const fsMissing = firestoreResults.filter((p) => !seenIds.has(p.id));
+  const fsPaths = fsMissing
+    .map((p) => p.imageStoragePath)
+    .filter((path): path is string => Boolean(path));
+  const fsUrlByPath = new Map<string, string>();
+  if (fsPaths.length > 0 && isSupabaseConfigured()) {
+    try {
+      const { data: fsSigned } = await supabase.storage
+        .from("product-images")
+        .createSignedUrls(fsPaths, 1800);
+      for (const entry of fsSigned ?? []) {
+        if (entry.path && entry.signedUrl) fsUrlByPath.set(entry.path, entry.signedUrl);
+      }
+    } catch {
+      // keep existing imageUrl if storage signing fails
+    }
+  }
+
+  const firestoreMapped: SearchResultItem[] = fsMissing.map((p) => ({
+    id: p.id,
+    source: "firestore" as const,
+    name: p.name,
+    description: p.description,
+    price: p.price,
+    item_condition: p.item_condition,
+    quantity: p.quantity,
+    status: p.status,
+    is_featured: p.is_featured,
+    published_at: p.published_at,
+    imageUrl: (p.imageStoragePath ? fsUrlByPath.get(p.imageStoragePath) : null) ?? p.imageUrl,
+    sellerName: p.sellerName,
+    sellerHandle: p.sellerHandle,
+    categoryName: p.categoryName,
+  }));
 
   const merged = [...supabaseResults, ...firestoreMapped];
   if (sort === "price_low") {
@@ -245,7 +272,7 @@ export async function GET(req: NextRequest) {
     merged.sort((a, b) => {
       if (a.is_featured && !b.is_featured) return -1;
       if (!a.is_featured && b.is_featured) return 1;
-      return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
+      return (Date.parse(b.published_at) || 0) - (Date.parse(a.published_at) || 0);
     });
   }
 

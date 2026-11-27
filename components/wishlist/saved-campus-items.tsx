@@ -32,6 +32,10 @@ export function SavedCampusItems({
 
   const matched = hydrated ? firestoreProducts.filter((item) => savedIds.includes(item.id)) : [];
 
+  if (!hydrated) {
+    return null;
+  }
+
   if (matched.length === 0) {
     if (hasDbSaved) return null;
     return (

@@ -45,13 +45,19 @@ const currency = new Intl.NumberFormat("en-IN", { style: "currency", currency: "
 
 export default async function OrderDetailsPage({ params, searchParams }: PageProps<"/orders/[orderId]">) {
   const [{ orderId }, paramsData] = await Promise.all([params, searchParams]);
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId)) {
+    notFound();
+  }
   const errorCode = Array.isArray(paramsData.error) ? paramsData.error[0] : paramsData.error;
   const { supabase, userId, profile } = await requireApprovedMember();
   const { data: orderData } = await supabase.from("orders").select("id, buyer_id, seller_id, college_id, pickup_location_id, status, subtotal, commission_amount, total_amount, currency, buyer_confirmed_at, seller_confirmed_at, created_at").eq("id", orderId).maybeSingle();
   if (!orderData) notFound();
   const order = orderData as Order;
   const buyerView = order.buyer_id === userId;
-  if (!buyerView && order.seller_id !== userId && process.env.LOOPEC_DEV_BYPASS_AUTH !== "true") notFound();
+  const isAdmin = ["college_admin", "super_admin"].includes(profile.role);
+  const devBypass =
+    process.env.NODE_ENV === "development" && process.env.LOOPEC_DEV_BYPASS_AUTH === "true";
+  if (!buyerView && order.seller_id !== userId && !isAdmin && !devBypass) notFound();
   const otherId = buyerView ? order.seller_id : order.buyer_id;
   const [{ data: itemData }, { data: paymentData }, personResult, { data: pickupData }, { data: conversationData }, { data: reviewData }] = await Promise.all([
     supabase.from("order_items").select("id, product_name, unit_price, quantity, line_total").eq("order_id", order.id),
@@ -102,10 +108,15 @@ export default async function OrderDetailsPage({ params, searchParams }: PagePro
         </div>
         <div className="mt-6 space-y-4">
           {errorMessage ? <FormNotice>{errorMessage}</FormNotice> : null}
+          {payment?.status === "failed" && payment.review_note ? (
+            <FormNotice>Payment reference was rejected: {payment.review_note}. Please verify your transaction and submit again.</FormNotice>
+          ) : null}
           {paramsData.paid ? <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">⚡ Payment verified successfully! Your order is secured in campus escrow.</p> : null}
           {paramsData.handover_verified ? <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">🎉 Campus handover verified successfully! The order is now completed and payout is released.</p> : null}
+          {paramsData.buyer_confirmed ? <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Receipt confirmed! Share your 4-digit Handover PIN with the seller to finalize the order.</p> : null}
           {paramsData.updated ? <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Order status updated.</p> : null}
           {paramsData.reference_submitted ? <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Payment reference submitted for verification.</p> : null}
+          {paramsData.reviewed ? <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Thank you! Your review has been published to this member&apos;s campus profile.</p> : null}
 
           {/* WhatsApp Direct Contact & UPI Pay Card (When accepted / awaiting payment) */}
           {buyerView && ["accepted", "payment_pending"].includes(order.status) && !isPaid ? (
@@ -235,7 +246,7 @@ export default async function OrderDetailsPage({ params, searchParams }: PagePro
               orderId={order.id}
               buyerView={buyerView}
               status={order.status}
-              handoverPin={getOrderHandoverPin(order.id)}
+              handoverPin={buyerView ? getOrderHandoverPin(order.id) : ""}
               buyerConfirmedAt={order.buyer_confirmed_at}
               sellerConfirmedAt={order.seller_confirmed_at}
               sellerName={buyerView ? person?.full_name : profile.full_name}
@@ -244,15 +255,23 @@ export default async function OrderDetailsPage({ params, searchParams }: PagePro
             />
           ) : null}
 
-          {/* Initial Pending Actions */}
-          {order.status === "pending" ? (
+          {/* Initial Pending / Accepted / Unreferenced Payment Pending Actions */}
+          {(order.status === "pending" || (buyerView && (order.status === "accepted" || (order.status === "payment_pending" && !payment?.provider_payment_id)))) ? (
             <article className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-[#d0c1ab]/50 bg-white/90 p-5 shadow-xs">
               <div>
-                <p className="text-sm font-bold text-[#241e14]">{buyerView ? "Waiting for seller response" : `Order from ${person?.full_name ?? "a member"}`}</p>
-                <p className="mt-1 text-xs text-[#736b60]">{buyerView ? "The seller will accept or decline this request." : "Review the items and then accept or decline the order."}</p>
+                <p className="text-sm font-bold text-[#241e14]">
+                  {order.status === "pending"
+                    ? (buyerView ? "Waiting for seller response" : `Order from ${person?.full_name ?? "a member"}`)
+                    : "Need to change plans before paying?"}
+                </p>
+                <p className="mt-1 text-xs text-[#736b60]">
+                  {order.status === "pending"
+                    ? (buyerView ? "The seller will accept or decline this request." : "Review the items and then accept or decline the order.")
+                    : "You can cancel this order before payment confirmation to release stock back to campus."}
+                </p>
               </div>
               <div className="flex gap-2">
-                {!buyerView ? (
+                {order.status === "pending" && !buyerView ? (
                   <>
                     <form action={updateOrderStatus}>
                       <input type="hidden" name="order_id" value={order.id} />
@@ -270,7 +289,9 @@ export default async function OrderDetailsPage({ params, searchParams }: PagePro
                   <form action={updateOrderStatus}>
                     <input type="hidden" name="order_id" value={order.id} />
                     <input type="hidden" name="next_status" value="cancelled" />
-                    <button className="min-h-10 rounded-full border border-[#d0c1ab] px-4 text-xs font-semibold text-[#5f574d] hover:bg-[#eee9e2]/50" type="submit">Cancel request</button>
+                    <button className="min-h-10 rounded-full border border-[#d0c1ab] px-4 text-xs font-semibold text-[#5f574d] hover:bg-[#eee9e2]/50" type="submit">
+                      {order.status === "pending" ? "Cancel request" : "Cancel order"}
+                    </button>
                   </form>
                 ) : null}
               </div>

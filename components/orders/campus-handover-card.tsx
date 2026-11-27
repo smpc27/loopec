@@ -13,7 +13,7 @@ import {
   Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { verifyCampusHandover } from "@/app/orders/actions";
+import { confirmBuyerHandover, verifyCampusHandover } from "@/app/orders/actions";
 
 type CampusHandoverCardProps = {
   orderId: string;
@@ -45,10 +45,17 @@ export function CampusHandoverCard({
   const isCompleted = status === "completed";
   const isReady = status === "ready_for_pickup";
 
-  const handleCopyPin = () => {
-    navigator.clipboard.writeText(handoverPin);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleCopyPin = async () => {
+    if (!handoverPin) return;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(handoverPin);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard API unavailable in restricted contexts
+    }
   };
 
   if (isCompleted) {
@@ -181,6 +188,24 @@ export function CampusHandoverCard({
                 Meet <strong>{sellerName}</strong> at <strong>{pickupLocationName}</strong>. Inspect the item thoroughly before giving this 4-digit PIN to the seller. Sharing the PIN confirms final handover.
               </p>
             </div>
+
+            {buyerConfirmedAt ? (
+              <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800">
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                <span>You confirmed receipt on campus. Have {sellerName} enter the PIN above to complete the order.</span>
+              </div>
+            ) : (
+              <form action={confirmBuyerHandover} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#d0c1ab]/60 bg-[#eee9e2]/35 p-4">
+                <input type="hidden" name="order_id" value={orderId} />
+                <div className="text-xs text-[#5f574d]">
+                  <p className="font-semibold text-[#241e14]">Already inspected and collected the item?</p>
+                  <p className="mt-0.5 text-[11px] text-[#736b60]">You can record receipt here or share the 4-digit PIN directly with {sellerName}.</p>
+                </div>
+                <Button type="submit" size="sm" variant="secondary" className="border-[#241e14] text-[#241e14] hover:bg-[#eee9e2]">
+                  Confirm Item Received
+                </Button>
+              </form>
+            )}
           </div>
         ) : (
           <div className="space-y-6">

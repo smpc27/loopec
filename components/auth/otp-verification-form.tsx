@@ -49,14 +49,15 @@ export function OtpVerificationForm({ initialEmail }: OtpVerificationFormProps) 
   const [isResending, startResendTransition] = useTransition();
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Timer countdown for resend
+  // Timer countdown for resend (depends only on whether counting is active so interval isn't recreated every second)
+  const isCountingDown = resendCooldown > 0;
   useEffect(() => {
-    if (resendCooldown <= 0) return;
+    if (!isCountingDown) return;
     const interval = setInterval(() => {
-      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+      setResendCooldown((prev) => (prev > 1 ? prev - 1 : 0));
     }, 1000);
     return () => clearInterval(interval);
-  }, [resendCooldown]);
+  }, [isCountingDown]);
 
   // Focus first input on mount
   useEffect(() => {

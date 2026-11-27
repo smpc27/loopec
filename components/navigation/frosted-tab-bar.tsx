@@ -46,6 +46,12 @@ export function FrostedTabBar({
 
   const [mode, setMode] = useState<"auto" | "interactive">(initialMode);
   const [activeTab, setActiveTab] = useState<number>(defaultTab);
+  const activeTabRef = useRef<number>(defaultTab);
+  const prevDefaultTabRef = useRef<number>(defaultTab);
+
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [measuredWidth, setMeasuredWidth] = useState<number>(isBottomBar ? 380 : 470);
@@ -138,18 +144,37 @@ export function FrostedTabBar({
     };
   });
 
-  // Handle route change sync
+  // Sync external defaultTab changes (e.g. /tabbar showcase buttons) without resetting interactive transitions
   useEffect(() => {
-    let nextTab = 0;
+    if (defaultTab === prevDefaultTabRef.current) return;
+    prevDefaultTabRef.current = defaultTab;
+    const prev = activeTabRef.current;
+    if (defaultTab === prev) return;
+    const id = requestAnimationFrame(() => {
+      setActiveTab(defaultTab);
+      animRef.current.userTap = {
+        fromTab: prev,
+        toTab: defaultTab,
+        tapTime: performance.now(),
+      };
+      animRef.current.isSettled = false;
+    });
+    return () => cancelAnimationFrame(id);
+  }, [defaultTab]);
+
+  // Handle route change sync (depends only on pathname/isBottomBar so tab clicks never bounce backward)
+  useEffect(() => {
+    if (!isBottomBar) return;
+    let nextTab = -1;
     if (pathname.startsWith("/marketplace")) nextTab = 0;
     else if (pathname.startsWith("/orders")) nextTab = 1;
     else if (pathname.startsWith("/messages")) nextTab = 2;
     else if (pathname.startsWith("/profile") || pathname.startsWith("/dashboard")) nextTab = 3;
     else return;
 
-    if (nextTab !== activeTab) {
+    if (nextTab !== activeTabRef.current) {
       const id = requestAnimationFrame(() => {
-        const prev = activeTab;
+        const prev = activeTabRef.current;
         setActiveTab(nextTab);
         animRef.current.userTap = {
           fromTab: prev,
@@ -160,7 +185,7 @@ export function FrostedTabBar({
       });
       return () => cancelAnimationFrame(id);
     }
-  }, [pathname, activeTab]);
+  }, [pathname, isBottomBar]);
 
   const handleTabClick = useCallback(
     (index: number) => {
@@ -170,6 +195,7 @@ export function FrostedTabBar({
       if (index === activeTab) return;
 
       const prevTab = activeTab;
+      activeTabRef.current = index;
       setActiveTab(index);
       animRef.current.userTap = {
         fromTab: prevTab,
@@ -187,13 +213,19 @@ export function FrostedTabBar({
     [activeTab, mode, onTabSelect, router, tabs]
   );
 
-  // Animation Loop with Idle Sleep Optimization
+  // Animation Loop with Idle Sleep Optimization & Reduced-Motion / Visibility Support
   useEffect(() => {
-    let frameId: number;
+    let frameId = 0;
+    const reducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     animRef.current.startTime = performance.now();
     animRef.current.isSettled = false;
 
     const loop = (now: number) => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+        return;
+      }
       let fromTab = 0;
       let toTab = 0;
       let dt = 0;
@@ -202,7 +234,7 @@ export function FrostedTabBar({
         const T = ((now - animRef.current.startTime) / 1000) % 12;
         const u = (T + 0.25) % 4;
         const k = Math.floor(u);
-        dt = u - k;
+        dt = reducedMotion ? 2.0 : u - k;
         const SEL = [3, 1, 2, 0];
         toTab = SEL[k];
         fromTab = SEL[(k + 3) % 4];
@@ -211,7 +243,7 @@ export function FrostedTabBar({
         if (animRef.current.userTap) {
           fromTab = animRef.current.userTap.fromTab;
           toTab = animRef.current.userTap.toTab;
-          dt = (now - animRef.current.userTap.tapTime) / 1000;
+          dt = reducedMotion ? 2.0 : (now - animRef.current.userTap.tapTime) / 1000;
         } else {
           fromTab = activeTab;
           toTab = activeTab;
@@ -298,8 +330,19 @@ export function FrostedTabBar({
       frameId = requestAnimationFrame(loop);
     };
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && !animRef.current.isSettled) {
+        cancelAnimationFrame(frameId);
+        frameId = requestAnimationFrame(loop);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     frameId = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(frameId);
+    return () => {
+      cancelAnimationFrame(frameId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [mode, activeTab, tabPositions, pillBaseWidth, pillBaseHeight, pillCenterY, measuredWidth, isBottomBar]);
 
   // =========================================================================

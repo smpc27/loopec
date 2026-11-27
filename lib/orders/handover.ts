@@ -18,10 +18,16 @@ export function getOrderHandoverPin(orderId: string): string {
 }
 
 /**
- * Validates the buyer's handover PIN submitted by the seller.
+ * Validates the buyer's handover PIN submitted by the seller using constant-time comparison.
  */
 export function verifyHandoverPin(orderId: string, enteredPin: string): boolean {
   if (!orderId || !enteredPin) return false;
   const expected = getOrderHandoverPin(orderId);
-  return expected === enteredPin.trim();
+  const candidate = enteredPin.trim();
+  const expectedBuf = Buffer.from(expected, "utf8");
+  const candidateBuf = Buffer.from(candidate, "utf8");
+  if (expectedBuf.length !== candidateBuf.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(expectedBuf, candidateBuf);
 }

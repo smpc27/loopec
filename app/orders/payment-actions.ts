@@ -23,14 +23,19 @@ const paymentPayloadSchema = z.object({
  * Verifies and completes the payment (campus sandbox or direct UPI).
  */
 export async function completeOrderPayment(formData: FormData) {
+  const rawOrderId = formData.get("order_id");
   const parsed = paymentPayloadSchema.safeParse({
-    orderId: formData.get("order_id"),
+    orderId: rawOrderId,
     provider: formData.get("provider"),
     paymentId: formData.get("payment_id"),
     orderReference: formData.get("order_reference") || undefined,
   });
 
   if (!parsed.success) {
+    const validOrderId = z.string().uuid().safeParse(rawOrderId);
+    if (validOrderId.success) {
+      redirect(`/orders/${validOrderId.data}?error=payment_payload`);
+    }
     redirect("/orders?error=payment_payload");
   }
 
@@ -44,8 +49,11 @@ export async function completeOrderPayment(formData: FormData) {
     .eq("id", orderId)
     .maybeSingle();
 
-  if (order && order.buyer_id !== userId && process.env.LOOPEC_DEV_BYPASS_AUTH !== "true") {
-    redirect(`/orders/${orderId}?error=unauthorized`);
+  const isDevBypass =
+    process.env.NODE_ENV === "development" && process.env.LOOPEC_DEV_BYPASS_AUTH === "true";
+
+  if (!order || (order.buyer_id !== userId && !isDevBypass)) {
+    redirect(order ? `/orders/${orderId}?error=unauthorized` : "/orders?error=unauthorized");
   }
 
   const result = await confirmOrderPaymentInDb(supabase, {

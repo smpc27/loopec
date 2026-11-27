@@ -57,28 +57,38 @@ export function SiteHeader({
       return shouldOpen ? pathname : null;
     });
   }, [pathname]);
-  const [alertsCount, setAlertsCount] = useState(unreadAlertsCount);
-  const [messagesCount, setMessagesCount] = useState(unreadMessagesCount);
+  const [apiBadges, setApiBadges] = useState<{
+    forKey: string;
+    alerts: number;
+    messages: number;
+  } | null>(null);
+  const badgeKey = `${profile?.id ?? "anon"}:${pathname}:${unreadAlertsCount}:${unreadMessagesCount}`;
+  const alertsCount = apiBadges?.forKey === badgeKey ? apiBadges.alerts : unreadAlertsCount;
+  const messagesCount = apiBadges?.forKey === badgeKey ? apiBadges.messages : unreadMessagesCount;
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Background fetch of unread badges so page rendering is never blocked
   useEffect(() => {
-    if (!profile) return;
+    const profileId = profile?.id;
+    if (!profileId) return;
     let isMounted = true;
-    fetch("/api/badges")
+    fetch("/api/badges", { cache: "no-store" })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (!isMounted || !data) return;
-        if (typeof data.unreadAlerts === "number") setAlertsCount(data.unreadAlerts);
-        if (typeof data.unreadMessages === "number") setMessagesCount(data.unreadMessages);
+        setApiBadges({
+          forKey: badgeKey,
+          alerts: typeof data.unreadAlerts === "number" ? data.unreadAlerts : unreadAlertsCount,
+          messages: typeof data.unreadMessages === "number" ? data.unreadMessages : unreadMessagesCount,
+        });
       })
       .catch(() => {});
     return () => {
       isMounted = false;
     };
-  }, [profile, pathname]);
+  }, [profile?.id, badgeKey, unreadAlertsCount, unreadMessagesCount]);
 
-  // Close mobile menu on Escape key press or outside click
+  // Close mobile menu on Escape key press, outside click, or desktop resize
   useEffect(() => {
     if (!mobileMenuOpen) return;
 
@@ -94,8 +104,15 @@ export function SiteHeader({
       }
     }
 
+    function handleResize() {
+      if (window.innerWidth >= 1024) {
+        setMobileMenuOpen(false);
+      }
+    }
+
     document.addEventListener("keydown", handleKeyDown);
     document.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("resize", handleResize);
 
     // Prevent body scroll when mobile menu is open
     document.body.style.overflow = "hidden";
@@ -103,6 +120,7 @@ export function SiteHeader({
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
       document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("resize", handleResize);
       document.body.style.overflow = "";
     };
   }, [mobileMenuOpen, setMobileMenuOpen]);
@@ -272,7 +290,7 @@ export function SiteHeader({
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 top-[calc(56px+env(safe-area-inset-top,0px))] sm:top-[calc(64px+env(safe-area-inset-top,0px))] z-40 bg-black/30 backdrop-blur-sm lg:hidden transition-opacity animate-in fade-in"
+            className="fixed inset-0 top-[calc(60px+env(safe-area-inset-top,0px))] sm:top-[calc(64px+env(safe-area-inset-top,0px))] z-40 bg-black/30 backdrop-blur-sm lg:hidden transition-opacity animate-in fade-in"
             aria-hidden="true"
             onClick={() => setMobileMenuOpen(false)}
           />
@@ -280,7 +298,7 @@ export function SiteHeader({
           {/* Drawer Menu Container */}
           <div
             ref={menuRef}
-            className="fixed inset-x-0 top-[calc(56px+env(safe-area-inset-top,0px))] sm:top-[calc(64px+env(safe-area-inset-top,0px))] z-50 max-h-[calc(100vh-80px)] overflow-y-auto border-b border-[#d0c1ab] bg-white/95 p-5 backdrop-blur-2xl shadow-2xl lg:hidden animate-in slide-in-from-top-4 duration-200"
+            className="fixed inset-x-0 top-[calc(60px+env(safe-area-inset-top,0px))] sm:top-[calc(64px+env(safe-area-inset-top,0px))] z-50 max-h-[calc(100vh-80px)] overflow-y-auto border-b border-[#d0c1ab] bg-white/95 p-5 backdrop-blur-2xl shadow-2xl lg:hidden animate-in slide-in-from-top-4 duration-200"
           >
             {/* Header / Member identity banner */}
             {isAuthenticated ? (

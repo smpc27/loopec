@@ -3,16 +3,33 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 
 function safeNext(value: string | null) {
-  return value && value.startsWith("/") && !value.startsWith("//") && !value.startsWith("/\\")
-    ? value
-    : "/marketplace";
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) {
+    return "/marketplace";
+  }
+  if (/["'<>\\]/.test(value)) return "/marketplace";
+  if (value.startsWith("/auth/session-sync") || value.startsWith("/auth/callback")) {
+    return "/marketplace";
+  }
+  return value;
 }
 
 function getTargetOrigin(request: NextRequest) {
-  const forwardedHost = request.headers.get("x-forwarded-host");
-  const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
-  if (forwardedHost) {
-    return `${forwardedProto}://${forwardedHost}`;
+  const rawForwardedHost = request.headers.get("x-forwarded-host");
+  const rawForwardedProto = request.headers.get("x-forwarded-proto");
+  const proto = rawForwardedProto?.split(",")[0]?.trim() === "http" ? "http" : "https";
+  if (rawForwardedHost) {
+    const clean = rawForwardedHost.split(",")[0].trim().toLowerCase();
+    if (
+      /^[a-z0-9.-]+(?::\d+)?$/.test(clean) &&
+      (clean === request.nextUrl.host.toLowerCase() ||
+        clean === "loopec.in" ||
+        clean === "www.loopec.in" ||
+        clean.endsWith(".vercel.app") ||
+        clean.startsWith("localhost:") ||
+        clean === "localhost")
+    ) {
+      return `${proto}://${clean}`;
+    }
   }
   return request.nextUrl.origin;
 }
@@ -32,6 +49,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/auth/sign-in?error=invalid_token", targetOrigin));
   }
 
+  let hasValidUser = false;
   try {
     const supabase = await createClient();
 
@@ -43,32 +61,23 @@ export async function GET(request: NextRequest) {
 
       if (error || !data.session) {
         console.warn("LOOPEC_SESSION_SYNC_SET_WARNING:", error?.message);
-        // Fallback to refreshSession with the refresh token
-        const { error: refreshError } = await supabase.auth.refreshSession({
-          refresh_token: token,
-        });
-        if (refreshError) {
-          console.error("LOOPEC_SESSION_SYNC_REFRESH_ERROR:", refreshError);
-        }
+        await supabase.auth.refreshSession({ refresh_token: token }).catch(() => {});
       }
     } else if (token) {
-      const { error: refreshError } = await supabase.auth.refreshSession({
-        refresh_token: token,
-      });
-      if (refreshError) {
-        console.error("LOOPEC_SESSION_SYNC_REFRESH_ERROR:", refreshError);
-      }
+      await supabase.auth.refreshSession({ refresh_token: token }).catch(() => {});
     }
 
-    // Verify session
     const { data: userData } = await supabase.auth.getUser();
-    if (!userData?.user) {
-      console.warn("LOOPEC_SESSION_SYNC_USER_CHECK_FAILED");
-    }
+    hasValidUser = Boolean(userData?.user);
   } catch (err) {
     console.error("LOOPEC_SESSION_SYNC_FATAL:", err);
   }
 
-  // Redirect to target path (e.g. /marketplace) with authenticated cookies set in WebView!
+  if (!hasValidUser) {
+    return NextResponse.redirect(
+      new URL(`/auth/sign-in?next=${encodeURIComponent(nextParam)}&error=session`, targetOrigin)
+    );
+  }
+
   return NextResponse.redirect(new URL(nextParam, targetOrigin));
 }

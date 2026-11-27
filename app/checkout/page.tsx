@@ -26,6 +26,18 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/checkou
     profile.college_id ? supabase.from("pickup_locations").select("id, name, address, instructions").eq("college_id", profile.college_id).eq("is_active", true).order("sort_order") : Promise.resolve({ data: [] }),
   ]);
   let lines = (cartData ?? []) as CartLine[];
+  if (quickProductId && !isUuid(quickProductId)) {
+    return (
+      <AuthShell
+        eyebrow="Checkout"
+        title="Item unavailable for instant checkout"
+        description="This listing link is either a preview item or no longer active in your campus catalog."
+        footer={<Link className="font-semibold text-[#241e14] underline underline-offset-4 hover:text-[#8e7a63]" href="/marketplace">Back to marketplace</Link>}
+      >
+        <Link className="inline-flex min-h-11 items-center rounded-full bg-[#241e14] hover:bg-[#382f20] px-5 text-sm font-semibold text-white transition" href="/marketplace">Browse verified listings</Link>
+      </AuthShell>
+    );
+  }
   const buyNowProductId = quickProductId && isUuid(quickProductId) ? quickProductId : null;
   if (buyNowProductId) lines = [{ product_id: buyNowProductId, quantity: 1 }];
   if (!lines.length) return <AuthShell eyebrow="Checkout" title="Your cart is empty" description="Add a listing before you begin checkout." footer={<Link className="font-semibold text-[#241e14] underline underline-offset-4 hover:text-[#8e7a63]" href="/marketplace">Back to marketplace</Link>}><Link className="inline-flex min-h-11 items-center rounded-full bg-[#241e14] hover:bg-[#382f20] px-5 text-sm font-semibold text-white transition" href="/cart">View your cart</Link></AuthShell>;
@@ -71,6 +83,12 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/checkou
       address: "Hostel Zone, NIT Calicut Campus",
       instructions: "Meet at the security checkpoint gate.",
     },
+    {
+      id: "35b88dad-65f3-4cd6-b44d-c7d2fda7711f",
+      name: "Ladies Hostel (LH) Gate",
+      address: "Ladies Hostel Complex, NIT Calicut Campus",
+      instructions: "Meet at visitor reception area.",
+    },
   ];
   const pickupPoints = ((pickupData ?? []) as Pickup[]).length > 0
     ? ((pickupData ?? []) as Pickup[])
@@ -110,7 +128,7 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/checkou
             <div className="mt-4 flex gap-3 rounded-2xl bg-emerald-50/80 p-4 border border-emerald-200">
               <MessageCircle className="mt-0.5 shrink-0 text-emerald-700" size={18} />
               <p className="text-xs leading-5 text-emerald-950">
-                <b>Direct WhatsApp & UPI Pay.</b> Connect with the seller directly on WhatsApp, pay via GPay, PhonePe, or Cash on campus pickup. Zero payment gateway fees!
+                <b>Direct WhatsApp & UPI Pay.</b> Connect with the seller directly on WhatsApp, pay via GPay, PhonePe, or Cash on campus pickup with 0% payment gateway fee.
               </p>
             </div>
             

@@ -6,27 +6,60 @@ import { createStorageAdminClient } from "@/lib/supabase/admin";
 import { NITC_COLLEGE_ID } from "@/lib/auth/member";
 
 function safeNext(value: string | null) {
-  return value && value.startsWith("/") && !value.startsWith("//") && !value.startsWith("/\\")
-    ? value
-    : "/marketplace";
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) {
+    return "/marketplace";
+  }
+  if (/["'<>\\]/.test(value)) return "/marketplace";
+  if (value.startsWith("/auth/callback") || value.startsWith("/auth/session-sync")) {
+    return "/marketplace";
+  }
+  return value;
+}
+
+function isAllowedHost(host: string, requestHost: string) {
+  const clean = host.split(",")[0].trim().toLowerCase();
+  if (!clean || !/^[a-z0-9.-]+(?::\d+)?$/.test(clean)) return null;
+  if (clean === requestHost.toLowerCase()) return clean;
+  if (
+    clean === "loopec.in" ||
+    clean === "www.loopec.in" ||
+    clean.endsWith(".vercel.app") ||
+    clean.startsWith("localhost:") ||
+    clean === "localhost"
+  ) {
+    return clean;
+  }
+  return null;
 }
 
 function getTargetOrigin(request: NextRequest) {
-  const forwardedHost = request.headers.get("x-forwarded-host");
-  const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
-  if (forwardedHost) {
-    return `${forwardedProto}://${forwardedHost}`;
+  const rawForwardedHost = request.headers.get("x-forwarded-host");
+  const rawForwardedProto = request.headers.get("x-forwarded-proto");
+  const proto = rawForwardedProto?.split(",")[0]?.trim() === "http" ? "http" : "https";
+  if (rawForwardedHost) {
+    const validHost = isAllowedHost(rawForwardedHost, request.nextUrl.host);
+    if (validHost) {
+      return `${proto}://${validHost}`;
+    }
   }
   return request.nextUrl.origin;
+}
+
+function escapeHtmlAttr(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 export async function GET(request: NextRequest) {
   const targetOrigin = getTargetOrigin(request);
   if (!isSupabaseConfigured()) return NextResponse.redirect(new URL("/setup", targetOrigin));
-  
+
   const { searchParams } = request.nextUrl;
 
-  // Handle any OAuth provider errors gracefully
   const oauthError = searchParams.get("error");
   if (oauthError) {
     console.error("LOOPEC_OAUTH_CALLBACK_ERROR:", oauthError, searchParams.get("error_description"));
@@ -40,14 +73,12 @@ export async function GET(request: NextRequest) {
   const supabase = await createClient();
   let authSession: Session | null = null;
 
-  // Exchange auth code or verify email confirmation token_hash
   if (code) {
     const { data: exchangeData, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error && exchangeData?.session) {
       authSession = exchangeData.session;
     } else if (error) {
       console.warn("LOOPEC_EXCHANGE_CODE_NOTE:", error.message);
-      // If code was already consumed or has expired, check if session is already active
       const { data: sessionData } = await supabase.auth.getSession();
       authSession = sessionData?.session ?? null;
       if (!authSession) {
@@ -73,7 +104,6 @@ export async function GET(request: NextRequest) {
       }
     }
   } else {
-    // Neither code nor token_hash: check if already signed in
     const { data: sessionData } = await supabase.auth.getSession();
     authSession = sessionData?.session ?? null;
     if (!authSession) {
@@ -84,63 +114,92 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Ensure member profile exists with approved instant access
   try {
     const { data: userData } = await supabase.auth.getUser();
     const user = userData?.user;
     if (user) {
       const email = (user.email ?? "").toLowerCase().trim();
-      const isDevAdmin = email.includes("smsandep27") || email.includes("admin") || process.env.NODE_ENV === "development";
+      const emailDomain = email.split("@").at(-1)?.toLowerCase() ?? "";
       const userId = user.id;
-      const fullName = String(user.user_metadata?.full_name || user.user_metadata?.name || email.split("@")[0] || "Campus Member").trim();
+      const fullName = String(
+        user.user_metadata?.full_name || user.user_metadata?.name || email.split("@")[0] || "Campus Member"
+      ).trim();
       const handle = `member-${userId.replace(/-/g, "").slice(0, 12)}`;
 
-      // Use admin client if available to bypass RLS, fallback to user client
       const adminClient = createStorageAdminClient();
       const db = adminClient || supabase;
 
-      const { data: existingProfile } = await db.from("profiles").select("id, verification_status").eq("id", userId).maybeSingle();
+      const [{ data: existingProfile }, { data: colleges }] = await Promise.all([
+        db
+          .from("profiles")
+          .select("id, verification_status, suspended_at, college_id")
+          .eq("id", userId)
+          .maybeSingle(),
+        db.from("colleges").select("id, email_domains").eq("is_active", true),
+      ]);
+
+      if (existingProfile?.suspended_at || existingProfile?.verification_status === "suspended") {
+        return NextResponse.redirect(new URL("/auth/suspended", targetOrigin));
+      }
+
+      const matchedCollege = (colleges ?? []).find((college) =>
+        ((college.email_domains as string[] | null) ?? []).some(
+          (d) => d.trim().toLowerCase() === emailDomain
+        )
+      );
+
+      if (!matchedCollege && existingProfile?.verification_status !== "approved") {
+        await supabase.auth.signOut().catch(() => {});
+        return NextResponse.redirect(new URL("/auth/sign-in?error=domain", targetOrigin));
+      }
+
+      const targetCollegeId = matchedCollege?.id || existingProfile?.college_id || NITC_COLLEGE_ID;
+
       if (!existingProfile) {
         await db.from("profiles").upsert(
           {
             id: userId,
             full_name: fullName.slice(0, 120),
             handle,
-            college_id: NITC_COLLEGE_ID,
-            role: isDevAdmin ? "super_admin" : "student",
+            college_id: targetCollegeId,
+            role: "student",
             verification_status: "approved",
           },
           { onConflict: "id" }
         );
-      } else if (existingProfile.verification_status !== "approved") {
-        await db.from("profiles").update({ verification_status: "approved", college_id: NITC_COLLEGE_ID }).eq("id", userId);
+      } else if (
+        existingProfile.verification_status !== "approved" &&
+        existingProfile.verification_status !== "rejected"
+      ) {
+        await db
+          .from("profiles")
+          .update({ verification_status: "approved", college_id: targetCollegeId })
+          .eq("id", userId);
       }
     }
   } catch (profileError) {
     console.warn("LOOPEC_PROFILE_PROVISION_NOTE:", profileError);
-    // Non-fatal: session is active, getCurrentMember provides fallback
   }
 
   const nextParam = safeNext(searchParams.get("next"));
   const source = searchParams.get("source");
   const userAgent = request.headers.get("user-agent") || "";
   const isFromAppWebView = userAgent.includes("LOOPEC-App");
-  const isMobileBrowser = /android|iphone|ipad|ipod/i.test(userAgent) || source === "app";
 
-  // If request is already executing directly inside the LOOPEC App WebView, redirect internally
+  // Only hand off via custom-scheme/Intent when OAuth was initiated by the native Capacitor shell
   if (isFromAppWebView) {
     return NextResponse.redirect(new URL(nextParam, targetOrigin));
   }
 
-  // If authenticated via mobile external browser (e.g. Chrome launched for Google SSO), hand off to LOOPEC Mobile App
-  if (isMobileBrowser && authSession?.refresh_token) {
+  if (source === "app" && authSession?.refresh_token) {
     const refreshToken = authSession.refresh_token;
     const accessToken = authSession.access_token || "";
-    const syncQuery = `token=${encodeURIComponent(refreshToken)}&access_token=${encodeURIComponent(accessToken)}&next=${encodeURIComponent(nextParam)}`;
+    const syncQuery = `token=${encodeURIComponent(refreshToken)}&access_token=${encodeURIComponent(
+      accessToken
+    )}&next=${encodeURIComponent(nextParam)}`;
 
-    // Host for intent: canonical Vercel production domain or custom domain
-    const host = request.headers.get("x-forwarded-host") || request.nextUrl.host || "loopec-2w2s.vercel.app";
-    const intentUrl = `intent://${host}/auth/session-sync?${syncQuery}#Intent;scheme=https;package=com.loopec.campus;end`;
+    const targetHost = new URL(targetOrigin).host;
+    const intentUrl = `intent://${targetHost}/auth/session-sync?${syncQuery}#Intent;scheme=https;package=com.loopec.campus;end`;
     const customUrl = `loopec://auth/session-sync?${syncQuery}`;
 
     const html = `<!DOCTYPE html>
@@ -194,46 +253,15 @@ export async function GET(request: NextRequest) {
       margin: 16px auto;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    h1 {
-      font-size: 22px;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      color: #241e14;
-      margin-bottom: 8px;
-    }
-    p {
-      font-size: 14px;
-      color: #736b60;
-      line-height: 1.5;
-      margin-bottom: 24px;
-    }
+    h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; color: #241e14; margin-bottom: 8px; }
+    p { font-size: 14px; color: #736b60; line-height: 1.5; margin-bottom: 24px; }
     .btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      min-height: 52px;
-      background-color: #241e14;
-      color: #ffffff !important;
-      font-size: 15px;
-      font-weight: 700;
-      border-radius: 16px;
-      text-decoration: none;
-      box-shadow: 0 4px 14px rgba(36, 30, 20, 0.2);
-      transition: transform 0.15s ease, background-color 0.15s ease;
-      margin-bottom: 16px;
+      display: flex; align-items: center; justify-content: center;
+      width: 100%; min-height: 52px; background-color: #241e14; color: #ffffff !important;
+      font-size: 15px; font-weight: 700; border-radius: 16px; text-decoration: none;
+      box-shadow: 0 4px 14px rgba(36, 30, 20, 0.2); margin-bottom: 16px;
     }
-    .btn:active {
-      transform: scale(0.98);
-      background-color: #000000;
-    }
-    .sublink {
-      font-size: 13px;
-      color: #8e7a63;
-      text-decoration: underline;
-      display: inline-block;
-      padding: 6px;
-    }
+    .sublink { font-size: 13px; color: #8e7a63; text-decoration: underline; display: inline-block; padding: 6px; }
   </style>
 </head>
 <body>
@@ -242,9 +270,9 @@ export async function GET(request: NextRequest) {
     <h1>Opening LOOPEC App...</h1>
     <div class="spinner"></div>
     <p>Sign-in complete! Returning you directly to the LOOPEC Mobile App.</p>
-    <a href="${intentUrl}" id="app-btn" class="btn">Open LOOPEC App</a>
+    <a href="${escapeHtmlAttr(intentUrl)}" id="app-btn" class="btn">Open LOOPEC App</a>
     <div>
-      <a href="${nextParam}" class="sublink">Continue in browser instead</a>
+      <a href="${escapeHtmlAttr(nextParam)}" class="sublink">Continue in browser instead</a>
     </div>
   </div>
   <script>
@@ -252,8 +280,6 @@ export async function GET(request: NextRequest) {
       var intentUrl = ${JSON.stringify(intentUrl)};
       var customUrl = ${JSON.stringify(customUrl)};
       var isAndroid = /android/i.test(navigator.userAgent);
-      
-      // Auto-trigger native app launch
       if (isAndroid) {
         window.location.href = intentUrl;
         setTimeout(function() {
@@ -271,10 +297,10 @@ export async function GET(request: NextRequest) {
       status: 200,
       headers: {
         "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-store",
       },
     });
   }
 
-  // Pure desktop browser redirect
   return NextResponse.redirect(new URL(nextParam, targetOrigin));
 }

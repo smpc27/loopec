@@ -153,48 +153,83 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
   const submitted = Boolean(first(params.submitted));
   const previewMode = process.env.NODE_ENV === "development" && process.env.LOOPEC_DEV_BYPASS_AUTH === "true";
   const { supabase, userId, profile } = await requireApprovedMember();
-
-  let query = supabase
-    .from("products")
-    .select("id, seller_id, category_id, name, description, price, item_condition, quantity, is_featured, published_at")
-    .eq("status", "approved")
-    .eq("college_id", profile.college_id ?? "00000000-0000-0000-0000-000000000000")
-    .gt("quantity", 0)
-    .limit(60);
-  if (search) query = query.textSearch("search_vector", search, { type: "plain", config: "simple" });
-  if (categoryId) query = query.eq("category_id", categoryId);
-  if (minPrice !== null) query = query.gte("price", minPrice);
-  if (maxPrice !== null) query = query.lte("price", maxPrice);
-  if (sort === "price_low") {
-    query = query.order("price", { ascending: true }).order("is_featured", { ascending: false });
-  } else if (sort === "price_high") {
-    query = query.order("price", { ascending: false }).order("is_featured", { ascending: false });
-  } else {
-    query = query.order("is_featured", { ascending: false }).order("published_at", { ascending: false, nullsFirst: false });
-  }
+  const isUuidCategory = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(categoryId);
 
   const [
     { data: categoriesData },
     { data: pickupData },
     { count: unreadCount },
-    productResult,
   ] = await Promise.all([
     previewMode ? Promise.resolve({ data: previewCategories }) : supabase.from("categories").select("id, name, slug").eq("is_active", true).order("sort_order"),
     previewMode ? Promise.resolve({ data: [{ name: "NIT Calicut" }] }) : profile.college_id
       ? supabase.from("pickup_locations").select("id, name").eq("college_id", profile.college_id).eq("is_active", true).order("sort_order").limit(1)
       : Promise.resolve({ data: [] }),
     previewMode ? Promise.resolve({ count: 0 }) : supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", userId).is("read_at", null),
-    previewMode
-      ? Promise.resolve({ data: filterPreviewProducts({ search, categoryId, minPrice, maxPrice, sort, categories: previewCategories, listingType }), error: null })
-      : query,
   ]);
   const categories = (categoriesData ?? []) as Category[];
-  const selectedCategory = categories.find((category) => category.id === categoryId);
+  const selectedCategory = categories.find((category) => category.id === categoryId || category.slug === categoryId);
+  const resolvedCategoryId = isUuidCategory ? categoryId : selectedCategory?.id ?? "";
+
+  let productResult: { data: ProductRow[] | null; error: { message: string; code?: string } | null };
+  if (previewMode) {
+    productResult = {
+      data: filterPreviewProducts({ search, categoryId: resolvedCategoryId || categoryId, minPrice, maxPrice, sort, categories: previewCategories, listingType }) as unknown as ProductRow[],
+      error: null,
+    };
+  } else if (categoryId && !resolvedCategoryId) {
+    productResult = { data: [], error: null };
+  } else {
+    let query = supabase
+      .from("products")
+      .select("id, seller_id, category_id, name, description, price, item_condition, quantity, is_featured, published_at")
+      .eq("status", "approved")
+      .eq("college_id", profile.college_id ?? "00000000-0000-0000-0000-000000000000")
+      .gt("quantity", 0)
+      .limit(60);
+    if (search) query = query.textSearch("search_vector", search, { type: "plain", config: "simple" });
+    if (resolvedCategoryId) query = query.eq("category_id", resolvedCategoryId);
+    if (minPrice !== null) query = query.gte("price", minPrice);
+    if (maxPrice !== null) query = query.lte("price", maxPrice);
+    if (sort === "price_low") {
+      query = query.order("price", { ascending: true }).order("is_featured", { ascending: false });
+    } else if (sort === "price_high") {
+      query = query.order("price", { ascending: false }).order("is_featured", { ascending: false });
+    } else {
+      query = query.order("is_featured", { ascending: false }).order("published_at", { ascending: false, nullsFirst: false });
+    }
+    productResult = await query;
+
+    // Partial-word substring fallback matching /api/search behavior
+    if (!productResult.error && (!productResult.data || productResult.data.length === 0) && search.length >= 2) {
+      const sanitized = search.replace(/[%_,()\\]/g, "").trim();
+      if (sanitized.length >= 2) {
+        let ilikeQuery = supabase
+          .from("products")
+          .select("id, seller_id, category_id, name, description, price, item_condition, quantity, is_featured, published_at")
+          .eq("status", "approved")
+          .eq("college_id", profile.college_id ?? "00000000-0000-0000-0000-000000000000")
+          .gt("quantity", 0)
+          .or(`name.ilike.%${sanitized}%,description.ilike.%${sanitized}%`)
+          .limit(60);
+        if (resolvedCategoryId) ilikeQuery = ilikeQuery.eq("category_id", resolvedCategoryId);
+        if (minPrice !== null) ilikeQuery = ilikeQuery.gte("price", minPrice);
+        if (maxPrice !== null) ilikeQuery = ilikeQuery.lte("price", maxPrice);
+        if (sort === "price_low") {
+          ilikeQuery = ilikeQuery.order("price", { ascending: true }).order("is_featured", { ascending: false });
+        } else if (sort === "price_high") {
+          ilikeQuery = ilikeQuery.order("price", { ascending: false }).order("is_featured", { ascending: false });
+        } else {
+          ilikeQuery = ilikeQuery.order("is_featured", { ascending: false }).order("published_at", { ascending: false, nullsFirst: false });
+        }
+        productResult = await ilikeQuery;
+      }
+    }
+  }
   const { data: productData, error: productsError } = productResult;
   const rawProducts = (productData ?? []) as ProductRow[];
   const products = rawProducts.filter((p) => {
-    const isGiveaway = Number(p.price) === 0 || p.description?.includes("[GIVEAWAY]");
     const isTrade = p.description?.includes("[TRADE") || p.name.toLowerCase().includes("trade");
+    const isGiveaway = !isTrade && (Number(p.price) === 0 || p.description?.includes("[GIVEAWAY]"));
     if (listingType === "giveaway") return isGiveaway;
     if (listingType === "trade") return isTrade;
     if (listingType === "sale") return !isGiveaway && !isTrade;
@@ -233,8 +268,9 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
   // Merge Google Firestore campus listings & normalize category filters
   try {
     const firestoreProducts = await getFirestoreProducts({
-      categoryId,
-      categorySlug: selectedCategory?.slug,
+      collegeId: profile.college_id ?? undefined,
+      categoryId: resolvedCategoryId || categoryId,
+      categorySlug: selectedCategory?.slug ?? (!isUuidCategory && categoryId ? categoryId : undefined),
       categoryName: selectedCategory?.name,
       search,
       minPrice,
@@ -245,23 +281,15 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
 
     const existingCardIds = new Set(cards.map((c) => c.id));
     const firestoreStoragePaths = firestoreProducts
-      .filter((fp) => !existingCardIds.has(fp.id) && !fp.imageUrl && fp.imageStoragePath)
-      .map((fp) => fp.imageStoragePath!)
-      .filter((p) => !imageUrls.has(p));
+      .filter((fp) => !existingCardIds.has(fp.id) && fp.imageStoragePath)
+      .map((fp) => fp.imageStoragePath!);
 
-    if (firestoreStoragePaths.length > 0) {
-      const { data: fsSigned } = await supabase.storage
-        .from("product-images")
-        .createSignedUrls(firestoreStoragePaths, 3600);
-      for (const s of fsSigned ?? []) {
-        if (s.path && s.signedUrl) imageUrls.set(s.path, s.signedUrl);
-      }
-    }
+    const fsImageUrls = await resolveProductImageUrls(supabase, firestoreStoragePaths);
 
     for (const fp of firestoreProducts) {
       if (!existingCardIds.has(fp.id)) {
         const resolvedUrl =
-          fp.imageUrl ?? (fp.imageStoragePath ? imageUrls.get(fp.imageStoragePath) ?? null : null);
+          (fp.imageStoragePath ? fsImageUrls.get(fp.imageStoragePath) ?? null : null) ?? fp.imageUrl;
         cards.push({
           id: fp.id,
           seller_id: fp.seller_id,

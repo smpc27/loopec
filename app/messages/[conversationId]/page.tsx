@@ -19,6 +19,9 @@ type Message = { id: string; sender_id: string; body: string; read_at: string | 
 
 export default async function ConversationPage({ params, searchParams }: PageProps<"/messages/[conversationId]">) {
   const [{ conversationId }, search] = await Promise.all([params, searchParams]);
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(conversationId)) {
+    notFound();
+  }
   const { supabase, userId, profile } = await requireApprovedMember();
   const { data: conversationData } = await supabase
     .from("conversations")

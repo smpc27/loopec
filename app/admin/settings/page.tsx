@@ -3,7 +3,7 @@ import { ArrowLeft, SlidersHorizontal } from "lucide-react";
 import { AuthShell, FormNotice } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { authMessage } from "@/lib/auth/messages";
-import { getCurrentMember } from "@/lib/auth/member";
+import { getCurrentMember, isAdminProfile } from "@/lib/auth/member";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { AdminHeader } from "@/components/admin/admin-header";
 import { addCategory, toggleCategory, updateCommission } from "@/app/admin/actions";
@@ -17,7 +17,7 @@ export default async function AdminSettingsPage({ searchParams }: PageProps<"/ad
   const errorCode = Array.isArray(params.error) ? params.error[0] : params.error;
   if (!isSupabaseConfigured()) return <AuthShell eyebrow="Platform settings" title="Pilot setup is incomplete" description="Platform configuration will be available when the pilot database is connected."><Link href="/setup" className="font-semibold text-violet-800">View setup details</Link></AuthShell>;
   const admin = await getCurrentMember();
-  if (!admin.userId || !admin.profile || admin.profile.role !== "super_admin" || admin.profile.suspended_at) {
+  if (!admin.userId || !isAdminProfile(admin.profile) || admin.profile!.role !== "super_admin") {
     return <AuthShell eyebrow="Restricted area" title="Super admin access only" description="Global categories and commission settings are limited to the super administrator."><Link href="/admin" className="font-semibold text-violet-800">Return to admin</Link></AuthShell>;
   }
   const [{ data: settingData }, { data: categoryData }] = await Promise.all([

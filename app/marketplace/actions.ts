@@ -24,15 +24,19 @@ export async function toggleWishlist(formData: FormData) {
     .maybeSingle();
 
   if (existing) {
-    await supabase.from("wishlists").delete().eq("user_id", userId).eq("product_id", productId.data);
+    const { error } = await supabase.from("wishlists").delete().eq("user_id", userId).eq("product_id", productId.data);
+    if (error) redirect(`${returnTo}?error=invalid`);
   } else {
-    await supabase.from("wishlists").insert({ user_id: userId, product_id: productId.data });
+    const { error } = await supabase.from("wishlists").insert({ user_id: userId, product_id: productId.data });
+    if (error) redirect(`${returnTo}?error=invalid`);
   }
+  revalidatePath("/wishlist");
+  revalidatePath("/marketplace");
   redirect(returnTo);
 }
 
 export async function toggleWishlistDirect(productId: string) {
-  const parsed = z.uuid().safeParse(productId);
+  const parsed = z.string().uuid().safeParse(productId);
   if (!parsed.success) return { success: false, saved: false };
   const { supabase, userId } = await requireApprovedMember();
   const { data: existing } = await supabase
@@ -43,11 +47,13 @@ export async function toggleWishlistDirect(productId: string) {
     .maybeSingle();
 
   if (existing) {
-    await supabase.from("wishlists").delete().eq("user_id", userId).eq("product_id", parsed.data);
+    const { error } = await supabase.from("wishlists").delete().eq("user_id", userId).eq("product_id", parsed.data);
+    if (error) return { success: false, saved: true };
     revalidatePath("/wishlist");
     return { success: true, saved: false };
   } else {
-    await supabase.from("wishlists").insert({ user_id: userId, product_id: parsed.data });
+    const { error } = await supabase.from("wishlists").insert({ user_id: userId, product_id: parsed.data });
+    if (error) return { success: false, saved: false };
     revalidatePath("/wishlist");
     return { success: true, saved: true };
   }

@@ -6,28 +6,42 @@ import { revalidatePath } from "next/cache";
 import { getCurrentMember } from "@/lib/auth/member";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
+const upiIdPattern = /^$|^[a-zA-Z0-9._-]{2,64}@[a-zA-Z0-9.-]{2,32}$/;
+
 export async function updateProfile(formData: FormData) {
   if (!isSupabaseConfigured()) redirect("/setup");
+  const rawUpi = String(formData.get("upi_id") ?? "").trim();
+  if (!upiIdPattern.test(rawUpi)) {
+    redirect("/profile?error=upi");
+  }
+
   const parsed = z.object({
     fullName: z.string().trim().min(2).max(120),
     handle: z.string().trim().toLowerCase().regex(/^[a-z0-9][a-z0-9-]{2,31}$/),
     phone: z.string().trim().max(30),
     bio: z.string().trim().max(500),
-    upiId: z.string().trim().max(50).optional(),
+    upiId: z.string().trim().max(100),
   }).safeParse({
     fullName: formData.get("full_name"),
     handle: formData.get("handle"),
     phone: formData.get("phone") ?? "",
     bio: formData.get("bio") ?? "",
-    upiId: formData.get("upi_id") ?? "",
+    upiId: rawUpi,
   });
   if (!parsed.success) redirect("/profile?error=invalid");
 
   const member = await getCurrentMember();
-  if (!member.userId || !member.profile || member.profile.suspended_at) {
+  if (
+    !member.userId ||
+    !member.profile ||
+    member.profile.suspended_at ||
+    member.profile.verification_status === "suspended" ||
+    member.profile.verification_status === "rejected"
+  ) {
     redirect("/auth/sign-in?error=session");
   }
 
+  let upiSaveFallbackUsed = false;
   let { error } = await member.supabase
     .from("profiles")
     .update({
@@ -40,6 +54,7 @@ export async function updateProfile(formData: FormData) {
     .eq("id", member.userId);
 
   if (error && (error.code === "42703" || error.message?.includes("upi_id") || error.code === "42501")) {
+    upiSaveFallbackUsed = Boolean(parsed.data.upiId);
     const fallback = await member.supabase
       .from("profiles")
       .update({
@@ -58,5 +73,5 @@ export async function updateProfile(formData: FormData) {
   revalidatePath("/profile");
   revalidatePath("/dashboard");
   revalidatePath("/marketplace");
-  redirect("/profile?saved=1");
+  redirect(upiSaveFallbackUsed ? "/profile?error=upi_save" : "/profile?saved=1");
 }

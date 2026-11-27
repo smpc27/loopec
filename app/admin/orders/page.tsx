@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, CheckCircle2, Clock3, ShieldCheck } from "lucide-react";
 import { AuthShell, FormNotice } from "@/components/auth/auth-shell";
 import { authMessage } from "@/lib/auth/messages";
-import { getCurrentMember } from "@/lib/auth/member";
+import { getCurrentMember, isAdminProfile } from "@/lib/auth/member";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { AdminHeader } from "@/components/admin/admin-header";
 import { rejectManualPayment, verifyManualPayment } from "@/app/admin/actions";
@@ -17,8 +17,8 @@ export default async function AdminOrdersPage({ searchParams }: PageProps<"/admi
   const errorCode = Array.isArray(params.error) ? params.error[0] : params.error;
   if (!isSupabaseConfigured()) return <AuthShell eyebrow="Order review" title="Pilot setup is incomplete" description="Payment verification will be available when the pilot database is connected."><Link href="/setup" className="font-semibold text-violet-800">View setup details</Link></AuthShell>;
   const member = await getCurrentMember();
-  if (!member.userId || !member.profile || !["college_admin", "super_admin"].includes(member.profile.role) || member.profile.suspended_at) {
-    return <AuthShell eyebrow="Restricted area" title="College administrators only" description="Your account does not have access to payment review."><Link href="/" className="font-semibold text-violet-800">Return to home</Link></AuthShell>;
+  if (!member.userId || !isAdminProfile(member.profile)) {
+    return <AuthShell eyebrow="Restricted area" title="College administrators only" description="Your account does not have access to payment review."><Link href="/admin/login" className="font-semibold text-violet-800">Admin sign in</Link></AuthShell>;
   }
 
   let orderQuery = member.supabase.from("orders").select("id, buyer_id, seller_id, college_id, total_amount, created_at").eq("status", "payment_pending").order("created_at", { ascending: true });

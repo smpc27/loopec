@@ -92,6 +92,7 @@ function matchesCategoryFilter(
  * Fetch approved marketplace products from Google Firestore
  */
 export async function getFirestoreProducts({
+  collegeId,
   categoryId,
   categorySlug,
   categoryName,
@@ -101,6 +102,7 @@ export async function getFirestoreProducts({
   sort = "recent",
   listingType = "all",
 }: {
+  collegeId?: string;
   categoryId?: string;
   categorySlug?: string;
   categoryName?: string;
@@ -145,7 +147,13 @@ export async function getFirestoreProducts({
       };
     });
 
-    items = items.filter((p) => p.quantity > 0);
+    items = items.filter((p) => {
+      if (p.quantity <= 0) return false;
+      if (collegeId && p.college_id && p.college_id !== collegeId && p.college_id !== "nit-calicut") {
+        return false;
+      }
+      return true;
+    });
 
     if (categoryId || categorySlug || categoryName) {
       items = items.filter((p) =>
@@ -169,14 +177,17 @@ export async function getFirestoreProducts({
       items = items.filter((p) => p.price <= maxPrice);
     }
 
+    const isTradeItem = (p: FirestoreProduct) =>
+      p.description.includes("[TRADE") || p.name.toLowerCase().includes("trade");
+    const isGiveawayItem = (p: FirestoreProduct) =>
+      !isTradeItem(p) && (p.price === 0 || p.description.includes("[GIVEAWAY]"));
+
     if (listingType === "giveaway") {
-      items = items.filter((p) => p.price === 0 || p.description.includes("[GIVEAWAY]"));
+      items = items.filter(isGiveawayItem);
     } else if (listingType === "trade") {
-      items = items.filter(
-        (p) => p.description.includes("[TRADE") || p.name.toLowerCase().includes("trade")
-      );
+      items = items.filter(isTradeItem);
     } else if (listingType === "sale") {
-      items = items.filter((p) => p.price > 0 && !p.description.includes("[GIVEAWAY]"));
+      items = items.filter((p) => !isTradeItem(p) && !isGiveawayItem(p));
     }
 
     if (sort === "price_low") {
@@ -187,7 +198,7 @@ export async function getFirestoreProducts({
       items.sort((a, b) => {
         if (a.is_featured && !b.is_featured) return -1;
         if (!a.is_featured && b.is_featured) return 1;
-        return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
+        return (Date.parse(b.published_at) || 0) - (Date.parse(a.published_at) || 0);
       });
     }
 

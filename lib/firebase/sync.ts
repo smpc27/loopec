@@ -68,13 +68,18 @@ export async function syncProductToFirestore(payload: FirestoreListingSyncPayloa
 
 export async function syncProductStatusInFirestore(
   productId: string,
-  status: "approved" | "pending" | "sold" | "rejected" | "removed"
+  status: "approved" | "pending" | "sold" | "rejected" | "removed",
+  quantity?: number
 ): Promise<boolean> {
   try {
     const adminDb = getFirebaseAdminDb();
     if (!adminDb) return false;
     await adminDb.collection("products").doc(productId).set(
-      { status, updated_at: new Date().toISOString() },
+      {
+        status,
+        ...(typeof quantity === "number" ? { quantity } : {}),
+        updated_at: new Date().toISOString(),
+      },
       { merge: true }
     );
     return true;

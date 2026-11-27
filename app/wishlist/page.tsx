@@ -17,7 +17,7 @@ export default async function WishlistPage() {
   const { supabase, userId, profile } = await requireApprovedMember();
   const [{ data: savedData }, firestoreRaw] = await Promise.all([
     supabase.from("wishlists").select("product_id").eq("user_id", userId).order("created_at", { ascending: false }),
-    getFirestoreProducts().catch(() => []),
+    getFirestoreProducts({ collegeId: profile.college_id ?? undefined }).catch(() => []),
   ]);
   const savedIds = (savedData ?? []).map((item) => (item as { product_id: string }).product_id);
   const { data: productData } = savedIds.length
@@ -47,24 +47,33 @@ export default async function WishlistPage() {
   });
 
   const existingIds = new Set(cards.map((c) => c.id));
-  const firestoreCards: MarketplaceProduct[] = firestoreRaw
-    .filter((fp) => !existingIds.has(fp.id))
-    .map((fp) => ({
-      id: fp.id,
-      seller_id: fp.seller_id,
-      category_id: fp.category_id,
-      name: fp.name,
-      description: fp.description,
-      price: fp.price,
-      item_condition: fp.item_condition,
-      quantity: fp.quantity,
-      is_featured: fp.is_featured,
-      published_at: fp.published_at,
-      categoryName: fp.categoryName,
-      sellerName: fp.sellerName,
-      sellerHandle: fp.sellerHandle,
-      imageUrl: fp.imageUrl,
-    }));
+  const missingFirestore = firestoreRaw.filter((fp) => !existingIds.has(fp.id));
+  const fsPaths = missingFirestore
+    .map((fp) => fp.imageStoragePath)
+    .filter((p): p is string => Boolean(p));
+  const fsSignedUrls = new Map<string, string>();
+  if (fsPaths.length > 0) {
+    const { data: fsSigned } = await supabase.storage.from("product-images").createSignedUrls(fsPaths, 900);
+    for (const s of fsSigned ?? []) {
+      if (s.path && s.signedUrl) fsSignedUrls.set(s.path, s.signedUrl);
+    }
+  }
+  const firestoreCards: MarketplaceProduct[] = missingFirestore.map((fp) => ({
+    id: fp.id,
+    seller_id: fp.seller_id,
+    category_id: fp.category_id,
+    name: fp.name,
+    description: fp.description,
+    price: fp.price,
+    item_condition: fp.item_condition,
+    quantity: fp.quantity,
+    is_featured: fp.is_featured,
+    published_at: fp.published_at,
+    categoryName: fp.categoryName,
+    sellerName: fp.sellerName,
+    sellerHandle: fp.sellerHandle,
+    imageUrl: (fp.imageStoragePath ? fsSignedUrls.get(fp.imageStoragePath) : null) ?? fp.imageUrl,
+  }));
 
   return (
     <main className="min-h-screen bg-transparent">

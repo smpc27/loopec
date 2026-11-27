@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { ArrowUpRight, BadgeCheck, CircleDollarSign, FileText, ShieldCheck, UsersRound } from "lucide-react";
 import { AuthShell, FormNotice } from "@/components/auth/auth-shell";
 import { authMessage } from "@/lib/auth/messages";
-import { getCurrentMember } from "@/lib/auth/member";
+import { getCurrentMember, isAdminProfile } from "@/lib/auth/member";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { AdminHeader } from "@/components/admin/admin-header";
 import { reviewVerification } from "@/app/admin/actions";
@@ -46,7 +46,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
   if (!member.userId) {
     redirect("/admin/login");
   }
-  if (!member.profile || !["college_admin", "super_admin"].includes(member.profile.role) || member.profile.suspended_at) {
+  if (!isAdminProfile(member.profile)) {
     redirect("/admin/login?error=unauthorized");
   }
 

@@ -15,15 +15,16 @@ export function GoogleSignInButton({
 
   const handleGoogleSignIn = () => {
     startTransition(async () => {
-      const isMobile =
+      const isNativeShell =
         typeof window !== "undefined" &&
-        ((window as Window & { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.() ||
-          navigator.userAgent.includes("LOOPEC-App") ||
-          /android|iphone|ipad|ipod/i.test(navigator.userAgent));
+        Boolean(
+          (window as Window & { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.() ||
+            navigator.userAgent.includes("LOOPEC-App")
+        );
 
       const formData = new FormData();
       formData.set("next", nextPath);
-      formData.set("source", isMobile ? "app" : "web");
+      formData.set("source", isNativeShell ? "app" : "web");
       await signInWithGoogle(formData);
     });
   };

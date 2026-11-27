@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, BadgeCheck, ShieldAlert, ShieldCheck, UserRound } from "lucide-react";
 import { AuthShell, FormNotice } from "@/components/auth/auth-shell";
 import { authMessage } from "@/lib/auth/messages";
-import { getCurrentMember } from "@/lib/auth/member";
+import { getCurrentMember, isAdminProfile } from "@/lib/auth/member";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { AdminHeader } from "@/components/admin/admin-header";
 import { setMemberSuspension } from "@/app/admin/actions";
@@ -16,25 +16,31 @@ export default async function AdminMembersPage({ searchParams }: PageProps<"/adm
   const params = await searchParams;
   const errorCode = Array.isArray(params.error) ? params.error[0] : params.error;
   const searchParam = Array.isArray(params.q) ? params.q[0] : params.q;
-  const search = (searchParam ?? "").replace(/[^a-zA-Z0-9 .'-]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
+  const search = (searchParam ?? "").replace(/[^a-zA-Z0-9 .'@_-]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
   if (!isSupabaseConfigured()) return <AuthShell eyebrow="Member access" title="Pilot setup is incomplete" description="Member management will be available when the pilot database is connected."><Link href="/setup" className="font-semibold text-violet-800">View setup details</Link></AuthShell>;
   const admin = await getCurrentMember();
-  if (!admin.userId || !admin.profile || !["college_admin", "super_admin"].includes(admin.profile.role) || admin.profile.suspended_at) {
-    return <AuthShell eyebrow="Restricted area" title="College administrators only" description="Your account does not have access to member management."><Link href="/" className="font-semibold text-violet-800">Return to home</Link></AuthShell>;
+  if (!admin.userId || !isAdminProfile(admin.profile)) {
+    return <AuthShell eyebrow="Restricted area" title="College administrators only" description="Your account does not have access to member management."><Link href="/admin/login" className="font-semibold text-violet-800">Admin sign in</Link></AuthShell>;
   }
   let query = admin.supabase.from("profiles").select("id, full_name, handle, role, verification_status, suspended_at, created_at").order("created_at", { ascending: false }).limit(200);
-  if (search) query = query.ilike("full_name", `%${search}%`);
-  if (admin.profile.role !== "super_admin" && admin.profile.college_id) query = query.eq("college_id", admin.profile.college_id);
+  if (search) {
+    const clean = search.replace(/[%_,()\\]/g, "").trim();
+    const cleanHandle = clean.replace(/^@/, "");
+    if (clean) {
+      query = query.or(`full_name.ilike.%${clean}%,handle.ilike.%${cleanHandle}%`);
+    }
+  }
+  if (admin.profile!.role !== "super_admin" && admin.profile!.college_id) query = query.eq("college_id", admin.profile!.college_id);
   const { data, error } = await query;
   const members = (data ?? []) as Member[];
 
   return (
     <main className="min-h-screen bg-[#eee9e2] px-5 py-8 sm:px-8 text-[#241e14]">
-      <AdminHeader adminName={admin.profile.full_name} isSuperAdmin={admin.profile.role === "super_admin"} />
+      <AdminHeader adminName={admin.profile!.full_name} isSuperAdmin={admin.profile!.role === "super_admin"} />
       <section className="mx-auto mt-11 max-w-6xl">
         <Link href="/admin" className="inline-flex items-center gap-2 text-xs font-semibold text-[#77717e] hover:text-violet-900"><ArrowLeft size={14} /> Admin home</Link>
         <div className="mt-5 flex flex-wrap items-end justify-between gap-5 border-b border-[#e8e5e2] pb-7"><div><p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.15em] text-violet-700"><ShieldCheck size={14} /> Campus administration</p><h1 className="mt-2 font-serif text-4xl tracking-[-.05em] text-[#28232f]">Member access</h1><p className="mt-2 text-sm leading-6 text-[#77717e]">Review member status and suspend or reinstate ordinary campus accounts.</p></div><span className="rounded-full border border-[#e8e3ec] bg-white px-4 py-2 text-xs font-semibold text-[#5e5765]">{members.length} members</span></div>
-        <form className="mt-5 flex gap-2 rounded-[20px] border border-[#e8e5e2] bg-white p-3"><label className="flex-1"><span className="sr-only">Search by member name</span><input className="min-h-11 w-full rounded-full bg-[#f8f7f8] px-4 text-sm outline-none focus:ring-4 focus:ring-violet-100" name="q" maxLength={80} defaultValue={search} placeholder="Search members by name" /></label><button className="min-h-11 rounded-full bg-violet-950 px-5 text-sm font-semibold text-white" type="submit">Search</button></form>
+        <form className="mt-5 flex gap-2 rounded-[20px] border border-[#e8e5e2] bg-white p-3"><label className="flex-1"><span className="sr-only">Search by member name or handle</span><input className="min-h-11 w-full rounded-full bg-[#f8f7f8] px-4 text-sm outline-none focus:ring-4 focus:ring-violet-100" name="q" maxLength={80} defaultValue={search} placeholder="Search members by name or @handle" /></label><button className="min-h-11 rounded-full bg-violet-950 px-5 text-sm font-semibold text-white" type="submit">Search</button></form>
         <div className="mt-5 space-y-4">{errorCode ? <FormNotice>{authMessage(errorCode)}</FormNotice> : null}{params.suspended ? <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">Member suspended. This action is recorded in the audit log.</p> : null}{params.reinstated ? <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Member reinstated.</p> : null}{error ? <FormNotice>We could not load members. Check the schema and admin college scope.</FormNotice> : null}
           {members.map((member) => {
             const protectedRole = member.role === "college_admin" || member.role === "super_admin";

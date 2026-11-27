@@ -20,6 +20,7 @@ export function AdminHeader({
     { href: "/admin/members", label: "Members" },
     { href: "/admin/pickup", label: "Pickup Points" },
     { href: "/admin/reports", label: "Reports" },
+    { href: "/admin/feedback", label: "Feedback" },
     ...(isSuperAdmin ? [{ href: "/admin/settings", label: "Settings" }] : []),
   ];
 

@@ -21,11 +21,20 @@ export function LiveMessageThread({
   currentUserId: string;
   initialMessages: Message[];
 }) {
-  const [messages, setMessages] = useState(initialMessages);
+  const [liveState, setLiveState] = useState<{
+    conversationId: string;
+    inserted: Message[];
+    readAtById: Record<string, string | null>;
+  }>({
+    conversationId,
+    inserted: [],
+    readAtById: {},
+  });
   const [isLive, setIsLive] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    let mounted = true;
     const supabase = createClient();
     const channel = supabase
       .channel(`messages:${conversationId}`)
@@ -37,7 +46,14 @@ export function LiveMessageThread({
       }, (payload) => {
         const message = payload.new as Message;
         if (!message.id || message.conversation_id !== conversationId) return;
-        setMessages((current) => current.some((item) => item.id === message.id) ? current : [...current, message]);
+        setLiveState((current) => {
+          const base =
+            current.conversationId === conversationId
+              ? current
+              : { conversationId, inserted: [], readAtById: {} };
+          if (base.inserted.some((item) => item.id === message.id)) return base;
+          return { ...base, inserted: [...base.inserted, message] };
+        });
       })
       .on("postgres_changes", {
         event: "UPDATE",
@@ -47,15 +63,39 @@ export function LiveMessageThread({
       }, (payload) => {
         const updated = payload.new as Message;
         if (!updated.id || updated.conversation_id !== conversationId) return;
-        setMessages((current) => current.map((item) => item.id === updated.id ? { ...item, read_at: updated.read_at } : item));
+        setLiveState((current) => {
+          const base =
+            current.conversationId === conversationId
+              ? current
+              : { conversationId, inserted: [], readAtById: {} };
+          return {
+            ...base,
+            readAtById: { ...base.readAtById, [updated.id]: updated.read_at },
+          };
+        });
       })
-      .subscribe((status) => setIsLive(status === "SUBSCRIBED"));
+      .subscribe((status) => {
+        if (mounted) {
+          setIsLive(status === "SUBSCRIBED");
+        }
+      });
 
     return () => {
+      mounted = false;
       setIsLive(false);
       void supabase.removeChannel(channel);
     };
   }, [conversationId]);
+
+  const initialIds = new Set(initialMessages.map((m) => m.id));
+  const extraLive =
+    liveState.conversationId === conversationId
+      ? liveState.inserted.filter((m) => !initialIds.has(m.id))
+      : [];
+  const readMap = liveState.conversationId === conversationId ? liveState.readAtById : {};
+  const messages = [...initialMessages, ...extraLive].map((item) =>
+    Object.hasOwn(readMap, item.id) ? { ...item, read_at: readMap[item.id] } : item
+  );
 
   useEffect(() => {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;

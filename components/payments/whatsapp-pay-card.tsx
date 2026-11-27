@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useFormStatus } from "react-dom";
 import {
   CheckCircle2,
   Copy,
@@ -44,7 +45,13 @@ export function WhatsAppPayCard({
 
   // Format phone number for WhatsApp wa.me link
   const rawDigits = (sellerPhone || "").replace(/\D/g, "");
-  const formattedWaNumber = rawDigits.length === 10 ? `91${rawDigits}` : rawDigits;
+  const normalizedDigits =
+    rawDigits.length === 11 && rawDigits.startsWith("0")
+      ? `91${rawDigits.slice(1)}`
+      : rawDigits.length === 10
+      ? `91${rawDigits}`
+      : rawDigits;
+  const formattedWaNumber = normalizedDigits.length >= 10 ? normalizedDigits : "";
 
   const itemsListText =
     itemNames.slice(0, 2).join(", ") + (itemNames.length > 2 ? ` (+${itemNames.length - 2} more)` : "");
@@ -61,24 +68,37 @@ export function WhatsAppPayCard({
   const waLink = formattedWaNumber ? `https://wa.me/${formattedWaNumber}?text=${waMessage}` : null;
 
   // Direct UPI Intent link (opens GPay / PhonePe / Paytm / BHIM)
-  const upiLink = sellerUpiId
-    ? `upi://pay?pa=${encodeURIComponent(sellerUpiId)}&pn=${encodeURIComponent(
-        sellerName
-      )}&am=${amount}&cu=INR&tn=${encodeURIComponent(`LOOPEC Order ${orderId.slice(0, 8)}`)}`
-    : null;
+  const upiLink =
+    sellerUpiId && amount > 0
+      ? `upi://pay?pa=${encodeURIComponent(sellerUpiId)}&pn=${encodeURIComponent(
+          sellerName
+        )}&am=${amount}&cu=INR&tn=${encodeURIComponent(`LOOPEC Order ${orderId.slice(0, 8)}`)}`
+      : null;
 
-  const handleCopyUpi = () => {
+  const handleCopyUpi = async () => {
     if (!sellerUpiId) return;
-    navigator.clipboard.writeText(sellerUpiId);
-    setCopiedUpi(true);
-    setTimeout(() => setCopiedUpi(false), 2000);
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(sellerUpiId);
+      }
+      setCopiedUpi(true);
+      setTimeout(() => setCopiedUpi(false), 2000);
+    } catch {
+      // Clipboard API unavailable
+    }
   };
 
-  const handleCopyPhone = () => {
+  const handleCopyPhone = async () => {
     if (!sellerPhone) return;
-    navigator.clipboard.writeText(sellerPhone);
-    setCopiedPhone(true);
-    setTimeout(() => setCopiedPhone(false), 2000);
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(sellerPhone);
+      }
+      setCopiedPhone(true);
+      setTimeout(() => setCopiedPhone(false), 2000);
+    } catch {
+      // Clipboard API unavailable
+    }
   };
 
   return (
@@ -267,21 +287,33 @@ export function WhatsAppPayCard({
         <div className="rounded-xl bg-emerald-50/70 p-3 text-xs text-emerald-950 border border-emerald-100">
           <p className="font-semibold flex items-center gap-1">
             <CheckCircle2 size={14} className="text-emerald-700" />
-            Zero Platform Fee:
+            0% Payment Gateway Fee:
           </p>
           <p className="mt-0.5 text-[11px] text-[#4b6b55]">
-            100% of your payment goes directly to the student seller. Once you contact or pay {sellerName}, click below to confirm and generate your 4-digit Handover PIN!
+            Pay {sellerName} directly via UPI or Cash on Pickup (standard 5% platform fee applies only to LOOPEC order accounting). Once paid or arranged, click below to confirm and generate your 4-digit Handover PIN!
           </p>
         </div>
 
-        <button
-          type="submit"
-          className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#1b3a27] px-5 text-sm font-semibold text-white shadow-md transition hover:bg-[#152e1f] active:scale-[0.99]"
-        >
-          <CheckCircle2 size={16} />
-          <span>I have contacted / paid {sellerName} · Proceed to Handover</span>
-        </button>
+        <SubmitPaymentButton sellerName={sellerName} />
       </form>
     </article>
+  );
+}
+
+function SubmitPaymentButton({ sellerName }: { sellerName: string }) {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#1b3a27] px-5 text-sm font-semibold text-white shadow-md transition hover:bg-[#152e1f] active:scale-[0.99] disabled:opacity-60"
+    >
+      <CheckCircle2 size={16} />
+      <span>
+        {pending
+          ? "Confirming payment..."
+          : `I have contacted / paid ${sellerName} · Proceed to Handover`}
+      </span>
+    </button>
   );
 }

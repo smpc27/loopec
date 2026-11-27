@@ -133,6 +133,33 @@ export async function getCurrentMember() {
   };
 }
 
+export function isAdminProfile(profile: MemberProfile | null | undefined): profile is MemberProfile {
+  return Boolean(
+    profile &&
+      ["college_admin", "super_admin"].includes(profile.role) &&
+      profile.verification_status === "approved" &&
+      !profile.suspended_at
+  );
+}
+
+export async function requireAdminMember(superAdminOnly = false) {
+  const member = await getCurrentMember();
+  if (!member.userId) {
+    redirect("/admin/login?error=session");
+  }
+  if (!member.profile || member.profile.suspended_at || member.profile.verification_status === "suspended") {
+    redirect("/auth/suspended");
+  }
+  if (!isAdminProfile(member.profile) || (superAdminOnly && member.profile.role !== "super_admin")) {
+    redirect("/admin/login?error=unauthorized");
+  }
+  return {
+    supabase: member.supabase,
+    userId: member.userId,
+    profile: member.profile,
+  };
+}
+
 export async function requireApprovedMember(nextPath = "/marketplace") {
   // 1. Check for real active Supabase authenticated session
   const member = await getCurrentMember();
@@ -140,12 +167,13 @@ export async function requireApprovedMember(nextPath = "/marketplace") {
     if (member.profile.suspended_at || member.profile.verification_status === "suspended") {
       redirect("/auth/suspended");
     }
+    if (member.profile.verification_status === "rejected") {
+      redirect("/verification");
+    }
 
     const activeProfile = { ...member.profile };
     const needsCollege = !activeProfile.college_id;
-    const needsApproval =
-      activeProfile.verification_status !== "approved" &&
-      activeProfile.verification_status !== "rejected";
+    const needsApproval = activeProfile.verification_status !== "approved";
 
     // Sync missing college_id / approved verification into Postgres so RLS policies
     // (app_private.is_approved_member) allow creating listings, messages, and orders.
@@ -161,6 +189,7 @@ export async function requireApprovedMember(nextPath = "/marketplace") {
               ...(needsApproval ? { verification_status: "approved" } : {}),
             })
             .eq("id", member.userId);
+          if (needsApproval) activeProfile.verification_status = "approved";
         } catch {}
       } else if (needsCollege) {
         try {
@@ -170,6 +199,10 @@ export async function requireApprovedMember(nextPath = "/marketplace") {
             .eq("id", member.userId);
         } catch {}
       }
+    }
+
+    if (activeProfile.verification_status !== "approved") {
+      redirect("/verification");
     }
 
     // For authenticated active campus members, grant instant marketplace access

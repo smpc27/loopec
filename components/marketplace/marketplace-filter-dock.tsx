@@ -30,6 +30,7 @@ type Category = { id: string; name: string; slug?: string };
 type QuickSearchItem = {
   id: string;
   name: string;
+  description?: string;
   price: number;
   categoryName: string;
 };
@@ -82,6 +83,39 @@ export function MarketplaceFilterDock({
   const [maxPrice, setMaxPrice] = useState(initialMaxPrice);
   const [sort, setSort] = useState(initialSort);
   const [listingType, setListingType] = useState(initialType);
+
+  const [prevInitials, setPrevInitials] = useState({
+    initialSearch,
+    initialCategoryId,
+    initialMinPrice,
+    initialMaxPrice,
+    initialSort,
+    initialType,
+  });
+
+  if (
+    prevInitials.initialSearch !== initialSearch ||
+    prevInitials.initialCategoryId !== initialCategoryId ||
+    prevInitials.initialMinPrice !== initialMinPrice ||
+    prevInitials.initialMaxPrice !== initialMaxPrice ||
+    prevInitials.initialSort !== initialSort ||
+    prevInitials.initialType !== initialType
+  ) {
+    setPrevInitials({
+      initialSearch,
+      initialCategoryId,
+      initialMinPrice,
+      initialMaxPrice,
+      initialSort,
+      initialType,
+    });
+    setSearch(initialSearch);
+    setSelectedCategory(initialCategoryId);
+    setMinPrice(initialMinPrice);
+    setMaxPrice(initialMaxPrice);
+    setSort(initialSort);
+    setListingType(initialType);
+  }
 
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [isSortOpen, setIsSortOpen] = useState(false);
@@ -143,22 +177,25 @@ export function MarketplaceFilterDock({
         const res = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}&limit=6`, {
           signal: controller.signal,
         });
-        if (res.ok) {
+        if (res.ok && !controller.signal.aborted) {
           const data = await res.json();
-          if (Array.isArray(data?.results)) {
+          if (Array.isArray(data?.results) && !controller.signal.aborted) {
             setSuggestions(data.results);
           }
         }
       } catch {
         // Ignore aborted or transient fetch issues
       } finally {
-        setIsSearchingApi(false);
+        if (!controller.signal.aborted) {
+          setIsSearchingApi(false);
+        }
       }
     }, 240);
 
     return () => {
       clearTimeout(timer);
       controller.abort();
+      setIsSearchingApi(false);
     };
   }, [search]);
 
@@ -223,8 +260,11 @@ export function MarketplaceFilterDock({
     setMaxPrice("");
     setSort("recent");
     setListingType("all");
+    setSuggestions([]);
     setShowSuggestions(false);
-    router.push("/marketplace");
+    startTransition(() => {
+      router.push("/marketplace", { scroll: false });
+    });
   };
 
   const currentCategoryObj = categories.find((c) => c.id === selectedCategory);
@@ -408,7 +448,11 @@ export function MarketplaceFilterDock({
                         <p className="truncate text-[10px] text-[#8e7a63]">{item.categoryName}</p>
                       </div>
                       <span className="shrink-0 font-bold text-[#241e14]">
-                        {item.price === 0 ? "FREE" : inr.format(item.price)}
+                        {item.description?.includes("[TRADE") || item.name.toLowerCase().includes("trade")
+                          ? "TRADE"
+                          : item.price === 0
+                          ? "FREE"
+                          : inr.format(item.price)}
                       </span>
                     </Link>
                   ))}

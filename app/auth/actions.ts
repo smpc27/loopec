@@ -17,10 +17,19 @@ const signUpSchema = z.object({
 async function getRuntimeOrigin() {
   try {
     const h = await headers();
-    const host = h.get("x-forwarded-host") || h.get("host");
-    const proto = h.get("x-forwarded-proto") || (host?.includes("localhost") ? "http" : "https");
-    if (host) {
-      return `${proto}://${host}`;
+    const rawHost = h.get("x-forwarded-host") || h.get("host");
+    const host = rawHost?.split(",")[0]?.trim().toLowerCase() ?? "";
+    const proto = h.get("x-forwarded-proto")?.split(",")[0]?.trim() === "http" ? "http" : "https";
+    if (
+      host &&
+      /^[a-z0-9.-]+(?::\d+)?$/.test(host) &&
+      (host === "loopec.in" ||
+        host === "www.loopec.in" ||
+        host.endsWith(".vercel.app") ||
+        host.startsWith("localhost:") ||
+        host === "localhost")
+    ) {
+      return `${host.startsWith("localhost") ? "http" : proto}://${host}`;
     }
   } catch {}
   return siteOrigin();
@@ -48,9 +57,14 @@ function siteOrigin() {
 }
 
 function safeNext(value: string | null) {
-  return value && value.startsWith("/") && !value.startsWith("//") && !value.startsWith("/\\")
-    ? value
-    : "/marketplace";
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) {
+    return "/marketplace";
+  }
+  if (/["'<>\\]/.test(value)) return "/marketplace";
+  if (value.startsWith("/auth/callback") || value.startsWith("/auth/session-sync")) {
+    return "/marketplace";
+  }
+  return value;
 }
 
 export async function signUp(formData: FormData) {
@@ -130,9 +144,12 @@ export async function signInWithGoogle(formData?: FormData) {
 export async function signIn(formData: FormData) {
   if (!isSupabaseConfigured()) redirect("/setup");
 
+  const rawRedirect = String(formData.get("redirect_to") ?? "");
+  const failureBase = rawRedirect === "/admin/login" ? "/admin/login" : "/auth/sign-in";
+
   const email = z.email().safeParse(String(formData.get("email") ?? "").trim().toLowerCase());
   const password = z.string().min(1).safeParse(formData.get("password"));
-  if (!email.success || !password.success) redirect("/auth/sign-in?error=invalid");
+  if (!email.success || !password.success) redirect(`${failureBase}?error=invalid`);
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({
@@ -141,10 +158,11 @@ export async function signIn(formData: FormData) {
   });
   if (error) {
     if (error.code === "email_not_confirmed" || error.message.toLowerCase().includes("email not confirmed")) {
+      if (failureBase === "/admin/login") redirect("/admin/login?error=unconfirmed");
       (await cookies()).set("loopec_pending_email", email.data, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/auth/check-email", maxAge: 15 * 60 });
       redirect("/auth/check-email?error=unconfirmed");
     }
-    redirect("/auth/sign-in?error=sign_in");
+    redirect(`${failureBase}?error=sign_in`);
   }
 
   const { data: claimsData } = await supabase.auth.getClaims();
@@ -153,7 +171,7 @@ export async function signIn(formData: FormData) {
     const { data: userData } = await supabase.auth.getUser();
     userId = userData?.user?.id ?? null;
   }
-  if (!userId) redirect("/auth/sign-in?error=sign_in");
+  if (!userId) redirect(`${failureBase}?error=sign_in`);
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -287,8 +305,13 @@ export async function updatePassword(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
-  if (claimsError || !claimsData?.claims?.sub) redirect("/auth/sign-in?error=session");
+  const { data: claimsData } = await supabase.auth.getClaims();
+  let userId = claimsData?.claims?.sub ? String(claimsData.claims.sub) : null;
+  if (!userId) {
+    const { data: userData } = await supabase.auth.getUser();
+    userId = userData?.user?.id ?? null;
+  }
+  if (!userId) redirect("/auth/sign-in?error=session");
 
   const { error } = await supabase.auth.updateUser({ password: password.data });
   if (error) redirect("/auth/reset-password?error=invalid");

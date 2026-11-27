@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, Wallet } from "lucide-react";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { AdminHeader } from "@/components/admin/admin-header";
-import { getCurrentMember } from "@/lib/auth/member";
+import { getCurrentMember, isAdminProfile } from "@/lib/auth/member";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 export const instant = false;
@@ -38,19 +38,24 @@ export default async function AdminPayoutsPage() {
   }
 
   const member = await getCurrentMember();
-  if (!member.userId || !member.profile || !["college_admin", "super_admin"].includes(member.profile.role)) {
+  if (!member.userId || !isAdminProfile(member.profile)) {
     return (
-      <AuthShell eyebrow="Restricted" title="Admin only" description="Only administrators can manage financial payouts.">
-        <Link href="/" className="font-semibold text-[#241e14] underline">Return to home</Link>
+      <AuthShell eyebrow="Restricted" title="Admin only" description="Only approved administrators can manage financial payouts.">
+        <Link href="/admin/login" className="font-semibold text-[#241e14] underline">Sign in as Admin</Link>
       </AuthShell>
     );
   }
 
-  const { data: orderData } = await member.supabase
+  let orderQuery = member.supabase
     .from("orders")
     .select("id, seller_id, buyer_id, total_amount, commission_amount, status, created_at, updated_at")
     .in("status", ["paid", "ready_for_pickup", "completed"])
-    .order("updated_at", { ascending: false });
+    .order("updated_at", { ascending: false })
+    .limit(100);
+  if (member.profile.role !== "super_admin" && member.profile.college_id) {
+    orderQuery = orderQuery.eq("college_id", member.profile.college_id);
+  }
+  const { data: orderData } = await orderQuery;
 
   const orders = (orderData ?? []) as CompletedOrder[];
   const sellerIds = [...new Set(orders.map((o) => o.seller_id))];

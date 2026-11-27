@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { createStorageAdminClient } from "@/lib/supabase/admin";
 import { calculateCommission, type CommissionBreakdown } from "@/lib/payments/commission";
 
 export type PaymentProvider = "sandbox" | "manual_upi" | "whatsapp_upi" | "direct_upi" | "cash_pickup";
@@ -54,42 +55,132 @@ export async function confirmOrderPaymentInDb(
   params: VerifyPaymentParams
 ): Promise<{ success: boolean; error?: string }> {
   const { orderId, provider, paymentId, orderReference } = params;
+  const cleanProvider = provider.trim().toLowerCase() || "direct_upi";
+  const cleanPaymentId = paymentId.trim();
 
-  // 1. Try confirm_online_payment RPC
+  if (!cleanPaymentId) {
+    return { success: false, error: "A valid payment reference is required." };
+  }
+
+  // 1. Try confirm_online_payment RPC first (works once migration 20261127000000 is applied)
   const { error: rpcError } = await supabase.rpc("confirm_online_payment", {
     p_order_id: orderId,
-    p_provider: provider,
-    p_provider_payment_id: paymentId,
-    p_provider_order_id: orderReference || null,
+    p_provider: cleanProvider,
+    p_provider_payment_id: cleanPaymentId,
+    p_provider_order_id: orderReference?.trim() || null,
   });
 
   if (!rpcError) {
     return { success: true };
   }
 
-  // 2. Fallback: transition + submit reference
+  // 2. Resilient fallback using service_role + transition_order_status('paid')
+  // (works even on hosted DBs still carrying legacy confirm_online_payment SQL)
   try {
-    await supabase.rpc("transition_order_status", {
+    const { data: order, error: orderFetchError } = await supabase
+      .from("orders")
+      .select("id, status, total_amount, currency")
+      .eq("id", orderId)
+      .maybeSingle();
+
+    if (orderFetchError || !order) {
+      return {
+        success: false,
+        error: rpcError?.message || orderFetchError?.message || "Order not found or unauthorized",
+      };
+    }
+
+    if (order.status === "paid" || order.status === "ready_for_pickup" || order.status === "completed") {
+      return { success: true };
+    }
+
+    if (order.status !== "accepted" && order.status !== "payment_pending") {
+      return {
+        success: false,
+        error: `Order is not in a payable state (status: ${order.status})`,
+      };
+    }
+
+    if (order.status === "accepted") {
+      const { error: pendingErr } = await supabase.rpc("transition_order_status", {
+        p_order_id: orderId,
+        p_next_status: "payment_pending",
+      });
+      if (pendingErr) {
+        return { success: false, error: pendingErr.message };
+      }
+    }
+
+    const adminDb = createStorageAdminClient();
+    if (!adminDb) {
+      return {
+        success: false,
+        error: rpcError?.message || "Payment service configuration unavailable",
+      };
+    }
+
+    const { data: latestPayment } = await adminDb
+      .from("payments")
+      .select("id")
+      .eq("order_id", orderId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (latestPayment?.id) {
+      const { error: payUpdateError } = await adminDb
+        .from("payments")
+        .update({
+          provider: cleanProvider,
+          method: "upi_provider",
+          provider_payment_id: cleanPaymentId,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", latestPayment.id);
+
+      if (payUpdateError) {
+        return { success: false, error: payUpdateError.message };
+      }
+    } else {
+      const { error: payInsertError } = await adminDb.from("payments").insert({
+        order_id: orderId,
+        provider: cleanProvider,
+        method: "upi_provider",
+        status: "pending",
+        amount: order.total_amount,
+        currency: order.currency,
+        idempotency_key: `pay:${cleanProvider}:${orderId}:${cleanPaymentId}`,
+        provider_payment_id: cleanPaymentId,
+      });
+
+      if (payInsertError) {
+        return { success: false, error: payInsertError.message };
+      }
+    }
+
+    const { error: paidError } = await adminDb.rpc("transition_order_status", {
       p_order_id: orderId,
-      p_next_status: "payment_pending",
+      p_next_status: "paid",
     });
 
-    const cleanRef = paymentId.slice(0, 32).toUpperCase().replace(/[^A-Z0-9-]/g, "");
-    const safeRef = cleanRef.length >= 6 ? cleanRef : `ONLINE-${cleanRef.padEnd(6, "0")}`;
+    if (paidError) {
+      return { success: false, error: paidError.message };
+    }
 
-    const { error: refError } = await supabase.rpc("submit_manual_payment_reference", {
-      p_order_id: orderId,
-      p_reference: safeRef,
-    });
+    const { data: verifiedOrder } = await adminDb
+      .from("orders")
+      .select("status")
+      .eq("id", orderId)
+      .single();
 
-    if (!refError) {
+    if (verifiedOrder?.status === "paid") {
       return { success: true };
     }
   } catch (err) {
-    console.warn("Fallback payment transition error:", err);
+    console.warn("Fallback payment confirmation error:", err);
   }
 
-  if (process.env.LOOPEC_DEV_BYPASS_AUTH === "true") {
+  if (process.env.NODE_ENV === "development" && process.env.LOOPEC_DEV_BYPASS_AUTH === "true") {
     return { success: true };
   }
 

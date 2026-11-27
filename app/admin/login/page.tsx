@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ShieldCheck, Lock, Mail, ArrowRight, UserCheck } from "lucide-react";
-import { getCurrentMember } from "@/lib/auth/member";
+import { getCurrentMember, isAdminProfile } from "@/lib/auth/member";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { signIn, signOut } from "@/app/auth/actions";
 import { authMessage } from "@/lib/auth/messages";
@@ -39,20 +39,16 @@ export default async function AdminLoginPage({
 
   const member = await getCurrentMember();
 
-  // If already signed in as college admin or super admin, go straight to the admin dashboard
-  if (
-    member.userId &&
-    member.profile &&
-    ["college_admin", "super_admin"].includes(member.profile.role) &&
-    !member.profile.suspended_at
-  ) {
+  // If already signed in as approved college admin or super admin, go straight to the admin dashboard
+  if (member.userId && isAdminProfile(member.profile)) {
     redirect("/admin");
   }
 
-  const isNonAdminUser =
-    member.userId &&
-    member.profile &&
-    !["college_admin", "super_admin"].includes(member.profile.role);
+  const isSuspendedSession =
+    Boolean(member.userId && member.profile && (member.profile.suspended_at || member.profile.verification_status === "suspended"));
+
+  const isSignedInWithoutAdminAccess =
+    Boolean(member.userId && member.profile && !isAdminProfile(member.profile));
 
   return (
     <main className="min-h-screen bg-[#eee9e2] text-[#241e14] flex flex-col items-center justify-center p-4 sm:p-6 selection:bg-[#d0c1ab]">
@@ -85,7 +81,7 @@ export default async function AdminLoginPage({
             </div>
           )}
 
-          {isNonAdminUser ? (
+          {isSignedInWithoutAdminAccess ? (
             <div className="space-y-4 text-center">
               <div className="mx-auto size-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 grid place-items-center">
                 <UserCheck size={24} />
@@ -96,13 +92,17 @@ export default async function AdminLoginPage({
                 <p className="text-xs text-[#736b60]">Role: {member.profile?.role}</p>
               </div>
               <p className="text-xs text-amber-900 bg-amber-50/80 p-3 rounded-xl border border-amber-200/60 text-left">
-                This account is recognized as a campus member, but does not have college administrator or super administrator permissions.
+                {isSuspendedSession
+                  ? "This session is currently suspended and cannot access the admin console."
+                  : member.profile?.verification_status !== "approved"
+                  ? "This session is not approved yet and cannot access the admin console."
+                  : "This account is recognized as a campus member, but does not have college administrator or super administrator permissions."}
               </p>
               <div className="pt-2 flex flex-col gap-2">
                 <form action={signOut}>
                   <button
                     type="submit"
-                    className="w-full rounded-full bg-[#241e14] text-white py-3 text-sm font-bold hover:bg-[#382f20] transition-colors"
+                    className="w-full rounded-full bg-[#241e14] text-white py-3 text-sm font-bold hover:bg-[#382f20] transition-colors cursor-pointer"
                   >
                     Sign Out & Switch Account
                   </button>
@@ -118,6 +118,7 @@ export default async function AdminLoginPage({
           ) : (
             <form action={signIn} className="space-y-4">
               <input type="hidden" name="next" value="/admin" />
+              <input type="hidden" name="redirect_to" value="/admin/login" />
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-[#524a40] mb-1.5">

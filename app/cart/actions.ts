@@ -1,11 +1,12 @@
 "use server";
 
 import { z } from "zod";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireApprovedMember } from "@/lib/auth/member";
 
 export async function updateCartQuantity(formData: FormData) {
-  const parsed = z.object({ productId: z.uuid(), quantity: z.coerce.number().int().min(1).max(1000) }).safeParse({
+  const parsed = z.object({ productId: z.string().uuid(), quantity: z.coerce.number().int().min(1).max(1000) }).safeParse({
     productId: formData.get("product_id"),
     quantity: formData.get("quantity"),
   });
@@ -18,13 +19,17 @@ export async function updateCartQuantity(formData: FormData) {
     .update({ quantity: parsed.data.quantity })
     .eq("user_id", userId)
     .eq("product_id", parsed.data.productId);
+  revalidatePath("/cart");
+  revalidatePath("/checkout");
   redirect(error ? "/cart?error=stock" : "/cart");
 }
 
 export async function removeCartItem(formData: FormData) {
-  const productId = z.uuid().safeParse(formData.get("product_id"));
+  const productId = z.string().uuid().safeParse(formData.get("product_id"));
   if (!productId.success) redirect("/cart");
   const { supabase, userId } = await requireApprovedMember();
   await supabase.from("cart_items").delete().eq("user_id", userId).eq("product_id", productId.data);
+  revalidatePath("/cart");
+  revalidatePath("/checkout");
   redirect("/cart");
 }
