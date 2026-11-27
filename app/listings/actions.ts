@@ -97,7 +97,12 @@ async function uploadImages({
   productId: string;
   productName: string;
   sortOffset: number;
-}) {
+}): Promise<{
+  error: string | null;
+  detail?: string;
+  uploaded: string[];
+  records: { product_id: string; storage_path: string; alt_text: string; sort_order: number }[];
+}> {
   if (!files.length) return { error: null, uploaded: [], records: [] };
   const uploaded: string[] = [];
   const records: { product_id: string; storage_path: string; alt_text: string; sort_order: number }[] = [];
@@ -105,13 +110,14 @@ async function uploadImages({
 
   for (const [index, file] of files.entries()) {
     if (file.size > 4 * 1024 * 1024) {
-      await uploadStorage.from("product-images").remove(uploaded);
-      return { error: "size", uploaded, records };
+      if (uploaded.length) await uploadStorage.from("product-images").remove(uploaded);
+      return { error: "size", uploaded: [], records: [] };
     }
-    const fileType = detectImage(new Uint8Array(await file.slice(0, 12).arrayBuffer()));
+    const rawBuffer = Buffer.from(await file.arrayBuffer());
+    const fileType = detectImage(new Uint8Array(rawBuffer.subarray(0, 12)));
     if (!fileType) {
-      await uploadStorage.from("product-images").remove(uploaded);
-      return { error: "type", uploaded, records };
+      if (uploaded.length) await uploadStorage.from("product-images").remove(uploaded);
+      return { error: "type", uploaded: [], records: [] };
     }
     const path = `${userId}/${productId}/${crypto.randomUUID()}.${fileType.extension}`;
 
@@ -121,23 +127,24 @@ async function uploadImages({
         p_name: path,
       });
       if (limitError && limitError.code !== "PGRST202" && limitError.code !== "42883") {
-        await uploadStorage.from("product-images").remove(uploaded);
-        return { error: isRateLimitError(limitError) ? "rate_limit" : "upload", uploaded, records };
+        if (uploaded.length) await uploadStorage.from("product-images").remove(uploaded);
+        return { error: isRateLimitError(limitError) ? "rate_limit" : "upload", uploaded: [], records: [] };
       }
       if (!limitError && !authorized) {
-        await uploadStorage.from("product-images").remove(uploaded);
-        return { error: "upload", uploaded, records };
+        if (uploaded.length) await uploadStorage.from("product-images").remove(uploaded);
+        return { error: "upload", uploaded: [], records: [] };
       }
     }
 
-    const { error } = await uploadStorage.from("product-images").upload(path, file, {
+    const { error } = await uploadStorage.from("product-images").upload(path, rawBuffer, {
       contentType: fileType.mime,
       cacheControl: "3600",
       upsert: false,
     });
     if (error) {
-      console.warn("Storage upload warning for image:", error);
-      continue;
+      console.error("Storage upload error for listing image:", error.message);
+      if (uploaded.length) await uploadStorage.from("product-images").remove(uploaded);
+      return { error: "upload", detail: error.message, uploaded: [], records: [] };
     }
     uploaded.push(path);
     records.push({ product_id: productId, storage_path: path, alt_text: `${productName} photo ${sortOffset + index + 1}`, sort_order: sortOffset + index });
@@ -147,9 +154,9 @@ async function uploadImages({
     const insertClient = storageAdmin || supabase;
     const { error } = await insertClient.from("product_images").insert(records);
     if (error) {
-      console.warn("Product images insert warning:", error);
+      console.error("Product images insert error:", error.message);
       await uploadStorage.from("product-images").remove(uploaded);
-      return { error: "upload", uploaded: [], records: [] };
+      return { error: "upload", detail: error.message, uploaded: [], records: [] };
     }
   }
   return { error: null, uploaded, records };
@@ -281,13 +288,17 @@ async function executeCreateListing(formData: FormData): Promise<{ error: string
       productName: fields.data.name,
       sortOffset: 0,
     });
-    if (uploaded.error && !uploaded.records.length) {
+    if (uploaded.error) {
       await (storageAdmin || supabase).from("products").delete().eq("id", product.id);
       return {
         error:
           uploaded.error === "rate_limit"
             ? "Image upload rate limit reached. Please wait a little and try again."
-            : "We could not upload your product photos. Check the images and try again.",
+            : uploaded.error === "size"
+            ? "One of the photos exceeds the 4 MB limit. Try fewer or smaller photos."
+            : uploaded.error === "type"
+            ? "One of the photos is not a supported JPG, PNG, or WebP image."
+            : `We could not upload your product photos (${uploaded.detail || "storage error"}). Please try again.`,
         code: uploaded.error,
       };
     }
@@ -371,10 +382,11 @@ export async function updateListing(formData: FormData) {
   const productId = z.uuid().safeParse(formData.get("product_id"));
   const fields = readFields(formData);
   const files = getImageFiles(formData);
-  if (!productId.success || !fields.success || files.length > 5) redirect("/listings?error=invalid");
+  if (!productId.success) redirect("/listings?error=invalid");
+  if (!fields.success) redirect(`/listings/${productId.data}/edit?error=invalid`);
+  if (files.length > 5) redirect(`/listings/${productId.data}/edit?error=too_many_images`);
   const { supabase, userId, profile } = await requireApprovedMember();
-  const storageAdmin = files.length ? createStorageAdminClient() : null;
-  if (files.length && !storageAdmin) redirect(`/setup#storage-key`);
+  const storageAdmin = createStorageAdminClient();
   const { data: product } = await supabase.from("products").select("id, seller_id, status, name, college_id, published_at, created_at").eq("id", productId.data).maybeSingle();
   if (!product || product.seller_id !== userId || !["draft", "rejected"].includes(product.status)) redirect("/listings?error=unavailable");
   const { data: category } = await supabase.from("categories").select("id, name, slug").eq("id", fields.data.categoryId).eq("is_active", true).maybeSingle();
@@ -407,11 +419,13 @@ export async function removeListingImage(formData: FormData) {
   const imageId = z.uuid().safeParse(formData.get("image_id"));
   if (!imageId.success) redirect("/listings");
   const { supabase, userId } = await requireApprovedMember();
+  const storageAdmin = createStorageAdminClient();
   const { data: image } = await supabase.from("product_images").select("id, product_id, storage_path").eq("id", imageId.data).maybeSingle();
   if (!image) redirect("/listings");
   const { data: product } = await supabase.from("products").select("seller_id, status").eq("id", image.product_id).maybeSingle();
   if (!product || product.seller_id !== userId || !["draft", "rejected"].includes(product.status)) redirect("/listings");
-  const { error: storageError } = await supabase.storage.from("product-images").remove([image.storage_path]);
+  const storageClient = storageAdmin ? storageAdmin.storage : supabase.storage;
+  const { error: storageError } = await storageClient.from("product-images").remove([image.storage_path]);
   if (storageError) redirect(`/listings/${image.product_id}/edit?error=image_remove`);
   const { error } = await supabase.from("product_images").delete().eq("id", image.id);
   revalidatePath(`/listings/${image.product_id}/edit`);
@@ -481,12 +495,14 @@ export async function deleteListing(formData: FormData) {
   const productId = z.uuid().safeParse(formData.get("product_id"));
   if (!productId.success) redirect("/listings");
   const { supabase, userId } = await requireApprovedMember();
+  const storageAdmin = createStorageAdminClient();
   const { data: product } = await supabase.from("products").select("id, seller_id, status").eq("id", productId.data).maybeSingle();
   if (!product || product.seller_id !== userId || !["draft", "rejected"].includes(product.status)) redirect("/listings?error=unavailable");
   const { data: images } = await supabase.from("product_images").select("storage_path").eq("product_id", product.id);
   const paths = (images ?? []).map((image) => (image as { storage_path: string }).storage_path);
   if (paths.length) {
-    const { error } = await supabase.storage.from("product-images").remove(paths);
+    const storageClient = storageAdmin ? storageAdmin.storage : supabase.storage;
+    const { error } = await storageClient.from("product-images").remove(paths);
     if (error) redirect(`/listings/${product.id}/edit?error=image_remove`);
   }
   const { error } = await supabase.from("products").delete().eq("id", product.id);

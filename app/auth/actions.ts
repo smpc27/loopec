@@ -347,8 +347,11 @@ export async function submitVerification(formData: FormData) {
     requestedRole: formData.get("requested_role"),
   });
   const document = formData.get("college_id_document");
-  if (!parsed.success || !(document instanceof File) || document.size < 1 || document.size > 5 * 1024 * 1024) {
+  if (!parsed.success || !(document instanceof File) || document.size < 1) {
     redirect("/verification?error=upload");
+  }
+  if (document.size > 4 * 1024 * 1024) {
+    redirect("/verification?error=size");
   }
 
   const supabase = await createClient();
@@ -383,8 +386,8 @@ export async function submitVerification(formData: FormData) {
     redirect("/verification?error=domain");
   }
 
-  const header = new Uint8Array(await document.slice(0, 8).arrayBuffer());
-  const fileType = detectDocumentType(header);
+  const docBuffer = Buffer.from(await document.arrayBuffer());
+  const fileType = detectDocumentType(new Uint8Array(docBuffer.subarray(0, 8)));
   if (!fileType) redirect("/verification?error=upload");
 
   const path = `${String(userId)}/${crypto.randomUUID()}.${fileType.extension}`;
@@ -405,7 +408,7 @@ export async function submitVerification(formData: FormData) {
 
   const { error: uploadError } = await uploadStorage
     .from("verification-documents")
-    .upload(path, document, {
+    .upload(path, docBuffer, {
       contentType: fileType.mime,
       cacheControl: "0",
       upsert: false,

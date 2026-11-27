@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useActionState } from "react";
+import { useState, useRef, useEffect, useActionState, startTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -19,13 +19,20 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createListingAction, type CreateListingState } from "@/app/listings/actions";
+import {
+  compressImageFile,
+  formatFileSize,
+  isSupportedListingImage,
+  MAX_LISTING_PHOTOS,
+  MAX_LISTING_SINGLE_BYTES,
+  MAX_LISTING_TOTAL_BYTES,
+} from "@/lib/media/image-upload";
 
 type Category = { id: string; name: string };
 type SelectedImage = { id: string; file: File; previewUrl: string };
 
-const MAX_PHOTOS = 5;
-const MAX_TOTAL_BYTES = 4 * 1024 * 1024;
-const TARGET_SINGLE_BYTES = 550 * 1024;
+const MAX_PHOTOS = MAX_LISTING_PHOTOS;
+const MAX_TOTAL_BYTES = MAX_LISTING_TOTAL_BYTES;
 
 const conditionOptions = [
   { value: "new", label: "New", desc: "Unused, unopened in original condition" },
@@ -33,88 +40,6 @@ const conditionOptions = [
   { value: "good", label: "Good", desc: "Normal campus wear, fully functional" },
   { value: "used", label: "Used", desc: "Well used, working condition, budget friendly" },
 ] as const;
-
-function isSupportedImageFile(file: File) {
-  if (["image/jpeg", "image/png", "image/webp"].includes(file.type)) return true;
-  return /\.(jpe?g|png|webp)$/i.test(file.name);
-}
-
-async function compressImageIfNeeded(file: File): Promise<File> {
-  if (file.size <= TARGET_SINGLE_BYTES && ["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-    return file;
-  }
-
-  return await new Promise<File>((resolve) => {
-    const objectUrl = URL.createObjectURL(file);
-    const img = new window.Image();
-    img.onload = () => {
-      try {
-        const maxSide = 1400;
-        const scale = Math.min(1, maxSide / Math.max(img.width || 1, img.height || 1));
-        const width = Math.max(1, Math.round(img.width * scale));
-        const height = Math.max(1, Math.round(img.height * scale));
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          URL.revokeObjectURL(objectUrl);
-          resolve(file);
-          return;
-        }
-        ctx.drawImage(img, 0, 0, width, height);
-        const outName = file.name.replace(/\.[^.]+$/, "") + ".jpg";
-        canvas.toBlob(
-          (blob) => {
-            if (!blob) {
-              URL.revokeObjectURL(objectUrl);
-              resolve(file);
-              return;
-            }
-            if (blob.size > 750 * 1024) {
-              canvas.toBlob(
-                (smallerBlob) => {
-                  URL.revokeObjectURL(objectUrl);
-                  resolve(
-                    smallerBlob
-                      ? new File([smallerBlob], outName, { type: "image/jpeg" })
-                      : new File([blob], outName, { type: "image/jpeg" })
-                  );
-                },
-                "image/jpeg",
-                0.68
-              );
-            } else {
-              URL.revokeObjectURL(objectUrl);
-              resolve(new File([blob], outName, { type: "image/jpeg" }));
-            }
-          },
-          "image/jpeg",
-          0.82
-        );
-      } catch {
-        URL.revokeObjectURL(objectUrl);
-        resolve(file);
-      }
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      resolve(file);
-    };
-    img.src = objectUrl;
-  });
-}
-
-function syncFileInput(input: HTMLInputElement | null, files: SelectedImage[]) {
-  if (!input || typeof DataTransfer === "undefined") return;
-  try {
-    const dt = new DataTransfer();
-    for (const item of files) dt.items.add(item.file);
-    input.files = dt.files;
-  } catch {
-    // Fallback gracefully if DataTransfer assignment is unsupported
-  }
-}
 
 export function ListingForm({
   categories,
@@ -140,6 +65,7 @@ export function ListingForm({
   const [tradeWishlist, setTradeWishlist] = useState("");
   const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
   const [isCompressing, setIsCompressing] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [clientError, setClientError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const selectedImagesRef = useRef<SelectedImage[]>([]);
@@ -156,56 +82,78 @@ export function ListingForm({
     };
   }, []);
 
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawFiles = Array.from(e.target.files ?? []);
+  const processSelectedFiles = async (rawFiles: File[]) => {
     if (rawFiles.length === 0) return;
 
     setClientError(null);
     const availableSlots = MAX_PHOTOS - selectedImages.length;
     if (availableSlots <= 0) {
       setClientError(`You can attach up to ${MAX_PHOTOS} photos per listing.`);
-      syncFileInput(fileInputRef.current, selectedImages);
       return;
     }
 
     const candidates = rawFiles.slice(0, availableSlots);
-    const unsupported = candidates.find((f) => !isSupportedImageFile(f));
+    const unsupported = candidates.find((f) => !isSupportedListingImage(f));
     if (unsupported) {
       setClientError(`"${unsupported.name}" is not supported. Use JPG, PNG, or WebP images.`);
-      syncFileInput(fileInputRef.current, selectedImages);
       return;
     }
 
     setIsCompressing(true);
     try {
       const processed: SelectedImage[] = [];
+      let compressionIssue: string | null = null;
+
       for (const file of candidates) {
-        const readyFile = await compressImageIfNeeded(file);
-        if (readyFile.size > MAX_TOTAL_BYTES) {
-          setClientError(`"${file.name}" stays larger than 4 MB even after compression. Choose a smaller photo.`);
+        const result = await compressImageFile(file);
+        if (result.error) {
+          compressionIssue = result.error;
+          continue;
+        }
+        if (result.file.size > MAX_LISTING_SINGLE_BYTES) {
+          compressionIssue = `"${file.name}" stays larger than 4 MB even after compression. Choose a smaller photo.`;
           continue;
         }
         processed.push({
           id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-          file: readyFile,
-          previewUrl: URL.createObjectURL(readyFile),
+          file: result.file,
+          previewUrl: URL.createObjectURL(result.file),
         });
       }
+
+      if (compressionIssue) {
+        setClientError(compressionIssue);
+      }
+      if (!processed.length) return;
 
       const nextList = [...selectedImages, ...processed].slice(0, MAX_PHOTOS);
       const totalBytes = nextList.reduce((sum, item) => sum + item.file.size, 0);
       if (totalBytes > MAX_TOTAL_BYTES) {
         for (const item of processed) URL.revokeObjectURL(item.previewUrl);
-        setClientError("Total photo size exceeds 4 MB. Remove a photo or upload fewer images.");
-        syncFileInput(fileInputRef.current, selectedImages);
+        setClientError(
+          `Total photo size (${formatFileSize(totalBytes)}) exceeds the 3.5 MB upload limit. Remove a photo or upload fewer images.`
+        );
         return;
       }
 
       setSelectedImages(nextList);
-      syncFileInput(fileInputRef.current, nextList);
     } finally {
       setIsCompressing(false);
     }
+  };
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawFiles = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    await processSelectedFiles(rawFiles);
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (isCompressing || isPending) return;
+    const dropped = Array.from(e.dataTransfer.files ?? []);
+    await processSelectedFiles(dropped);
   };
 
   const handleRemoveImage = (id: string) => {
@@ -214,36 +162,34 @@ export function ListingForm({
     if (removed?.previewUrl.startsWith("blob:")) {
       URL.revokeObjectURL(removed.previewUrl);
     }
-    const nextList = selectedImages.filter((item) => item.id !== id);
-    setSelectedImages(nextList);
-    syncFileInput(fileInputRef.current, nextList);
+    setSelectedImages(selectedImages.filter((item) => item.id !== id));
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     setClientError(null);
 
     if (!isAuthenticated) {
-      e.preventDefault();
       setClientError("Please sign in with your @nitc.ac.in Google account before publishing a live listing.");
       return;
     }
+    if (isCompressing) {
+      setClientError("Please wait a moment while photos finish optimizing.");
+      return;
+    }
     if (listingType === "trade" && tradeWishlist.trim().length < 2) {
-      e.preventDefault();
       setClientError("Please enter what item(s) you want to trade for in Step 1.");
       return;
     }
     if (name.trim().length < 3) {
-      e.preventDefault();
       setClientError("Item title must be at least 3 characters long.");
       return;
     }
     if (!categoryId) {
-      e.preventDefault();
       setClientError("Please select a category for your item.");
       return;
     }
     if (description.trim().length < 10) {
-      e.preventDefault();
       setClientError("Description must be at least 10 characters (add condition or hostel pickup details).");
       return;
     }
@@ -251,19 +197,25 @@ export function ListingForm({
       const cleanPrice = price.replace(/,/g, "").trim();
       const parsedPrice = Number(cleanPrice);
       if (!cleanPrice || !Number.isFinite(parsedPrice) || parsedPrice < 0) {
-        e.preventDefault();
         setClientError("Please enter a valid listing price in INR.");
         return;
       }
     }
     const totalBytes = selectedImages.reduce((sum, item) => sum + item.file.size, 0);
     if (totalBytes > MAX_TOTAL_BYTES) {
-      e.preventDefault();
-      setClientError("Total photo size must stay under 4 MB. Remove a photo and try again.");
+      setClientError("Total photo size must stay under 3.5 MB. Remove a photo and try again.");
       return;
     }
 
-    syncFileInput(fileInputRef.current, selectedImages);
+    const payload = new FormData(e.currentTarget);
+    payload.delete("images");
+    for (const item of selectedImages) {
+      payload.append("images", item.file, item.file.name);
+    }
+
+    startTransition(() => {
+      formAction(payload);
+    });
   };
 
   const selectedCategoryName =
@@ -298,7 +250,7 @@ export function ListingForm({
           </div>
         )}
 
-        <form action={formAction} onSubmit={handleSubmit} noValidate className="space-y-6">
+        <form onSubmit={handleSubmit} noValidate className="space-y-6">
           {/* STEP 1: LISTING TYPE SELECTOR */}
           <div className="rounded-[26px] border border-white/80 bg-white/75 backdrop-blur-2xl p-6 sm:p-7 shadow-[0_15px_40px_-20px_rgba(36,30,20,0.06),_inset_0_1px_2px_rgba(255,255,255,0.95)]">
             <div className="flex items-center justify-between">
@@ -626,9 +578,8 @@ export function ListingForm({
 
             <input
               ref={fileInputRef}
-              name="images"
               type="file"
-              accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+              accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
               multiple
               onChange={handleImageChange}
               className="sr-only"
@@ -636,16 +587,33 @@ export function ListingForm({
 
             <div
               onClick={() => !isCompressing && fileInputRef.current?.click()}
-              className="group flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#d0c1ab] bg-white/50 backdrop-blur-md p-6 text-center transition hover:border-[#241e14] hover:bg-white/80 shadow-sm"
+              onDragOver={(e) => {
+                e.preventDefault();
+                if (!isCompressing && !isPending) setIsDragging(true);
+              }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={handleDrop}
+              className={`group flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center transition backdrop-blur-md shadow-sm ${
+                isDragging
+                  ? "border-[#241e14] bg-white scale-[1.01]"
+                  : "border-[#d0c1ab] bg-white/50 hover:border-[#241e14] hover:bg-white/80"
+              }`}
             >
               <div className="grid size-11 place-items-center rounded-2xl bg-[#eee9e2] text-[#241e14] shadow-sm group-hover:scale-105 transition-transform">
                 {isCompressing ? <Loader2 size={22} className="animate-spin" /> : <UploadCloud size={22} />}
               </div>
               <p className="mt-2.5 text-sm font-bold text-[#241e14]">
-                {isCompressing ? "Optimizing photos for fast upload..." : "Click to upload photos from your device"}
+                {isCompressing
+                  ? "Optimizing photos for fast upload..."
+                  : isDragging
+                  ? "Drop photos here to attach"
+                  : selectedImages.length > 0
+                  ? "Click or drop to add more photos"
+                  : "Click or drag photos from your device"}
               </p>
               <p className="mt-1 text-xs text-[#736b60]">
-                Large camera photos are automatically optimized ({selectedImages.length}/{MAX_PHOTOS} added).
+                Auto-compressed for fast upload ({selectedImages.length}/{MAX_PHOTOS} added ·{" "}
+                {formatFileSize(selectedImages.reduce((sum, item) => sum + item.file.size, 0))} / 3.5 MB)
               </p>
             </div>
 
