@@ -108,7 +108,9 @@ export function ProductCard({
 }) {
   const isUuid = UUID_REGEX.test(product.id);
   const [isSaved, setIsSaved] = useState(initialSaved);
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
   const [, startTransition] = useTransition();
+  const showImage = Boolean(product.imageUrl && failedImageUrl !== product.imageUrl);
 
   useEffect(() => {
     if (isUuid) return;
@@ -157,14 +159,15 @@ export function ProductCard({
   return (
     <article className="group relative overflow-hidden rounded-[26px] border border-white/80 bg-white/75 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_22px_45px_-15px_rgba(36,30,20,0.12)] hover:bg-white/95 hover:border-white shadow-[0_8px_25px_-12px_rgba(36,30,20,0.06),_inset_0_1px_1px_rgba(255,255,255,0.9)] active:scale-[0.99]">
       <div className="relative aspect-[1.18/1] overflow-hidden bg-gradient-to-br from-[#eee9e2] to-[#e4ded5]">
-        {product.imageUrl ? (
+        {showImage ? (
           <Image
             className="object-cover transition duration-500 group-hover:scale-[1.04]"
-            src={product.imageUrl}
+            src={product.imageUrl!}
             alt={product.name}
             fill
             sizes="(max-width: 640px) 90vw, (max-width: 1024px) 44vw, 25vw"
             unoptimized
+            onError={() => setFailedImageUrl(product.imageUrl)}
           />
         ) : (
           <div className="relative grid h-full place-items-center bg-gradient-to-br from-[#f8f5f0] via-[#ede6dc] to-[#e0d6c9] p-6 text-center select-none">

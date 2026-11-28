@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import { createStorageAdminClient } from "@/lib/supabase/admin";
@@ -25,6 +26,7 @@ export type MemberProfile = {
 };
 
 export async function getCurrentMember() {
+  await connection();
   if (!isSupabaseConfigured()) redirect("/setup");
 
   // Fast-path: Check cookies first before doing any remote network calls

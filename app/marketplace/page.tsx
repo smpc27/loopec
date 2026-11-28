@@ -288,8 +288,9 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
 
     for (const fp of firestoreProducts) {
       if (!existingCardIds.has(fp.id)) {
-        const resolvedUrl =
-          (fp.imageStoragePath ? fsImageUrls.get(fp.imageStoragePath) ?? null : null) ?? fp.imageUrl;
+        const resolvedUrl = fp.imageStoragePath
+          ? fsImageUrls.get(fp.imageStoragePath) ?? null
+          : fp.imageUrl;
         cards.push({
           id: fp.id,
           seller_id: fp.seller_id,

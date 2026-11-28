@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
   });
 
-  const [{ data: products, error: prodErr }, { data: categories, error: catErr }] =
+  const [{ data: products, error: prodErr }, { data: categories, error: catErr }, { data: approvedIdRows }] =
     await Promise.all([
       supabase
         .from("products")
@@ -63,6 +63,10 @@ export async function POST(req: NextRequest) {
         .select("id, name, slug, sort_order, is_active")
         .eq("is_active", true)
         .order("sort_order", { ascending: true }),
+      supabase
+        .from("products")
+        .select("id")
+        .eq("status", "approved"),
     ]);
 
   if (prodErr) {
@@ -101,6 +105,7 @@ export async function POST(req: NextRequest) {
 
   let synced = 0;
   let categoriesSynced = 0;
+  let pruned = 0;
   let failed = 0;
   const errors: string[] = [];
 
@@ -120,6 +125,18 @@ export async function POST(req: NextRequest) {
 
     const { FieldValue } = await import("firebase-admin/firestore");
     const batch = db.batch();
+
+    // Remove stale UUID-keyed Supabase test/deleted/inactive docs from Firestore
+    // while keeping curated non-UUID campus listings (e.g., item-*) untouched.
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const approvedIdSet = new Set((approvedIdRows ?? []).map((row) => row.id as string));
+    const existingFsSnap = await db.collection("products").select().get();
+    for (const fsDoc of existingFsSnap.docs) {
+      if (UUID_RE.test(fsDoc.id) && !approvedIdSet.has(fsDoc.id)) {
+        batch.delete(fsDoc.ref);
+        pruned++;
+      }
+    }
 
     if (!catErr && categories) {
       for (const c of categories as {
@@ -193,6 +210,7 @@ export async function POST(req: NextRequest) {
   return Response.json({
     synced,
     categoriesSynced,
+    pruned,
     failed,
     total: productList.length,
     errors: errors.length > 0 ? errors : undefined,

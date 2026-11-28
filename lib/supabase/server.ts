@@ -1,8 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 import { getSupabasePublicConfig } from "@/lib/supabase/env";
 
 export async function createClient() {
+  await connection();
   const { url, publishableKey } = getSupabasePublicConfig();
   const cookieStore = await cookies();
 

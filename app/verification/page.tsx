@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { Clock3, FileCheck2, ShieldCheck } from "lucide-react";
+import { Clock3, ShieldCheck } from "lucide-react";
 import { AuthShell, FormNotice, inputClassName, labelClassName } from "@/components/auth/auth-shell";
-import { Button } from "@/components/ui/button";
 import { getCurrentMember } from "@/lib/auth/member";
 import { authMessage } from "@/lib/auth/messages";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { signOut } from "@/app/auth/actions";
 import { submitVerification } from "@/app/auth/actions";
+import { CompressedUploadForm } from "@/components/forms/compressed-upload-form";
 
 export const instant = false;
 
@@ -78,7 +78,18 @@ export default async function VerificationPage({ searchParams }: PageProps<"/ver
           {colleges.length === 0 ? (
             <p className="rounded-2xl bg-violet-50 p-4 text-sm leading-6 text-violet-950">The pilot college has not been configured yet. Ask your LOOPEC administrator to add it before submitting identity details.</p>
           ) : (
-            <form action={submitVerification} className="space-y-4" encType="multipart/form-data">
+            <CompressedUploadForm
+              action={submitVerification}
+              fileFieldName="college_id_document"
+              accept="image/jpeg,image/png,image/heic,image/heif,application/pdf,.jpg,.jpeg,.png,.heic,.heif,.pdf"
+              requiredFile
+              allowPdf
+              label="College ID document *"
+              helperText="PDF, JPG, or PNG (photos auto-compressed under 3.5 MB). Private & encrypted."
+              submitLabel="Submit for review"
+              pendingLabel="Uploading document..."
+              buttonClassName="min-h-12 w-full rounded-full bg-violet-950 px-5 text-sm font-semibold text-white hover:bg-violet-900 transition cursor-pointer disabled:opacity-60"
+            >
               <label className={labelClassName}>
                 College
                 <select className={inputClassName} name="college_id" required defaultValue={member.profile?.college_id ?? ""}>
@@ -94,17 +105,11 @@ export default async function VerificationPage({ searchParams }: PageProps<"/ver
                   <option value="staff">College staff</option>
                 </select>
               </label>
-              <label className={labelClassName}>
-                College ID document
-                <input className={`${inputClassName} file:mr-3 file:rounded-lg file:border-0 file:bg-violet-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-violet-950`} name="college_id_document" type="file" accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" required />
-                <span className="mt-1.5 block text-xs font-normal leading-5 text-[#87818c]">PDF, JPG or PNG, up to 5 MB. Your document is private and only shared with authorized college administrators.</span>
-              </label>
               <div className="flex gap-3 rounded-2xl bg-[#f6f3fa] p-4 text-xs leading-5 text-[#625b6b]">
                 <ShieldCheck className="shrink-0 text-violet-800" size={17} aria-hidden="true" />
                 <p>We use the confirmed email address on your account to check that it matches the selected college domain. The uploaded file is not publicly accessible.</p>
               </div>
-              <Button className="w-full" size="lg" type="submit"><FileCheck2 size={16} /> Submit for review</Button>
-            </form>
+            </CompressedUploadForm>
           )}
         </div>
       )}

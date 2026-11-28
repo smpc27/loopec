@@ -72,7 +72,7 @@ export default async function WishlistPage() {
     categoryName: fp.categoryName,
     sellerName: fp.sellerName,
     sellerHandle: fp.sellerHandle,
-    imageUrl: (fp.imageStoragePath ? fsSignedUrls.get(fp.imageStoragePath) : null) ?? fp.imageUrl,
+    imageUrl: fp.imageStoragePath ? fsSignedUrls.get(fp.imageStoragePath) ?? null : fp.imageUrl,
   }));
 
   return (

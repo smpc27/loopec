@@ -410,7 +410,7 @@ export function MarketplaceFilterDock({
               setShowSuggestions(true);
             }}
             placeholder="Search textbooks, calculators, drafters..."
-            className="h-11 w-full rounded-2xl bg-white/80 border border-[#d0c1ab]/50 pl-10 pr-9 text-xs sm:text-sm text-[#241e14] outline-none placeholder:text-[#8a8175] transition focus:bg-white focus:border-[#241e14] focus:ring-4 focus:ring-[#d0c1ab]/30 shadow-inner"
+            className="h-11 w-full appearance-none [&::-webkit-search-cancel-button]:hidden rounded-2xl bg-white/80 border border-[#d0c1ab]/50 pl-10 pr-9 text-xs sm:text-sm text-[#241e14] outline-none placeholder:text-[#8a8175] transition focus:bg-white focus:border-[#241e14] focus:ring-4 focus:ring-[#d0c1ab]/30 shadow-inner"
           />
           {search ? (
             <button

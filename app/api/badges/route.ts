@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
 import { getCurrentMember } from "@/lib/auth/member";
 
+const noStoreHeaders = {
+  headers: {
+    "Cache-Control": "no-store",
+  },
+};
+
 export async function GET() {
   try {
     const member = await getCurrentMember().catch(() => null);
     if (!member?.userId) {
-      return NextResponse.json({ unreadAlerts: 0, unreadMessages: 0 });
+      return NextResponse.json({ unreadAlerts: 0, unreadMessages: 0 }, noStoreHeaders);
     }
 
     const { supabase, userId } = member;
@@ -45,13 +51,9 @@ export async function GET() {
         unreadAlerts: unreadAlerts ?? 0,
         unreadMessages: unreadMessages ?? 0,
       },
-      {
-        headers: {
-          "Cache-Control": "no-store",
-        },
-      }
+      noStoreHeaders
     );
   } catch {
-    return NextResponse.json({ unreadAlerts: 0, unreadMessages: 0 });
+    return NextResponse.json({ unreadAlerts: 0, unreadMessages: 0 }, noStoreHeaders);
   }
 }
